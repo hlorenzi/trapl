@@ -1,0 +1,2 @@
+hello: funct(x: int32, y: int8)
+goodbye: funct(y: float64)

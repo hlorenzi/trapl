@@ -1,0 +1,7 @@
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+Trapl/bin/
+Trapl/obj/
