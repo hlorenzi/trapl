@@ -45,7 +45,10 @@ namespace Trapl.Syntax
 
     public enum NodeKind
     {
-        TopLevelDecl, FunctDecl, FunctArgDecl,
+        TopLevelDecl,
+        FunctDecl, FunctArgDecl,
+        StructDecl, StructMemberDecl,
+        TraitDecl, TraitMemberDecl,
         Identifier, NumberLiteral, TypeName,
         Block,
         BinaryOp, Operator, Call,
@@ -57,6 +60,7 @@ namespace Trapl.Syntax
     {
         public NodeKind kind;
         private Diagnostics.Span span;
+        private Diagnostics.Span spanWithDelimiters;
         private List<Node> children = new List<Node>();
 
 
@@ -70,6 +74,7 @@ namespace Trapl.Syntax
         {
             this.kind = kind;
             this.span = span;
+            this.spanWithDelimiters = span;
         }
 
 
@@ -79,15 +84,29 @@ namespace Trapl.Syntax
         }
 
 
+        public Diagnostics.Span SpanWithDelimiters()
+        {
+            return this.spanWithDelimiters;
+        }
+
+
         public void SetSpan(Diagnostics.Span span)
         {
             this.span = span;
+            this.spanWithDelimiters = span;
         }
 
 
         public void AddSpan(Diagnostics.Span span)
         {
             this.span = this.span.Merge(span);
+            this.spanWithDelimiters = this.spanWithDelimiters.Merge(span);
+        }
+
+
+        public void AddSpanWithDelimiters(Diagnostics.Span span)
+        {
+            this.spanWithDelimiters = this.spanWithDelimiters.Merge(span);
         }
 
 
@@ -97,9 +116,17 @@ namespace Trapl.Syntax
         }
 
 
-        public Node LastChild()
+        public void SetLastChildSpan()
         {
-            return this.children[this.children.Count - 1];
+            if (this.children.Count > 0)
+                this.SetSpan(this.children[this.children.Count - 1].SpanWithDelimiters());
+        }
+
+
+        public void AddLastChildSpan()
+        {
+            if (this.children.Count > 0)
+                this.AddSpan(this.children[this.children.Count - 1].SpanWithDelimiters());
         }
 
 

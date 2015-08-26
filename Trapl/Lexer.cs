@@ -37,14 +37,18 @@ namespace Trapl.Lexer
     public class Output
     {
         public List<Token> tokens = new List<Token>();
+        public Token tokenAfterEnd;
 
 
         public Token this[int index]
         {
             get
             {
-                if (index < 0 || index >= tokens.Count)
+                if (index < 0)
                     return new Token(TokenKind.Error, new Diagnostics.Span());
+
+                if (index >= tokens.Count)
+                    return tokenAfterEnd;
 
                 return tokens[index];
             }
@@ -101,6 +105,9 @@ namespace Trapl.Lexer
 
                 index += match.representation.Length;
             }
+
+            output.tokenAfterEnd =
+                new Token(TokenKind.Error, new Diagnostics.Span(index, index));
 
             return output;
         }

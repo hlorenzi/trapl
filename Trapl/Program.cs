@@ -11,7 +11,7 @@ namespace Trapl
             var diagn = new Diagnostics.MessageList();
 
             var lex = Lexer.Analyzer.Pass(src, diagn);
-            lex.PrintDebug(src);
+            //lex.PrintDebug(src);
 
             var syn = Syntax.Analyzer.Pass(lex, src, diagn);
             syn.PrintDebug(src);
