@@ -28,11 +28,13 @@ namespace Trapl.Syntax
                 new string(' ', indentLevel * 2) +
                 System.Enum.GetName(typeof(NodeKind), node.kind);
 
+            string excerpt = src.Excerpt(node.Span());
             string secondColumn =
                 new string(' ', indentLevel * 2) +
-                src.Excerpt(node.Span());
+                excerpt.Substring(0, Math.Min(excerpt.Length, 20)).Replace("\n", " ").Replace("\r", "") +
+                (excerpt.Length > 20 ? "..." : "");
 
-            Console.Out.Write(firstColumn.PadRight(20));
+            Console.Out.Write(firstColumn.PadRight(40));
             Console.Out.Write(": ");
             Console.Out.WriteLine(secondColumn);
             foreach (var child in node.EnumerateChildren())
@@ -43,8 +45,11 @@ namespace Trapl.Syntax
 
     public enum NodeKind
     {
-        FunctDecl, FunctArgDecl,
-        Identifier, TypeName
+        TopLevelDecl, FunctDecl, FunctArgDecl,
+        Identifier, NumberLiteral, TypeName,
+        Block,
+        BinaryOp, Operator, Call,
+        ControlLet, ControlIf, ControlWhile, ControlReturn,
     }
 
 
@@ -89,6 +94,12 @@ namespace Trapl.Syntax
         public void AddChild(Node node)
         {
             this.children.Add(node);
+        }
+
+
+        public Node LastChild()
+        {
+            return this.children[this.children.Count - 1];
         }
 
 

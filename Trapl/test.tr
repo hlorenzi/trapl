@@ -1,2 +1,19 @@
-hello: funct(x: int32, y: int8)
-goodbye: funct(y: float64)
+hello: funct(x: Int32, y: Int8, z: Float64)
+{
+	hey;
+	x + y * z + w;
+	if x { y } else { z };
+	while x { hey; };
+	return x;
+	return;
+	let x;
+	let x: Int64;
+	let x: Int32 = 7;
+	let x = 7_int64;
+}
+
+
+goodbye: funct()
+{
+
+}

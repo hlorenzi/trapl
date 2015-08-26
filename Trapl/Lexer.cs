@@ -11,8 +11,12 @@ namespace Trapl.Lexer
         Error,
         Identifier, Number,
         KeywordFunct, KeywordStruct, KeywordTrait,
+        KeywordLet, KeywordIf, KeywordElse, KeywordWhile, KeywordReturn,
         BraceOpen, BraceClose, ParenOpen, ParenClose,
-        Comma, Colon, Semicolon
+        Period, Comma, Colon, Semicolon, Arrow,
+        Equal, Plus, Minus, Asterisk, Slash,
+        ExclamationMark, ExclamationMarkEqual, QuestionMark,
+        LessThan, LessThanEqual, GreaterThan, GreaterThanEqual
     }
 
 
@@ -56,9 +60,9 @@ namespace Trapl.Lexer
                 Console.Out.Write(token.span.Length().ToString().PadLeft(2));
                 Console.Out.Write(" ");
                 Console.Out.Write(
-                    System.Enum.GetName(typeof(TokenKind), token.kind).PadRight(20));
+                    System.Enum.GetName(typeof(TokenKind), token.kind).PadRight(14));
                 Console.Out.Write(" ");
-                Console.Out.Write(": " + src.Excerpt(token.span));
+                Console.Out.Write(src.Excerpt(token.span));
                 Console.Out.WriteLine();
             }
         }
@@ -124,12 +128,31 @@ namespace Trapl.Lexer
                 new TokenMatch("}", TokenKind.BraceClose),
                 new TokenMatch("(", TokenKind.ParenOpen),
                 new TokenMatch(")", TokenKind.ParenClose),
+                new TokenMatch(".", TokenKind.Period),
                 new TokenMatch(",", TokenKind.Comma),
                 new TokenMatch(":", TokenKind.Colon),
                 new TokenMatch(";", TokenKind.Semicolon),
+                new TokenMatch("->", TokenKind.Arrow),
+                new TokenMatch("=", TokenKind.Equal),
+                new TokenMatch("+", TokenKind.Plus),
+                new TokenMatch("-", TokenKind.Minus),
+                new TokenMatch("*", TokenKind.Asterisk),
+                new TokenMatch("/", TokenKind.Slash),
+                new TokenMatch("!=", TokenKind.ExclamationMarkEqual),
+                new TokenMatch("!", TokenKind.ExclamationMark),
+                new TokenMatch("?", TokenKind.QuestionMark),
+                new TokenMatch("<=", TokenKind.LessThanEqual),
+                new TokenMatch("<", TokenKind.LessThan),
+                new TokenMatch(">=", TokenKind.GreaterThanEqual),
+                new TokenMatch(">", TokenKind.GreaterThan),
                 new TokenMatch("funct", TokenKind.KeywordFunct),
                 new TokenMatch("struct", TokenKind.KeywordStruct),
                 new TokenMatch("trait", TokenKind.KeywordTrait),
+                new TokenMatch("let", TokenKind.KeywordLet),
+                new TokenMatch("if", TokenKind.KeywordIf),
+                new TokenMatch("else", TokenKind.KeywordElse),
+                new TokenMatch("while", TokenKind.KeywordWhile),
+                new TokenMatch("return", TokenKind.KeywordReturn),
             };
 
             // Check all model tokens for matches to the next input.
@@ -178,6 +201,21 @@ namespace Trapl.Lexer
 
                 return new TokenMatch(identifier.ToString(), TokenKind.Identifier);
             }
+            // Check for number literals.
+            else if (IsNumberBeginning(src[index]))
+            {
+                var number = new StringBuilder();
+                number.Append(src[index]);
+                index++;
+
+                while (index < src.Length() && IsNumber(src[index]))
+                {
+                    number.Append(src[index]);
+                    index++;
+                }
+
+                return new TokenMatch(number.ToString(), TokenKind.Number);
+            }
 
             return null;
         }
@@ -204,6 +242,24 @@ namespace Trapl.Lexer
             return
                 IsIdentifierBeginning(c) ||
                 (c >= '0' && c <= '9');
+        }
+
+
+        private static bool IsNumberBeginning(char c)
+        {
+            return
+                (c >= '0' && c <= '9');
+        }
+
+
+        private static bool IsNumber(char c)
+        {
+            return
+                IsNumberBeginning(c) ||
+                (c >= 'A' && c <= 'Z') ||
+                (c >= 'a' && c <= 'z') ||
+                (c == '_') ||
+                (c == '.');
         }
     }
 }

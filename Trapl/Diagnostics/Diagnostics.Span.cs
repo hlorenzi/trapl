@@ -29,6 +29,12 @@ namespace Trapl.Diagnostics
         }
 
 
+        public Span JustAfter()
+        {
+            return new Span(this.end, this.end);
+        }
+
+
         public int Length()
         {
             return this.end - this.start;
