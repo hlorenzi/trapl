@@ -6,7 +6,7 @@ namespace Trapl.Diagnostics
 {
 	public enum MessageKind
     {
-		Info, Warning, Error
+		Info, Style, Warning, Error
     }
 
 
@@ -73,14 +73,8 @@ namespace Trapl.Diagnostics
         {
             Console.ForegroundColor = ConsoleColor.White;
             Console.Write(ErrorPositionString() + ": ");
-
-            switch (this.kind)
-            {
-                case MessageKind.Error:   Console.ForegroundColor = ConsoleColor.Red; Console.Write("error: "); break;
-                case MessageKind.Warning: Console.ForegroundColor = ConsoleColor.Yellow; Console.Write("warning: "); break;
-                case MessageKind.Info:    Console.ForegroundColor = ConsoleColor.Cyan; Console.Write("note: "); break;
-            }
-
+            Console.ForegroundColor = GetLightColor(this.kind);
+            Console.Write(GetKindName(this.kind) + ": ");
             Console.WriteLine(this.text);
             PrintErrorWithHighlighting();
             Console.ResetColor();
@@ -99,6 +93,45 @@ namespace Trapl.Diagnostics
             this.kind = kind;
             this.source = source;
             this.carets = carets;
+        }
+
+
+        private string GetKindName(MessageKind kind)
+        {
+            switch (this.kind)
+            {
+                case MessageKind.Error: return "error";
+                case MessageKind.Warning: return "warning";
+                case MessageKind.Style: return "style";
+                case MessageKind.Info: return "info";
+                default: return "unknown";
+            }
+        }
+
+
+        private ConsoleColor GetLightColor(MessageKind kind)
+        {
+            switch (this.kind)
+            {
+                case MessageKind.Error: return ConsoleColor.Red;
+                case MessageKind.Warning: return ConsoleColor.Yellow;
+                case MessageKind.Style: return ConsoleColor.Magenta;
+                case MessageKind.Info: return ConsoleColor.Cyan;
+                default: return ConsoleColor.White;
+            }
+        }
+
+
+        private ConsoleColor GetDarkColor(MessageKind kind)
+        {
+            switch (this.kind)
+            {
+                case MessageKind.Error: return ConsoleColor.DarkRed;
+                case MessageKind.Warning: return ConsoleColor.DarkYellow;
+                case MessageKind.Style: return ConsoleColor.DarkMagenta;
+                case MessageKind.Info: return ConsoleColor.DarkCyan;
+                default: return ConsoleColor.Gray;
+            }
         }
 
 
@@ -230,27 +263,8 @@ namespace Trapl.Diagnostics
                 // Set up text color for highlighting.
                 if (highlight)
                 {
-                    switch (this.kind)
-                    {
-                        case MessageKind.Error:
-                        {
-                            Console.BackgroundColor = ConsoleColor.DarkRed;
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            break;
-                        }
-                        case MessageKind.Warning:
-                        {
-                            Console.BackgroundColor = ConsoleColor.DarkYellow;
-                            Console.ForegroundColor = ConsoleColor.Yellow;
-                            break;
-                        }
-                        case MessageKind.Info:
-                        {
-                            Console.BackgroundColor = ConsoleColor.DarkCyan;
-                            Console.ForegroundColor = ConsoleColor.Cyan;
-                            break;
-                        }
-                    }
+                    Console.BackgroundColor = this.GetDarkColor(this.kind);
+                    Console.ForegroundColor = this.GetLightColor(this.kind);
                 }
                 else
                 {

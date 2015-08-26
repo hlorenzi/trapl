@@ -116,6 +116,12 @@ namespace Trapl.Syntax
         }
 
 
+        public Node Child(int index)
+        {
+            return this.children[index];
+        }
+
+
         public void SetLastChildSpan()
         {
             if (this.children.Count > 0)

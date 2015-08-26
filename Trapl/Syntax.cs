@@ -138,7 +138,7 @@ namespace Trapl.Syntax
                     node.AddChild(this.ParseIdentifier());
                     this.Match(Lexer.TokenKind.Colon, "expecting ':'");
                     if (this.CurrentIs(Lexer.TokenKind.KeywordFunct))
-                        node.AddChild(this.ParseFunctDecl());
+                        node.AddChild(this.ParseFunctDecl(true));
                     else if (this.CurrentIs(Lexer.TokenKind.KeywordStruct))
                         node.AddChild(this.ParseStructDecl());
                     else if (this.CurrentIs(Lexer.TokenKind.KeywordTrait))
@@ -154,7 +154,7 @@ namespace Trapl.Syntax
         }
 
 
-        private Node ParseFunctDecl()
+        private Node ParseFunctDecl(bool withBody)
         {
             var node = new Node(NodeKind.FunctDecl);
             node.SetSpan(this.Current().span);
@@ -173,7 +173,7 @@ namespace Trapl.Syntax
                 this.MatchListSeparator(Lexer.TokenKind.Comma, Lexer.TokenKind.ParenClose, "expecting ',' or ')'");
             }
             this.Match(Lexer.TokenKind.ParenClose, "expecting ')'");
-            if (this.CurrentIs(Lexer.TokenKind.BraceOpen))
+            if (withBody)
             {
                 node.AddChild(this.ParseBlock());
                 node.AddLastChildSpan();
@@ -217,7 +217,7 @@ namespace Trapl.Syntax
                 memberNode.AddChild(this.ParseIdentifier("expecting trait funct name"));
                 memberNode.SetLastChildSpan();
                 this.Match(Lexer.TokenKind.Colon, "expecting ':'");
-                memberNode.AddChild(this.ParseFunctDecl());
+                memberNode.AddChild(this.ParseFunctDecl(false));
                 memberNode.AddLastChildSpan();
                 node.AddChild(memberNode);
                 this.MatchListSeparator(Lexer.TokenKind.Semicolon, Lexer.TokenKind.BraceClose, "expecting ';' or '}'");

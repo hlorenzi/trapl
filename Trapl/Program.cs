@@ -16,6 +16,9 @@ namespace Trapl
             var syn = Syntax.Analyzer.Pass(lex, src, diagn);
             syn.PrintDebug(src);
 
+            var struc = Structure.Analyzer.Pass(syn, src, diagn);
+            //struc.PrintDebug(src);
+
             diagn.Print();
 
             Console.ReadKey();

@@ -49,6 +49,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Source.cs" />
+    <Compile Include="Structure.cs" />
     <Compile Include="Syntax.cs" />
     <Compile Include="Syntax.Output.cs" />
   </ItemGroup>
