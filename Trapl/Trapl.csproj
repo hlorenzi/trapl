@@ -48,6 +48,8 @@
     <Compile Include="Lexer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Semantics.cs" />
+    <Compile Include="Semantics.Output.cs" />
     <Compile Include="Source.cs" />
     <Compile Include="Structure.cs" />
     <Compile Include="Syntax.cs" />

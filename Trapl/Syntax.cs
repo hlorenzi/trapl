@@ -197,7 +197,7 @@ namespace Trapl.Syntax
                 memberNode.AddChild(this.ParseType());
                 memberNode.AddLastChildSpan();
                 node.AddChild(memberNode);
-                this.MatchListSeparator(Lexer.TokenKind.Semicolon, Lexer.TokenKind.BraceClose, "expecting ';' or '}'");
+                this.MatchListSeparator(Lexer.TokenKind.Comma, Lexer.TokenKind.BraceClose, "expecting ',' or '}'");
             }
             node.AddSpan(this.Current().span);
             this.Match(Lexer.TokenKind.BraceClose, "expecting '}'");

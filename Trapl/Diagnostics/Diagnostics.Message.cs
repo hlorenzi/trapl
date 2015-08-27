@@ -38,8 +38,13 @@ namespace Trapl.Diagnostics
             this.messages = new List<Message>();
         }
 
+        public void AddError(string text, Source source, Diagnostics.Span span)
+        {
+            this.messages.Add(Message.MakeError(text, source, MessageCaret.Primary(span)));
+        }
 
-		public void AddError(string text, Source source, params MessageCaret[] carets)
+
+        public void AddError(string text, Source source, params MessageCaret[] carets)
         {
             this.messages.Add(Message.MakeError(text, source, carets));
         }

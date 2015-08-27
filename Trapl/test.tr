@@ -27,8 +27,16 @@ goodbye: funct()
 
 Data: struct
 {
-	x: Int32;
-	y: Int64;
+	x: Int32,
+	y: Int64
+}
+
+
+Data2: struct
+{
+	x: Bool,
+	y: Void,
+	z: Data
 }
 
 

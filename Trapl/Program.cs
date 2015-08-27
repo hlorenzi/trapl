@@ -19,6 +19,9 @@ namespace Trapl
             var struc = Structure.Analyzer.Pass(syn, src, diagn);
             //struc.PrintDebug(src);
 
+            var semantics = Semantics.Analyzer.Pass(struc, diagn);
+            //semantics.PrintDebug(src);
+
             diagn.Print();
 
             Console.ReadKey();
