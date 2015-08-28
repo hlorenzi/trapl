@@ -22,6 +22,10 @@ namespace TraplTest
             Passes("test: funct(x: Int8) { }");
             Passes("test: funct(x: Int8, y: Int8) { }");
             Passes("test: funct(x: Int8, y: Int8,) { }");
+            Passes("test: funct(-> Int8) { return 0; }");
+            Passes("test: funct(x: Int8 -> Int8) { return 0; }");
+            Passes("test: funct(x: Int8, y: Int8 -> Int8) { return 0; }");
+            Passes("test: funct(x: Int8, y: Int8, -> Int8) { return 0; }");
 
             Passes("Test: trait { }");
 
@@ -53,6 +57,7 @@ namespace TraplTest
             SyntaxFails("test: funct() {");
             SyntaxFails("test: funct() { }; test2: struct { }");
             SyntaxFails("test: funct(x: Int8 y: Int8) { }");
+            SyntaxFails("test: funct(x: Int8, y: Int8 -> ) { }");
         }
 
 
@@ -67,6 +72,12 @@ namespace TraplTest
             SemanticsFail("Recursive1: struct { x: Recursive2 } Recursive2: struct { x: Recursive1 }");
             SemanticsFail("Recursive1: struct { x: Recursive2 } Recursive2: struct { x: Recursive3 } Recursive3: struct { x: Recursive1 }");
             SemanticsFail("Recursive1: struct { x: Recursive3 } Recursive2: struct { x: Recursive1 } Recursive3: struct { x: Recursive2 }");
+            SemanticsFail("VoidMember: struct { x: Void }");
+            //SemanticsFail("SameName: struct { } SameName: struct { }");
+
+            SemanticsFail("void_argument: funct(x: Void) { }");
+            SemanticsFail("void_return_type: funct(x: Int32 -> Void) { }");
+            SemanticsFail("same_name: funct() { } same_name: funct() { }");
         }
 
 

@@ -57,10 +57,12 @@ namespace Trapl.Syntax
         }
 
 
-        private bool CurrentIsNot(Lexer.TokenKind kind)
+        private bool CurrentIsNot(params Lexer.TokenKind[] kinds)
         {
-            return this.Current().kind != kind &&
-                this.Current().kind != Lexer.TokenKind.Error;
+            for (int i = 0; i < kinds.Length; i++)
+                if (this.Current().kind == kinds[i])
+                    return false;
+            return (this.Current().kind != Lexer.TokenKind.Error);
         }
 
 
@@ -167,7 +169,7 @@ namespace Trapl.Syntax
             node.SetSpan(this.Current().span);
             this.Match(Lexer.TokenKind.KeywordFunct, MessageID.SyntaxExpected("funct"));
             this.Match(Lexer.TokenKind.ParenOpen, MessageID.SyntaxExpected("("));
-            while (this.CurrentIsNot(Lexer.TokenKind.ParenClose))
+            while (this.CurrentIsNot(Lexer.TokenKind.ParenClose, Lexer.TokenKind.Arrow))
             {
                 var argNode = new Node(NodeKind.FunctArgDecl);
                 argNode.AddChild(this.ParseIdentifier());
@@ -177,8 +179,20 @@ namespace Trapl.Syntax
                 argNode.AddLastChildSpan();
                 node.AddChild(argNode);
                 node.AddLastChildSpan();
-                this.MatchListSeparator(Lexer.TokenKind.Comma, Lexer.TokenKind.ParenClose,
-                    MessageID.SyntaxExpected(",", ")"));
+                if (this.Current().kind == Lexer.TokenKind.Comma)
+                    this.Advance();
+                else if (this.Current().kind != Lexer.TokenKind.ParenClose &&
+                    this.Current().kind != Lexer.TokenKind.Arrow)
+                    throw this.FatalAfterPrevious(MessageID.SyntaxExpected(",", "->", ")"));
+            }
+            if (this.CurrentIs(Lexer.TokenKind.Arrow))
+            {
+                this.Advance();
+                var retNode = new Node(NodeKind.FunctReturnDecl);
+                retNode.AddChild(this.ParseType());
+                retNode.SetLastChildSpan();
+                node.AddChild(retNode);
+                node.AddLastChildSpan();
             }
             this.Match(Lexer.TokenKind.ParenClose, MessageID.SyntaxExpected(")"));
             if (withBody)

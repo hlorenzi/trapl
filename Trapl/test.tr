@@ -1,4 +1,4 @@
-hello: funct(x: Int32, y: Int8, z: Float64)
+hello: funct(x: Int32, y: Int8, z: Float64 -> Int16)
 {
 	hey;
 	x + y * z + w;
@@ -19,7 +19,7 @@ hello: funct(x: Int32, y: Int8, z: Float64)
 }
 
 
-goodbye: funct()
+hello: funct(-> Void)
 {
 
 }

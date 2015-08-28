@@ -12,17 +12,19 @@ namespace Trapl.Diagnostics
 
 	public class MessageCaret
     {
+        public Source source;
         public Diagnostics.Span span;
 
 
-        public static MessageCaret Primary(Diagnostics.Span span)
+        public static MessageCaret Primary(Source source, Diagnostics.Span span)
         {
-            return new MessageCaret(span);
+            return new MessageCaret(source, span);
         }
 
 
-		private MessageCaret(Diagnostics.Span span)
+		private MessageCaret(Source source, Diagnostics.Span span)
         {
+            this.source = source;
             this.span = span;
         }
     }
@@ -40,13 +42,13 @@ namespace Trapl.Diagnostics
 
         public void AddError(MessageID id, Source source, Diagnostics.Span span)
         {
-            this.messages.Add(Message.MakeError(id, source, MessageCaret.Primary(span)));
+            this.messages.Add(Message.MakeError(id, MessageCaret.Primary(source, span)));
         }
 
 
-        public void AddError(MessageID id, Source source, params MessageCaret[] carets)
+        public void AddError(MessageID id, params MessageCaret[] carets)
         {
-            this.messages.Add(Message.MakeError(id, source, carets));
+            this.messages.Add(Message.MakeError(id, carets));
         }
 
 
@@ -106,7 +108,9 @@ namespace Trapl.Diagnostics
             SyntaxExpectedDecl = "203",
             SyntaxUnmatchedElse = "204",
             SemanticsUnknownType = "301",
-            SemanticsStructCycleDetected = "302";
+            SemanticsVoidType = "302",
+            SemanticsStructCycleDetected = "303",
+            SemanticsDoubleDef = "304";
     }
 
 
@@ -144,14 +148,16 @@ namespace Trapl.Diagnostics
         public static MessageID SyntaxUnmatchedElse() { return new MessageID(MessageCode.SyntaxUnmatchedElse, "unmatched 'else'"); }
         public static MessageID SemanticsStructCycleDetected() { return new MessageID(MessageCode.SemanticsStructCycleDetected, "struct cycle detected"); }
         public static MessageID SemanticsUnknownType() { return new MessageID(MessageCode.SemanticsUnknownType, "unknown type"); }
+        public static MessageID SemanticsVoidType() { return new MessageID(MessageCode.SemanticsVoidType, "cannot use Void explicitly"); }
+        public static MessageID SemanticsDoubleDef() { return new MessageID(MessageCode.SemanticsDoubleDef, "double declaration with the same name"); }
     }
 
 
     public class Message
     {
-		public static Message MakeError(MessageID id, Source source, params MessageCaret[] carets)
+		public static Message MakeError(MessageID id, params MessageCaret[] carets)
         {
-            return new Message(id, MessageKind.Error, source, carets);
+            return new Message(id, MessageKind.Error, carets);
         }
 
 
@@ -176,9 +182,9 @@ namespace Trapl.Diagnostics
         public void Print()
         {
             Console.ForegroundColor = ConsoleColor.White;
-            Console.Write(ErrorPositionString() + ": ");
+            Console.Write(ErrorPositionString() + ":err" + this.id.code + ": ");
             Console.ForegroundColor = GetLightColor(this.kind);
-            Console.Write(GetKindName(this.kind) + " " + this.id.code + ": ");
+            Console.Write(GetKindName(this.kind) + ": ");
             Console.WriteLine(this.id.text);
             PrintErrorWithHighlighting();
             Console.ResetColor();
@@ -187,16 +193,16 @@ namespace Trapl.Diagnostics
 
         private MessageID id;
         private MessageKind kind;
-        private Source source;
         private MessageCaret[] carets;
+        private Source source; // FIXME! Workaround for the time being. Each caret should contain its source.
 
 
-        private Message(MessageID id, MessageKind kind, Source source, params MessageCaret[] carets)
+        private Message(MessageID id, MessageKind kind, params MessageCaret[] carets)
         {
             this.id = id;
             this.kind = kind;
-            this.source = source;
             this.carets = carets;
+            this.source = this.carets[0].source;
         }
 
 
@@ -242,7 +248,7 @@ namespace Trapl.Diagnostics
         private string ErrorPositionString()
         {
             string result = "";
-            if (this.source != null)
+            if (this.carets.Length > 0)
             {
                 result = this.source.Name() + ":";
 

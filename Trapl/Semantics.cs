@@ -12,6 +12,8 @@ namespace Trapl.Semantics
             var analyzer = new Analyzer(syn, diagn);
             analyzer.ParseStructDecls();
             analyzer.TestForStructCycles();
+            analyzer.ParseFunctDecls();
+            analyzer.ParseFunctBodies();
             return analyzer.output;
         }
 
@@ -29,6 +31,40 @@ namespace Trapl.Semantics
             this.output = new Output();
             this.syn = syn;
             this.diagn = diagn;
+        }
+
+
+        private VariableType ResolveType(Syntax.Node node, Source source, bool voidAllowed = false)
+        {
+            if (node.kind != Syntax.NodeKind.TypeName)
+                throw new ParserException();
+
+            var name = source.Excerpt(node.Span());
+            var structDefWithName = this.output.structDefs.Find(s => s.name == name);
+            if (structDefWithName != null)
+            {
+                var type = new VariableTypeStruct();
+                type.structDef = structDefWithName;
+
+                if (!voidAllowed && type.IsSame(this.MakeVoidType()))
+                {
+                    this.diagn.AddError(MessageID.SemanticsVoidType(), source, node.Span());
+                    throw new ParserException();
+                }
+
+                return type;
+            }
+
+            this.diagn.AddError(MessageID.SemanticsUnknownType(), source, node.Span());
+            throw new ParserException();
+        }
+
+
+        private VariableType MakeVoidType()
+        {
+            var type = new VariableTypeStruct();
+            type.structDef = this.output.structDefs[0];
+            return type;
         }
 
 
@@ -124,22 +160,57 @@ namespace Trapl.Semantics
         }
 
 
-        private VariableType ResolveType(Syntax.Node node, Source source)
+        private void ParseFunctDecls()
         {
-            if (node.kind != Syntax.NodeKind.TypeName)
-                throw new ParserException();
-
-            var name = source.Excerpt(node.Span());
-            var structDefWithName = this.output.structDefs.Find(s => s.name == name);
-            if (structDefWithName != null)
+            foreach (var decl in this.syn.functDecls)
             {
-                var type = new VariableTypeStruct();
-                type.structDef = structDefWithName;
-                return type;
-            }
+                try
+                {
+                    var doubleDef = this.output.functDefs.Find(f => f.name == decl.name);
+                    if (doubleDef != null)
+                    {
+                        this.diagn.AddError(MessageID.SemanticsDoubleDef(),
+                            MessageCaret.Primary(decl.source, decl.syntaxNode.Span()),
+                            MessageCaret.Primary(doubleDef.source, doubleDef.declSpan));
+                        continue;
+                    }
 
-            this.diagn.AddError(MessageID.SemanticsUnknownType(), source, node.Span());
-            throw new ParserException();
+                    var funct = new FunctDef(decl.name, decl.source, decl.syntaxNode.Span());
+
+                    // Parse arguments.
+                    foreach (var argNode in decl.syntaxNode.EnumerateChildren())
+                    {
+                        if (argNode.kind != Syntax.NodeKind.FunctArgDecl)
+                            continue;
+
+                        var argName = decl.source.Excerpt(argNode.Child(0).Span());
+                        var argType = this.ResolveType(argNode.Child(1), decl.source);
+                        funct.arguments.Add(new FunctDef.Variable(argName, argType, argNode.Span()));
+                        funct.localVariables.Add(new FunctDef.Variable(argName, argType, argNode.Span()));
+                    }
+
+                    // Parse return type.
+                    funct.returnType = this.MakeVoidType();
+                    foreach (var argNode in decl.syntaxNode.EnumerateChildren())
+                    {
+                        if (argNode.kind != Syntax.NodeKind.FunctReturnDecl)
+                            continue;
+
+                        funct.returnType = this.ResolveType(argNode.Child(0), decl.source);
+                    }
+
+                    this.output.functDefs.Add(funct);
+                }
+                catch (ParserException) { }
+            }
+        }
+
+
+        private void ParseFunctBodies()
+        {
+            foreach (var decl in this.syn.functDecls)
+            {
+            }
         }
     }
 }

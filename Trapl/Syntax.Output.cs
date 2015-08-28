@@ -46,7 +46,7 @@ namespace Trapl.Syntax
     public enum NodeKind
     {
         TopLevelDecl,
-        FunctDecl, FunctArgDecl,
+        FunctDecl, FunctArgDecl, FunctReturnDecl,
         StructDecl, StructMemberDecl,
         TraitDecl, TraitMemberDecl,
         Identifier, NumberLiteral, TypeName,
