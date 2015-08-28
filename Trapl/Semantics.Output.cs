@@ -10,6 +10,45 @@ namespace Trapl.Semantics
     {
         public List<StructDef> structDefs = new List<StructDef>();
         public List<FunctDef> functDefs = new List<FunctDef>();
+
+        public void PrintFunctsDebug()
+        {
+            foreach (var f in functDefs)
+            {
+                Console.Out.WriteLine("FUNCT " + f.name);
+                var segments = new List<CodeSegment>();
+                segments.Add(f.body);
+
+                for (int i = 0; i < segments.Count; i++)
+                {
+                    Console.Out.WriteLine("  === Segment " + i);
+                    foreach (var c in segments[i].nodes)
+                    {
+                        Console.Out.WriteLine("    " + c.Name());
+                    }
+
+                    var goesToStr = "";
+                    for (int j = 0; j < segments[i].outwardPaths.Count; j++)
+                    {
+                        int index = segments.FindIndex(seg => seg == segments[i].outwardPaths[j]);
+                        if (index < 0)
+                        {
+                            segments.Add(segments[i].outwardPaths[j]);
+                            index = segments.Count - 1;
+                        }
+                        goesToStr += index;
+                        if (j < segments[i].outwardPaths.Count - 1)
+                            goesToStr += ", ";
+                    }
+
+                    if (segments[i].outwardPaths.Count == 0)
+                        goesToStr = "end";
+
+                    Console.Out.WriteLine("  -> Goes to " + goesToStr);
+                    Console.Out.WriteLine();
+                }
+            }
+        }
     }
 
 
@@ -52,12 +91,14 @@ namespace Trapl.Semantics
             public string name;
             public VariableType type;
             public Diagnostics.Span declSpan;
+            public bool outOfScope;
 
             public Variable(string name, VariableType type, Diagnostics.Span declSpan)
             {
                 this.name = name;
                 this.type = type;
                 this.declSpan = declSpan;
+                this.outOfScope = false;
             }
         }
 
@@ -65,6 +106,7 @@ namespace Trapl.Semantics
         public List<Variable> arguments = new List<Variable>();
         public VariableType returnType;
         public List<Variable> localVariables = new List<Variable>();
+        public CodeSegment body;
         public Source source;
         public Diagnostics.Span declSpan;
 
@@ -111,7 +153,7 @@ namespace Trapl.Semantics
     }
 
 
-    public abstract class CodeNodeVariableBegin : CodeNode
+    public class CodeNodeVariableBegin : CodeNode
     {
         public int localIndex;
 
@@ -119,10 +161,16 @@ namespace Trapl.Semantics
     }
 
 
-    public abstract class CodeNodeVariableEnd : CodeNode
+    public class CodeNodeVariableEnd : CodeNode
     {
         public int localIndex;
 
         public override string Name() { return "VariableEnd " + localIndex; }
+    }
+
+
+    public class CodeNodeIf : CodeNode
+    {
+        public override string Name() { return "If"; }
     }
 }

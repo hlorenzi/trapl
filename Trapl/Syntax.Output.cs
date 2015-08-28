@@ -122,6 +122,12 @@ namespace Trapl.Syntax
         }
 
 
+        public Node ChildWithKind(NodeKind kind)
+        {
+            return this.children.Find(c => c.kind == kind);
+        }
+
+
         public void SetLastChildSpan()
         {
             if (this.children.Count > 0)

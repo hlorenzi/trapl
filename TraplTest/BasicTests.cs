@@ -11,25 +11,25 @@ namespace TraplTest
         [TestMethod]
         public void StructuralSyntaxTests()
         {
-            Passes("");
+            SyntaxPasses("");
 
-            Passes("Test: struct { }");
-            Passes("Test: struct { x: Int8 }");
-            Passes("Test: struct { x: Int8, y: Int8 }");
-            Passes("Test: struct { x: Int8, y: Int16, }");
+            SyntaxPasses("Test: struct { }");
+            SyntaxPasses("Test: struct { x: Int8 }");
+            SyntaxPasses("Test: struct { x: Int8, y: Int8 }");
+            SyntaxPasses("Test: struct { x: Int8, y: Int16, }");
 
-            Passes("test: funct() { }");
-            Passes("test: funct(x: Int8) { }");
-            Passes("test: funct(x: Int8, y: Int8) { }");
-            Passes("test: funct(x: Int8, y: Int8,) { }");
-            Passes("test: funct(-> Int8) { return 0; }");
-            Passes("test: funct(x: Int8 -> Int8) { return 0; }");
-            Passes("test: funct(x: Int8, y: Int8 -> Int8) { return 0; }");
-            Passes("test: funct(x: Int8, y: Int8, -> Int8) { return 0; }");
+            SyntaxPasses("test: funct() { }");
+            SyntaxPasses("test: funct(x: Int8) { }");
+            SyntaxPasses("test: funct(x: Int8, y: Int8) { }");
+            SyntaxPasses("test: funct(x: Int8, y: Int8,) { }");
+            SyntaxPasses("test: funct(-> Int8) { return 0; }");
+            SyntaxPasses("test: funct(x: Int8 -> Int8) { return 0; }");
+            SyntaxPasses("test: funct(x: Int8, y: Int8 -> Int8) { return 0; }");
+            SyntaxPasses("test: funct(x: Int8, y: Int8, -> Int8) { return 0; }");
 
-            Passes("Test: trait { }");
+            SyntaxPasses("Test: trait { }");
 
-            Passes("test: funct() { } Test2: struct { }");
+            SyntaxPasses("test: funct() { } Test2: struct { }");
 
             SyntaxFails("{ }");
             SyntaxFails("test");
@@ -55,17 +55,20 @@ namespace TraplTest
             SyntaxFails("test: funct { }");
             SyntaxFails("test: funct()");
             SyntaxFails("test: funct() {");
+            SyntaxFails("test: funct( -> { }");
+            SyntaxFails("test: funct( -> ) { }");
             SyntaxFails("test: funct() { }; test2: struct { }");
             SyntaxFails("test: funct(x: Int8 y: Int8) { }");
             SyntaxFails("test: funct(x: Int8, y: Int8 -> ) { }");
+            SyntaxFails("test: funct(x: Int8, y: Int8 - > Int8) { return 0; }");
         }
 
 
         [TestMethod]
         public void StructuralSemanticsTests()
         {
-            Passes("Test1: struct { x: Test2 } Test2: struct { x: Int8 }");
-            Passes("Test1: struct { x: Int8 } Test2: struct { x: Test1 }");
+            SemanticsPass("Test1: struct { x: Test2 } Test2: struct { x: Int8 }");
+            SemanticsPass("Test1: struct { x: Int8 } Test2: struct { x: Test1 }");
 
             SemanticsFail("Test: struct { x: UnknownType }");
             SemanticsFail("Recursive: struct { x: Recursive }");
@@ -89,13 +92,13 @@ namespace TraplTest
         {
             EmbedDelegate Embed = str => { return "Main: funct() { " + str + " }"; };
 
-            Passes(Embed(""));
-            Passes(Embed("{ }"));
-            Passes(Embed("let x = 0"));
-            Passes(Embed("let x = 0;"));
-            Passes(Embed("let x: Int8;"));
-            Passes(Embed("let x: Int8 = 0;"));
-            Passes(Embed("let x: Int8 = 0; x = x + x;"));
+            SyntaxPasses(Embed(""));
+            SyntaxPasses(Embed("{ }"));
+            SyntaxPasses(Embed("let x = 0"));
+            SyntaxPasses(Embed("let x = 0;"));
+            SyntaxPasses(Embed("let x: Int8;"));
+            SyntaxPasses(Embed("let x: Int8 = 0;"));
+            SyntaxPasses(Embed("let x: Int8 = 0; x = x + x;"));
 
             SyntaxFails(Embed(";"));
             SyntaxFails(Embed("let;"));
@@ -103,48 +106,95 @@ namespace TraplTest
         }
 
 
-        private void Passes(string str)
+        private void SyntaxPasses(string str)
         {
-            var src = Trapl.Source.FromString(str);
             var diagn = new Trapl.Diagnostics.MessageList();
 
-            var lex = Trapl.Lexer.Analyzer.Pass(src, diagn);
-            var syn = Trapl.Syntax.Analyzer.Pass(lex, src, diagn);
-            var struc = Trapl.Structure.Analyzer.Pass(syn, src, diagn);
-            var semantics = Trapl.Semantics.Analyzer.Pass(struc, diagn);
+            try
+            {
+                var src = Trapl.Source.FromString(str);
+                var lex = Trapl.Lexer.Analyzer.Pass(src, diagn);
+                var syn = Trapl.Syntax.Analyzer.Pass(lex, src, diagn);
+                var struc = Trapl.Structure.Analyzer.Pass(syn, src, diagn);
+                var semantics = Trapl.Semantics.Analyzer.Pass(struc, diagn);
 
-            diagn.Print();
+                diagn.Print();
+            }
+            catch
+            {
+                Assert.Inconclusive();
+            }
+               
             Assert.IsTrue(diagn.Passed());
         }
 
 
         private void SyntaxFails(string str)
         {
-            var src = Trapl.Source.FromString(str);
             var diagn = new Trapl.Diagnostics.MessageList();
 
-            var lex = Trapl.Lexer.Analyzer.Pass(src, diagn);
-            var syn = Trapl.Syntax.Analyzer.Pass(lex, src, diagn);
-            var struc = Trapl.Structure.Analyzer.Pass(syn, src, diagn);
+            try
+            {
+                var src = Trapl.Source.FromString(str);
+                var lex = Trapl.Lexer.Analyzer.Pass(src, diagn);
+                var syn = Trapl.Syntax.Analyzer.Pass(lex, src, diagn);
+                var struc = Trapl.Structure.Analyzer.Pass(syn, src, diagn);
 
-            diagn.Print();
+                diagn.Print();
+            }
+            catch
+            {
+                Assert.Inconclusive();
+            }
+
             Assert.IsTrue(diagn.Failed());
+        }
+
+
+        private void SemanticsPass(string str)
+        {
+            var diagn = new Trapl.Diagnostics.MessageList();
+
+            try
+            {
+                var src = Trapl.Source.FromString(str);
+                var lex = Trapl.Lexer.Analyzer.Pass(src, diagn);
+                var syn = Trapl.Syntax.Analyzer.Pass(lex, src, diagn);
+                var struc = Trapl.Structure.Analyzer.Pass(syn, src, diagn);
+                var semantics = Trapl.Semantics.Analyzer.Pass(struc, diagn);
+
+                diagn.Print();
+            }
+            catch
+            {
+                Assert.Inconclusive();
+            }
+
+            Assert.IsTrue(diagn.Passed());
         }
 
 
         private void SemanticsFail(string str)
         {
-            var src = Trapl.Source.FromString(str);
             var diagn = new Trapl.Diagnostics.MessageList();
 
-            var lex = Trapl.Lexer.Analyzer.Pass(src, diagn);
-            var syn = Trapl.Syntax.Analyzer.Pass(lex, src, diagn);
-            var struc = Trapl.Structure.Analyzer.Pass(syn, src, diagn);
-            Assert.IsTrue(diagn.Passed());
+            try
+            {
+                var src = Trapl.Source.FromString(str);
+                var lex = Trapl.Lexer.Analyzer.Pass(src, diagn);
+                var syn = Trapl.Syntax.Analyzer.Pass(lex, src, diagn);
+                var struc = Trapl.Structure.Analyzer.Pass(syn, src, diagn);
+                Assert.IsTrue(diagn.Passed());
 
-            var semantics = Trapl.Semantics.Analyzer.Pass(struc, diagn);
+                var semantics = Trapl.Semantics.Analyzer.Pass(struc, diagn);
 
-            diagn.Print();
+                diagn.Print();
+            }
+            catch
+            {
+                Assert.Inconclusive();
+            }
+
             Assert.IsTrue(diagn.Failed());
         }
     }

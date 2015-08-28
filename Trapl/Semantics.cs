@@ -13,7 +13,6 @@ namespace Trapl.Semantics
             analyzer.ParseStructDecls();
             analyzer.TestForStructCycles();
             analyzer.ParseFunctDecls();
-            analyzer.ParseFunctBodies();
             return analyzer.output;
         }
 
@@ -203,13 +202,119 @@ namespace Trapl.Semantics
                 }
                 catch (ParserException) { }
             }
+
+
+            for (int i = 0; i < this.output.functDefs.Count; i++)
+            {
+                var decl = this.syn.functDecls[i];
+                var funct = this.output.functDefs[i];
+
+                funct.body = FunctBodyAnalyzer.Analyze(
+                    this,
+                    decl.syntaxNode.ChildWithKind(Syntax.NodeKind.Block),
+                    funct);
+            }
         }
 
 
-        private void ParseFunctBodies()
+        private class FunctBodyAnalyzer
         {
-            foreach (var decl in this.syn.functDecls)
+            public static CodeSegment Analyze(Semantics.Analyzer owner, Syntax.Node node, FunctDef funct)
             {
+                var analyzer = new FunctBodyAnalyzer(owner, funct);
+                var segment = new CodeSegment();
+                analyzer.ParseBlock(node, segment);
+                return segment;
+            }
+
+
+            private Semantics.Analyzer owner;
+            private FunctDef funct;
+
+
+            private FunctBodyAnalyzer(Semantics.Analyzer owner, FunctDef funct)
+            {
+                this.owner = owner;
+                this.funct = funct;
+            }
+
+
+            private CodeSegment ParseBlock(Syntax.Node node, CodeSegment segment)
+            {
+                var curLocalIndex = this.funct.localVariables.Count;
+
+                foreach (var exprNode in node.EnumerateChildren())
+                {
+                    segment = this.ParseExpression(exprNode, segment);
+                }
+
+                for (int i = this.funct.localVariables.Count - 1; i >= curLocalIndex; i--)
+                {
+                    var v = this.funct.localVariables[i];
+                    if (v.outOfScope)
+                        continue;
+
+                    v.outOfScope = true;
+                    var codeNode = new CodeNodeVariableEnd();
+                    codeNode.localIndex = i;
+                    segment.nodes.Add(codeNode);
+                }
+
+                return segment;
+            }
+
+
+            private CodeSegment ParseExpression(Syntax.Node node, CodeSegment segment)
+            {
+                if (node.kind == Syntax.NodeKind.ControlLet)
+                    return this.ParseControlLet(node, segment);
+                else if (node.kind == Syntax.NodeKind.ControlIf)
+                    return this.ParseControlIf(node, segment);
+                //else
+                //    throw new ParserException();
+
+                return segment;
+            }
+
+
+            private CodeSegment ParseControlLet(Syntax.Node node, CodeSegment segment)
+            {
+                var varName = this.funct.source.Excerpt(node.Child(0).Span());
+                var varType = this.owner.ResolveType(node.Child(1), this.funct.source, false);
+                var varSpan = node.Span();
+
+                var newVariable = new FunctDef.Variable(varName, varType, varSpan);
+                this.funct.localVariables.Add(newVariable);
+
+                var codeNode = new CodeNodeVariableBegin();
+                codeNode.localIndex = this.funct.localVariables.Count - 1;
+
+                segment.nodes.Add(codeNode);
+                return segment;
+            }
+
+
+            private CodeSegment ParseControlIf(Syntax.Node node, CodeSegment segment)
+            {
+                var blockTrue = node.Child(1);
+                var blockFalse = node.Child(2);
+
+                var codeNode = new CodeNodeIf();
+                segment.nodes.Add(codeNode);
+
+                var segmentTrueBegin = new CodeSegment();
+                var segmentTrueEnd = this.ParseBlock(blockTrue, segmentTrueBegin);
+
+                var segmentFalseBegin = new CodeSegment();
+                var segmentFalseEnd = this.ParseBlock(blockFalse, segmentFalseBegin);
+
+                segment.outwardPaths.Add(segmentTrueBegin);
+                segment.outwardPaths.Add(segmentFalseBegin);
+
+                segment = new CodeSegment();
+                segmentTrueEnd.outwardPaths.Add(segment);
+                segmentFalseEnd.outwardPaths.Add(segment);
+                return segment;
             }
         }
     }

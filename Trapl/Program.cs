@@ -20,7 +20,7 @@ namespace Trapl
             //struc.PrintDebug(src);
 
             var semantics = Semantics.Analyzer.Pass(struc, diagn);
-            //semantics.PrintDebug(src);
+            semantics.PrintFunctsDebug();
 
             diagn.Print();
 

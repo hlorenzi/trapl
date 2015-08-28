@@ -1,46 +1,16 @@
-hello: funct(x: Int32, y: Int8, z: Float64 -> Int16)
+test: funct()
 {
-	hey;
-	x + y * z + w;
-	x + y * (z + w) - ((((f))));
-	if x { y } else { z };
-	while x { hey; };
-	return x;
-	return;
-	let x;
-	let x: Int64;
-	let x: Int32 = 7;
-	let x = 7_int64;
-	let x: Data;
-	x.x = 3;
-	x.y = 64;
-	{ x; y; z };
-	x = { 1; 2; 3; }
-}
+	let x: Int32;
+	let y: Int64;
 
+	if x
+	{
+		let z: Float32;
+	}
+	else
+	{
+		let w: Float64;
+	};
 
-hello: funct(-> Void)
-{
-
-}
-
-
-Data: struct
-{
-	x: Int32,
-	y: Int64
-}
-
-
-Data2: struct
-{
-	x: Bool,
-	y: Void,
-	z: Data
-}
-
-
-Printer: trait
-{
-	print: funct (x: Int32);
+	let a: Int8;
 }
