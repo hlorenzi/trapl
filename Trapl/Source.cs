@@ -13,21 +13,35 @@ namespace Trapl
             return src;
         }
 
+        public static Source FromString(string str)
+        {
+            var src = new Source();
+            src.stringContents = str;
+            return src;
+        }
 
-        private WeakReference<string> contents;
+
+        private string stringContents;
         private string filepath;
+        private WeakReference<string> fileContents;
 
 
         private Source()
         {
-            this.contents = new WeakReference<string>(null);
+            this.stringContents = null;
             this.filepath = null;
+            this.fileContents = new WeakReference<string>(null);
         }
 
 
         public string Name()
         {
-            return (filepath == null ? "unknown" : filepath);
+            if (this.stringContents != null)
+                return "string";
+            else if (this.filepath != null)
+                return filepath;
+            else
+                return "unknown";
         }
 
 
@@ -39,15 +53,18 @@ namespace Trapl
 
         public string Contents()
         {
+            if (this.stringContents != null)
+                return this.stringContents;
+
             string str;
-            if (!this.contents.TryGetTarget(out str) || str == null)
+            if (!this.fileContents.TryGetTarget(out str) || str == null)
             {
                 using (var fileStream = File.Open(this.filepath, FileMode.Open))
                 {
                     var bytes = new byte[fileStream.Length];
                     fileStream.Read(bytes, 0, (int)fileStream.Length);
                     str = System.Text.Encoding.Default.GetString(bytes);
-                    this.contents.SetTarget(str);
+                    this.fileContents.SetTarget(str);
                 }
             }
 

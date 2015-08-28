@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Trapl.Diagnostics;
+
 
 namespace Trapl.Semantics
 {
@@ -92,7 +91,7 @@ namespace Trapl.Semantics
                 alreadyChecked.Push(st);
                 if (TestForStructCyclesInner(alreadyChecked, st))
                 {
-                    this.diagn.AddError("struct cycle detected", st.source, st.declSpan);
+                    this.diagn.AddError(MessageID.SemanticsStructCycleDetected(), st.source, st.declSpan);
                     result = true;
                 }
 
@@ -139,7 +138,7 @@ namespace Trapl.Semantics
                 return type;
             }
 
-            this.diagn.AddError("unknown type", source, node.Span());
+            this.diagn.AddError(MessageID.SemanticsUnknownType(), source, node.Span());
             throw new ParserException();
         }
     }

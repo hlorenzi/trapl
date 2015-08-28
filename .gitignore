@@ -5,3 +5,6 @@
 .vs/
 Trapl/bin/
 Trapl/obj/
+TraplTest/bin/
+TraplTest/obj/
+TestResults/

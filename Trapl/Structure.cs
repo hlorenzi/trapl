@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Trapl.Diagnostics;
 
 
 namespace Trapl.Structure
@@ -77,7 +78,7 @@ namespace Trapl.Structure
 
         private static ParserException ErrorAt(Syntax.Node node, Source source, Diagnostics.MessageList diagn)
         {
-            diagn.AddError("[internal] unexpected node", source, Diagnostics.MessageCaret.Primary(node.Span()));
+            diagn.AddError(MessageID.Internal("unexpected node"), source, Diagnostics.MessageCaret.Primary(node.Span()));
             return new ParserException();
         }
 

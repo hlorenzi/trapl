@@ -57,6 +57,13 @@ namespace Trapl.Syntax
         }
 
 
+        private bool CurrentIsNot(Lexer.TokenKind kind)
+        {
+            return this.Current().kind != kind &&
+                this.Current().kind != Lexer.TokenKind.Error;
+        }
+
+
         private Lexer.Token Advance()
         {
             var cur = this.Current();
@@ -77,16 +84,16 @@ namespace Trapl.Syntax
         }
 
 
-        private Lexer.Token Match(Lexer.TokenKind tokenKind, string err)
+        private Lexer.Token Match(Lexer.TokenKind tokenKind, MessageID errId)
         {
             if (this.Current().kind == tokenKind)
                 return this.Advance();
             else
-                throw this.FatalBefore(err);
+                throw this.FatalBefore(errId);
         }
 
 
-        private bool MatchListSeparator(Lexer.TokenKind separatorKind, Lexer.TokenKind endingKind, string err)
+        private bool MatchListSeparator(Lexer.TokenKind separatorKind, Lexer.TokenKind endingKind, MessageID errId)
         {
             if (this.Current().kind == separatorKind)
             {
@@ -96,27 +103,27 @@ namespace Trapl.Syntax
             else if (this.Current().kind == endingKind)
                 return true;
             else
-                throw this.FatalAfterPrevious(err);
+                throw this.FatalAfterPrevious(errId);
         }
 
 
-        private ParserException FatalBefore(string err)
+        private ParserException FatalBefore(MessageID id)
         {
-            this.diagn.AddError(err, this.source, MessageCaret.Primary(this.Current().span.JustBefore()));
+            this.diagn.AddError(id, this.source, this.Current().span.JustBefore());
             return new ParserException();
         }
 
 
-        private ParserException FatalCurrent(string err)
+        private ParserException FatalCurrent(MessageID id)
         {
-            this.diagn.AddError(err, this.source, MessageCaret.Primary(this.Current().span));
+            this.diagn.AddError(id, this.source, this.Current().span);
             return new ParserException();
         }
 
 
-        private ParserException FatalAfterPrevious(string err)
+        private ParserException FatalAfterPrevious(MessageID id)
         {
-            this.diagn.AddError(err, this.source, MessageCaret.Primary(this.Previous().span.JustAfter()));
+            this.diagn.AddError(id, this.source, this.Previous().span.JustAfter());
             return new ParserException();
         }
 
@@ -136,7 +143,7 @@ namespace Trapl.Syntax
                     var node = new Node(NodeKind.TopLevelDecl);
                     node.SetSpan(this.Current().span);
                     node.AddChild(this.ParseIdentifier());
-                    this.Match(Lexer.TokenKind.Colon, "expecting ':'");
+                    this.Match(Lexer.TokenKind.Colon, MessageID.SyntaxExpected(":"));
                     if (this.CurrentIs(Lexer.TokenKind.KeywordFunct))
                         node.AddChild(this.ParseFunctDecl(true));
                     else if (this.CurrentIs(Lexer.TokenKind.KeywordStruct))
@@ -144,12 +151,12 @@ namespace Trapl.Syntax
                     else if (this.CurrentIs(Lexer.TokenKind.KeywordTrait))
                         node.AddChild(this.ParseTraitDecl());
                     else
-                        throw this.FatalBefore("expecting a declaration");
+                        throw this.FatalBefore(MessageID.SyntaxExpectedDecl());
                     node.AddLastChildSpan();
                     this.output.topDecls.Add(node);
                 }
                 else
-                    throw this.FatalBefore("expecting a declaration");
+                    throw this.FatalBefore(MessageID.SyntaxExpectedDecl());
             }
         }
 
@@ -158,21 +165,22 @@ namespace Trapl.Syntax
         {
             var node = new Node(NodeKind.FunctDecl);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordFunct, "expecting 'funct'");
-            this.Match(Lexer.TokenKind.ParenOpen, "expecting '('");
-            while (!this.CurrentIs(Lexer.TokenKind.ParenClose))
+            this.Match(Lexer.TokenKind.KeywordFunct, MessageID.SyntaxExpected("funct"));
+            this.Match(Lexer.TokenKind.ParenOpen, MessageID.SyntaxExpected("("));
+            while (this.CurrentIsNot(Lexer.TokenKind.ParenClose))
             {
                 var argNode = new Node(NodeKind.FunctArgDecl);
-                argNode.AddChild(this.ParseIdentifier("expecting argument name"));
+                argNode.AddChild(this.ParseIdentifier());
                 argNode.SetLastChildSpan();
-                this.Match(Lexer.TokenKind.Colon, "expecting ':'");
+                this.Match(Lexer.TokenKind.Colon, MessageID.SyntaxExpected(":"));
                 argNode.AddChild(this.ParseType());
                 argNode.AddLastChildSpan();
                 node.AddChild(argNode);
                 node.AddLastChildSpan();
-                this.MatchListSeparator(Lexer.TokenKind.Comma, Lexer.TokenKind.ParenClose, "expecting ',' or ')'");
+                this.MatchListSeparator(Lexer.TokenKind.Comma, Lexer.TokenKind.ParenClose,
+                    MessageID.SyntaxExpected(",", ")"));
             }
-            this.Match(Lexer.TokenKind.ParenClose, "expecting ')'");
+            this.Match(Lexer.TokenKind.ParenClose, MessageID.SyntaxExpected(")"));
             if (withBody)
             {
                 node.AddChild(this.ParseBlock());
@@ -186,21 +194,22 @@ namespace Trapl.Syntax
         {
             var node = new Node(NodeKind.StructDecl);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordStruct, "expecting 'struct'");
-            this.Match(Lexer.TokenKind.BraceOpen, "expecting '{'");
-            while (!this.CurrentIs(Lexer.TokenKind.BraceClose))
+            this.Match(Lexer.TokenKind.KeywordStruct, MessageID.SyntaxExpected("struct"));
+            this.Match(Lexer.TokenKind.BraceOpen, MessageID.SyntaxExpected("{"));
+            while (this.CurrentIsNot(Lexer.TokenKind.BraceClose))
             {
                 var memberNode = new Node(NodeKind.StructMemberDecl);
-                memberNode.AddChild(this.ParseIdentifier("expecting member name"));
+                memberNode.AddChild(this.ParseIdentifier());
                 memberNode.SetLastChildSpan();
-                this.Match(Lexer.TokenKind.Colon, "expecting ':'");
+                this.Match(Lexer.TokenKind.Colon, MessageID.SyntaxExpected(":"));
                 memberNode.AddChild(this.ParseType());
                 memberNode.AddLastChildSpan();
                 node.AddChild(memberNode);
-                this.MatchListSeparator(Lexer.TokenKind.Comma, Lexer.TokenKind.BraceClose, "expecting ',' or '}'");
+                this.MatchListSeparator(Lexer.TokenKind.Comma, Lexer.TokenKind.BraceClose,
+                    MessageID.SyntaxExpected(",", "}"));
             }
             node.AddSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.BraceClose, "expecting '}'");
+            this.Match(Lexer.TokenKind.BraceClose, MessageID.SyntaxExpected("}"));
             return node;
         }
 
@@ -209,42 +218,49 @@ namespace Trapl.Syntax
         {
             var node = new Node(NodeKind.TraitDecl);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordTrait, "expecting 'trait'");
-            this.Match(Lexer.TokenKind.BraceOpen, "expecting '{'");
-            while (!this.CurrentIs(Lexer.TokenKind.BraceClose))
+            this.Match(Lexer.TokenKind.KeywordTrait, MessageID.SyntaxExpected("trait"));
+            this.Match(Lexer.TokenKind.BraceOpen, MessageID.SyntaxExpected("{"));
+            while (this.CurrentIsNot(Lexer.TokenKind.BraceClose))
             {
                 var memberNode = new Node(NodeKind.TraitMemberDecl);
-                memberNode.AddChild(this.ParseIdentifier("expecting trait funct name"));
+                memberNode.AddChild(this.ParseIdentifier());
                 memberNode.SetLastChildSpan();
-                this.Match(Lexer.TokenKind.Colon, "expecting ':'");
+                this.Match(Lexer.TokenKind.Colon, MessageID.SyntaxExpected(":"));
                 memberNode.AddChild(this.ParseFunctDecl(false));
                 memberNode.AddLastChildSpan();
                 node.AddChild(memberNode);
-                this.MatchListSeparator(Lexer.TokenKind.Semicolon, Lexer.TokenKind.BraceClose, "expecting ';' or '}'");
+                this.MatchListSeparator(Lexer.TokenKind.Semicolon, Lexer.TokenKind.BraceClose,
+                    MessageID.SyntaxExpected(";", "}"));
             }
             node.AddSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.BraceClose, "expecting '}'");
+            this.Match(Lexer.TokenKind.BraceClose, MessageID.SyntaxExpected("}"));
             return node;
         }
 
 
-        private Node ParseIdentifier(string err = "expecting identifier")
+        private Node ParseIdentifier(MessageID errId)
         {
-            var token = this.Match(Lexer.TokenKind.Identifier, err);
+            var token = this.Match(Lexer.TokenKind.Identifier, errId);
             return new Node(NodeKind.Identifier, token.span);
         }
 
 
-        private Node ParseNumberLiteral(string err = "expecting number literal")
+        private Node ParseIdentifier()
         {
-            var token = this.Match(Lexer.TokenKind.Number, err);
+            return this.ParseIdentifier(MessageID.SyntaxExpectedIdentifier());
+        }
+
+
+        private Node ParseNumberLiteral()
+        {
+            var token = this.Match(Lexer.TokenKind.Number, MessageID.SyntaxExpectedNumber());
             return new Node(NodeKind.NumberLiteral, token.span);
         }
 
 
         private Node ParseType()
         {
-            var token = this.Match(Lexer.TokenKind.Identifier, "expecting type name");
+            var token = this.Match(Lexer.TokenKind.Identifier, MessageID.SyntaxExpectedType());
             return new Node(NodeKind.TypeName, token.span);
         }
 
@@ -253,14 +269,15 @@ namespace Trapl.Syntax
         {
             var node = new Node(NodeKind.Block);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.BraceOpen, "expecting '{'");
-            while (!this.CurrentIs(Lexer.TokenKind.BraceClose))
+            this.Match(Lexer.TokenKind.BraceOpen, MessageID.SyntaxExpected("{"));
+            while (this.CurrentIsNot(Lexer.TokenKind.BraceClose))
             {
                 node.AddChild(ParseExpression());
-                this.MatchListSeparator(Lexer.TokenKind.Semicolon, Lexer.TokenKind.BraceClose, "expecting ';' or '}'");
+                this.MatchListSeparator(Lexer.TokenKind.Semicolon, Lexer.TokenKind.BraceClose,
+                    MessageID.SyntaxExpected(";", "}"));
             }
             node.AddSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.BraceClose, "expecting '}'");
+            this.Match(Lexer.TokenKind.BraceClose, MessageID.SyntaxExpected("}"));
             return node;
         }
 
@@ -272,7 +289,7 @@ namespace Trapl.Syntax
             else if (this.CurrentIs(Lexer.TokenKind.KeywordIf))
                 return this.ParseIfExpression();
             else if (this.CurrentIs(Lexer.TokenKind.KeywordElse))
-                throw this.FatalCurrent("unmatched 'else'");
+                throw this.FatalCurrent(MessageID.SyntaxUnmatchedElse());
             else if (this.CurrentIs(Lexer.TokenKind.KeywordWhile))
                 return this.ParseWhileExpression();
             else if (this.CurrentIs(Lexer.TokenKind.KeywordReturn))
@@ -286,7 +303,7 @@ namespace Trapl.Syntax
         {
             var node = new Node(NodeKind.ControlLet);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordLet, "expecting 'let'");
+            this.Match(Lexer.TokenKind.KeywordLet, MessageID.SyntaxExpected("let"));
             node.AddChild(this.ParseIdentifier());
             if (this.CurrentIs(Lexer.TokenKind.Colon))
             {
@@ -307,7 +324,7 @@ namespace Trapl.Syntax
         {
             var node = new Node(NodeKind.ControlIf);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordIf, "expecting 'if'");
+            this.Match(Lexer.TokenKind.KeywordIf, MessageID.SyntaxExpected("if"));
             node.AddChild(this.ParseExpression());
             node.AddChild(this.ParseBlock());
             if (this.CurrentIs(Lexer.TokenKind.KeywordElse))
@@ -324,7 +341,7 @@ namespace Trapl.Syntax
         {
             var node = new Node(NodeKind.ControlWhile);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordWhile, "expecting 'while'");
+            this.Match(Lexer.TokenKind.KeywordWhile, MessageID.SyntaxExpected("while"));
             node.AddChild(this.ParseExpression());
             node.AddChild(this.ParseBlock());
             node.AddLastChildSpan();
@@ -336,7 +353,7 @@ namespace Trapl.Syntax
         {
             var node = new Node(NodeKind.ControlReturn);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordReturn, "expecting 'return'");
+            this.Match(Lexer.TokenKind.KeywordReturn, MessageID.SyntaxExpected("return"));
             if (!this.CurrentIs(Lexer.TokenKind.Semicolon) &&
                 !this.CurrentIs(Lexer.TokenKind.BraceClose) &&
                 !this.CurrentIs(Lexer.TokenKind.ParenClose))
@@ -443,11 +460,11 @@ namespace Trapl.Syntax
                 var parenOpenSpan = this.Advance().span;
                 var node = this.ParseExpression();
                 node.AddSpanWithDelimiters(parenOpenSpan.Merge(this.Current().span));
-                this.Match(Lexer.TokenKind.ParenClose, "expecting ')'");
+                this.Match(Lexer.TokenKind.ParenClose, MessageID.SyntaxExpected(")"));
                 return node;
             }
             else
-                throw this.FatalBefore("expecting expression");
+                throw this.FatalBefore(MessageID.SyntaxExpectedExpression());
         }
     }
 }

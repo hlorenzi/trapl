@@ -38,15 +38,48 @@ namespace Trapl.Diagnostics
             this.messages = new List<Message>();
         }
 
-        public void AddError(string text, Source source, Diagnostics.Span span)
+        public void AddError(MessageID id, Source source, Diagnostics.Span span)
         {
-            this.messages.Add(Message.MakeError(text, source, MessageCaret.Primary(span)));
+            this.messages.Add(Message.MakeError(id, source, MessageCaret.Primary(span)));
         }
 
 
-        public void AddError(string text, Source source, params MessageCaret[] carets)
+        public void AddError(MessageID id, Source source, params MessageCaret[] carets)
         {
-            this.messages.Add(Message.MakeError(text, source, carets));
+            this.messages.Add(Message.MakeError(id, source, carets));
+        }
+
+
+        public bool Passed()
+        {
+            foreach (var msg in this.messages)
+            {
+                if (msg.GetKind() == MessageKind.Error)
+                    return false;
+            }
+            return true;
+        }
+
+
+        public bool Failed()
+        {
+            foreach (var msg in this.messages)
+            {
+                if (msg.GetKind() == MessageKind.Error)
+                    return true;
+            }
+            return false;
+        }
+
+
+        public bool ContainsCode(string code)
+        {
+            foreach (var msg in this.messages)
+            {
+                if (msg.GetMessageID().code == code)
+                    return true;
+            }
+            return false;
         }
 
 
@@ -60,17 +93,83 @@ namespace Trapl.Diagnostics
     }
 
 
+    public static class MessageCode
+    {
+        public const string
+            Internal = "0",
+            LexerUnexpectedChar = "100",
+            SyntaxExpected = "200",
+            SyntaxExpectedExpression = "201",
+            SyntaxExpectedType = "202",
+            SyntaxExpectedIdentifier = "203",
+            SyntaxExpectedNumber = "203",
+            SyntaxExpectedDecl = "203",
+            SyntaxUnmatchedElse = "204",
+            SemanticsUnknownType = "301",
+            SemanticsStructCycleDetected = "302";
+    }
+
+
+    public class MessageID
+    {
+        public string code;
+        public string text;
+
+
+        public MessageID(string code, string text)
+        {
+            this.code = code;
+            this.text = text;
+        }
+
+
+        public static MessageID Internal(string str) { return new MessageID(MessageCode.Internal, "[internal] " + str); }
+        public static MessageID LexerUnexpectedChar() { return new MessageID(MessageCode.LexerUnexpectedChar, "unexpected character"); }
+        public static MessageID SyntaxExpected(params string[] strs)
+        {
+            string charsStr = "";
+            for (int i = 0; i < strs.Length; i++)
+            {
+                charsStr += "'" + strs[i] + "'";
+                if (i < strs.Length - 2) charsStr += ", ";
+                else if (i < strs.Length - 1) charsStr += " or ";
+            }
+            return new MessageID(MessageCode.SyntaxExpected, "expecting " + charsStr);
+        }
+        public static MessageID SyntaxExpectedExpression() { return new MessageID(MessageCode.SyntaxExpectedExpression, "expecting expression"); }
+        public static MessageID SyntaxExpectedType() { return new MessageID(MessageCode.SyntaxExpectedType, "expecting type name"); }
+        public static MessageID SyntaxExpectedIdentifier() { return new MessageID(MessageCode.SyntaxExpectedIdentifier, "expecting identifier"); }
+        public static MessageID SyntaxExpectedNumber() { return new MessageID(MessageCode.SyntaxExpectedNumber, "expecting number literal"); }
+        public static MessageID SyntaxExpectedDecl() { return new MessageID(MessageCode.SyntaxExpectedDecl, "expecting a declaration"); }
+        public static MessageID SyntaxUnmatchedElse() { return new MessageID(MessageCode.SyntaxUnmatchedElse, "unmatched 'else'"); }
+        public static MessageID SemanticsStructCycleDetected() { return new MessageID(MessageCode.SemanticsStructCycleDetected, "struct cycle detected"); }
+        public static MessageID SemanticsUnknownType() { return new MessageID(MessageCode.SemanticsUnknownType, "unknown type"); }
+    }
+
+
     public class Message
     {
-		public static Message MakeError(string text, Source source, params MessageCaret[] carets)
+		public static Message MakeError(MessageID id, Source source, params MessageCaret[] carets)
         {
-            return new Message(text, MessageKind.Error, source, carets);
+            return new Message(id, MessageKind.Error, source, carets);
         }
 
 
         public string GetText()
         {
-            return this.text;
+            return this.id.text;
+        }
+
+
+        public MessageKind GetKind()
+        {
+            return this.kind;
+        }
+
+
+        public MessageID GetMessageID()
+        {
+            return this.id;
         }
 
 
@@ -79,22 +178,22 @@ namespace Trapl.Diagnostics
             Console.ForegroundColor = ConsoleColor.White;
             Console.Write(ErrorPositionString() + ": ");
             Console.ForegroundColor = GetLightColor(this.kind);
-            Console.Write(GetKindName(this.kind) + ": ");
-            Console.WriteLine(this.text);
+            Console.Write(GetKindName(this.kind) + " " + this.id.code + ": ");
+            Console.WriteLine(this.id.text);
             PrintErrorWithHighlighting();
             Console.ResetColor();
         }
 
 
-        private string text;
+        private MessageID id;
         private MessageKind kind;
         private Source source;
         private MessageCaret[] carets;
 
 
-        private Message(string text, MessageKind kind, Source source, params MessageCaret[] carets)
+        private Message(MessageID id, MessageKind kind, Source source, params MessageCaret[] carets)
         {
-            this.text = text;
+            this.id = id;
             this.kind = kind;
             this.source = source;
             this.carets = carets;

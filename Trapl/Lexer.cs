@@ -99,7 +99,7 @@ namespace Trapl.Lexer
                 var span = new Span(index, index + match.representation.Length);
 
                 if (match.kind == TokenKind.Error)
-                    diagn.AddError("unexpected character", src, MessageCaret.Primary(span));
+                    diagn.AddError(MessageID.LexerUnexpectedChar(), src, span);
 
                 output.tokens.Add(new Token(match.kind, span));
 
