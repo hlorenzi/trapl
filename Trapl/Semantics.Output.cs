@@ -174,6 +174,43 @@ namespace Trapl.Semantics
     }
 
 
+    public class CodeNodeStoreLocal : CodeNode
+    {
+        public int localIndex;
+
+        public override string Name() { return "StoreLocal " + localIndex; }
+    }
+
+
+    public class CodeNodePushLocal : CodeNode
+    {
+        public int localIndex;
+
+        public override string Name() { return "PushLocal " + localIndex; }
+    }
+
+
+    public class CodeNodePushLiteral : CodeNode
+    {
+        public VariableType type;
+        public string literalExcerpt;
+
+        public override string Name() { return "PushLiteral " + literalExcerpt; }
+    }
+
+
+    public class CodeNodePop : CodeNode
+    {
+        public override string Name() { return "Pop"; }
+    }
+
+
+    public class CodeNodeCall : CodeNode
+    {
+        public override string Name() { return "Call"; }
+    }
+
+
     public class CodeNodeIf : CodeNode
     {
         public override string Name() { return "If"; }

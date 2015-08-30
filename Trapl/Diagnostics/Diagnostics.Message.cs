@@ -71,6 +71,18 @@ namespace Trapl.Diagnostics
         }
 
 
+        public void AddInfo(MessageID id, Source source, Diagnostics.Span span)
+        {
+            this.messages.Add(Message.MakeInfo(id, MessageCaret.Primary(source, span)));
+        }
+
+
+        public void AddInfoToLast(MessageID id, Source source, Diagnostics.Span span)
+        {
+            //this.messages.Add(Message.MakeInfo(id, MessageCaret.Primary(source, span)));
+        }
+
+
         public bool Passed()
         {
             foreach (var msg in this.messages)
@@ -132,8 +144,10 @@ namespace Trapl.Diagnostics
             SemanticsDoubleDef = "304",
             SemanticsShadowing = "305",
             SemanticsCannotInferType = "306",
+            SemanticsUnknownIdentifier = "307",
             StyleWrongFunctName = "501",
-            StyleWrongStructName = "502";
+            StyleWrongStructName = "502",
+            InfoOutOfScope = "601";
     }
 
 
@@ -175,8 +189,10 @@ namespace Trapl.Diagnostics
         public static MessageID SemanticsDoubleDef() { return new MessageID(MessageCode.SemanticsDoubleDef, "double declaration with the same name"); }
         public static MessageID SemanticsShadowing() { return new MessageID(MessageCode.SemanticsShadowing, "hiding previous declaration"); }
         public static MessageID SemanticsCannotInferType() { return new MessageID(MessageCode.SemanticsCannotInferType, "cannot infer type"); }
+        public static MessageID SemanticsUnknownIdentifier() { return new MessageID(MessageCode.SemanticsUnknownIdentifier, "unknown identifier"); }
         public static MessageID StyleWrongFunctName() { return new MessageID(MessageCode.StyleWrongFunctName, "funct name should be snake_case"); }
         public static MessageID StyleWrongStructName() { return new MessageID(MessageCode.StyleWrongStructName, "struct name should be CamelCase"); }
+        public static MessageID InfoOutOfScope() { return new MessageID(MessageCode.InfoOutOfScope, "already out of scope"); }
     }
 
 
@@ -195,6 +211,11 @@ namespace Trapl.Diagnostics
         public static Message MakeStyle(MessageID id, params MessageCaret[] carets)
         {
             return new Message(id, MessageKind.Style, carets);
+        }
+
+        public static Message MakeInfo(MessageID id, params MessageCaret[] carets)
+        {
+            return new Message(id, MessageKind.Info, carets);
         }
 
 

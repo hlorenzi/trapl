@@ -1,17 +1,6 @@
-test: funct(x: Int64, y: Float32)
+test: funct()
 {
-	let x: Int32 = 0;
-	let y: Int64;
+	let x: Int32;
 
-	if x
-	{
-		let z: Int32;
-	}
-	else
-	{
-		let z: Int64;
-	};
-
-	let x: Int8;
-	let z: Int8;
+	x;
 }

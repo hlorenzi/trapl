@@ -57,7 +57,7 @@ namespace TraplTest
             SyntaxFails("test: funct() {");
             SyntaxFails("test: funct( -> { }");
             SyntaxFails("test: funct( -> ) { }");
-            SyntaxFails("test: funct() { }; test2: struct { }");
+            SyntaxFails("test: funct() { }; Test2: struct { }");
             SyntaxFails("test: funct(x: Int8 y: Int8) { }");
             SyntaxFails("test: funct(x: Int8, y: Int8 -> ) { }");
             SyntaxFails("test: funct(x: Int8, y: Int8 - > Int8) { return 0; }");
@@ -67,10 +67,13 @@ namespace TraplTest
         [TestMethod]
         public void StructuralSemanticsTests()
         {
+            SemanticsPass("Test: struct { x: Int8 }");
+            SemanticsPass("Test: struct { x: Int8, y: Int16 }");
             SemanticsPass("Test1: struct { x: Test2 } Test2: struct { x: Int8 }");
             SemanticsPass("Test1: struct { x: Int8 } Test2: struct { x: Test1 }");
 
             SemanticsFail("Test: struct { x: UnknownType }");
+            //SemanticsFail("RepeatedMembers: struct { x: Int8, x: Int16 }");
             SemanticsFail("Recursive: struct { x: Recursive }");
             SemanticsFail("Recursive1: struct { x: Recursive2 } Recursive2: struct { x: Recursive1 }");
             SemanticsFail("Recursive1: struct { x: Recursive2 } Recursive2: struct { x: Recursive3 } Recursive3: struct { x: Recursive1 }");
@@ -94,7 +97,6 @@ namespace TraplTest
 
             SyntaxPasses(Embed(""));
             SyntaxPasses(Embed("{ }"));
-            SyntaxPasses(Embed("let x"));
             SyntaxPasses(Embed("let x = 0"));
             SyntaxPasses(Embed("let x = 0;"));
             SyntaxPasses(Embed("let x: Int8;"));

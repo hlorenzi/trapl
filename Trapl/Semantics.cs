@@ -247,7 +247,10 @@ namespace Trapl.Semantics
                 {
                     try
                     {
-                        segment = this.ParseExpression(exprNode, segment);
+                        VariableType type;
+                        segment = this.ParseExpression(exprNode, segment, out type);
+                        if (!type.IsSame(this.owner.MakeVoidType()))
+                            segment.nodes.Add(new CodeNodePop());
                     }
                     catch (ParserException) { }
                 }
@@ -268,22 +271,25 @@ namespace Trapl.Semantics
             }
 
 
-            private CodeSegment ParseExpression(Syntax.Node node, CodeSegment segment)
+            private CodeSegment ParseExpression(Syntax.Node node, CodeSegment segment, out VariableType type)
             {
                 if (node.kind == Syntax.NodeKind.ControlLet)
-                    return this.ParseControlLet(node, segment);
+                    return this.ParseControlLet(node, segment, out type);
                 else if (node.kind == Syntax.NodeKind.ControlIf)
-                    return this.ParseControlIf(node, segment);
+                    return this.ParseControlIf(node, segment, out type);
                 else if (node.kind == Syntax.NodeKind.ControlWhile)
-                    return this.ParseControlWhile(node, segment);
+                    return this.ParseControlWhile(node, segment, out type);
+                else if (node.kind == Syntax.NodeKind.Identifier)
+                    return this.ParseIdentifier(node, segment, out type);
                 //else
                 //    throw new ParserException();
 
+                type = this.owner.MakeVoidType();
                 return segment;
             }
 
 
-            private CodeSegment ParseControlLet(Syntax.Node node, CodeSegment segment)
+            private CodeSegment ParseControlLet(Syntax.Node node, CodeSegment segment, out VariableType type)
             {
                 if (node.ChildNumber() == 1)
                 {
@@ -295,12 +301,12 @@ namespace Trapl.Semantics
                 var varType = this.owner.ResolveType(node.Child(1), this.funct.source, false);
                 var varSpan = node.Span();
 
-                var previousDecl = this.funct.localVariables.FindLast(v => v.name == varName && !v.outOfScope);
-                if (previousDecl != null)
+                var shadowedDecl = this.funct.localVariables.FindLast(v => v.name == varName && !v.outOfScope);
+                if (shadowedDecl != null)
                 {
                     this.owner.diagn.AddWarning(MessageID.SemanticsShadowing(),
                         MessageCaret.Primary(this.funct.source, varSpan),
-                        MessageCaret.Primary(this.funct.source, previousDecl.declSpan));
+                        MessageCaret.Primary(this.funct.source, shadowedDecl.declSpan));
                 }
 
                 var newVariable = new FunctDef.Variable(varName, varType, varSpan);
@@ -310,11 +316,37 @@ namespace Trapl.Semantics
                 codeNode.localIndex = this.funct.localVariables.Count - 1;
 
                 segment.nodes.Add(codeNode);
+                type = this.owner.MakeVoidType();
                 return segment;
             }
 
 
-            private CodeSegment ParseControlIf(Syntax.Node node, CodeSegment segmentBefore)
+            private CodeSegment ParseIdentifier(Syntax.Node node, CodeSegment segment, out VariableType type)
+            {
+                var varName = this.funct.source.Excerpt(node.Span());
+
+                var localDeclIndex = this.funct.localVariables.FindLastIndex(v => v.name == varName && !v.outOfScope);
+                if (localDeclIndex >= 0)
+                {
+                    var codeNode = new CodeNodePushLocal();
+                    codeNode.localIndex = localDeclIndex;
+                    segment.nodes.Add(codeNode);
+
+                    type = this.funct.localVariables[localDeclIndex].type;
+                    return segment;
+                }
+
+                this.owner.diagn.AddError(MessageID.SemanticsUnknownIdentifier(), this.funct.source, node.Span());
+
+                var outOfScopeDecl = this.funct.localVariables.FindLast(v => v.name == varName && v.outOfScope);
+                if (outOfScopeDecl != null)
+                    { } // FIXME: Add info message about out-of-scope local.
+
+                throw new ParserException();
+            }
+
+
+            private CodeSegment ParseControlIf(Syntax.Node node, CodeSegment segmentBefore, out VariableType type)
             {
                 /*       SEGMENT BEFORE                         SEGMENT BEFORE
                                |                                      |
@@ -349,11 +381,12 @@ namespace Trapl.Semantics
                     segmentBefore.GoesTo(segmentAfter);
                 }
 
+                type = this.owner.MakeVoidType();
                 return segmentAfter;
             }
 
 
-            private CodeSegment ParseControlWhile(Syntax.Node node, CodeSegment segmentBefore)
+            private CodeSegment ParseControlWhile(Syntax.Node node, CodeSegment segmentBefore, out VariableType type)
             {
                 /*    SEGMENT BEFORE
                         |
@@ -379,6 +412,7 @@ namespace Trapl.Semantics
 
                 segmentCondition.GoesTo(segmentAfter);
 
+                type = this.owner.MakeVoidType();
                 return segmentAfter;
             }
         }
