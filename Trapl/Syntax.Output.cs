@@ -31,7 +31,7 @@ namespace Trapl.Syntax
             string excerpt = src.Excerpt(node.Span());
             string secondColumn =
                 new string(' ', indentLevel * 2) +
-                excerpt.Substring(0, Math.Min(excerpt.Length, 20)).Replace("\n", " ").Replace("\r", "") +
+                excerpt.Substring(0, Math.Min(excerpt.Length, 20)).Replace("\n", " ").Replace("\r", "").Replace("\t", " ") +
                 (excerpt.Length > 20 ? "..." : "");
 
             Console.Out.Write(firstColumn.PadRight(40));
@@ -125,6 +125,12 @@ namespace Trapl.Syntax
         public Node ChildWithKind(NodeKind kind)
         {
             return this.children.Find(c => c.kind == kind);
+        }
+
+
+        public int ChildNumber()
+        {
+            return this.children.Count;
         }
 
 

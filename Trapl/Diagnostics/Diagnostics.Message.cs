@@ -40,6 +40,7 @@ namespace Trapl.Diagnostics
             this.messages = new List<Message>();
         }
 
+
         public void AddError(MessageID id, Source source, Diagnostics.Span span)
         {
             this.messages.Add(Message.MakeError(id, MessageCaret.Primary(source, span)));
@@ -49,6 +50,24 @@ namespace Trapl.Diagnostics
         public void AddError(MessageID id, params MessageCaret[] carets)
         {
             this.messages.Add(Message.MakeError(id, carets));
+        }
+
+
+        public void AddWarning(MessageID id, Source source, Diagnostics.Span span)
+        {
+            this.messages.Add(Message.MakeWarning(id, MessageCaret.Primary(source, span)));
+        }
+
+
+        public void AddWarning(MessageID id, params MessageCaret[] carets)
+        {
+            this.messages.Add(Message.MakeWarning(id, carets));
+        }
+
+
+        public void AddStyle(MessageID id, Source source, Diagnostics.Span span)
+        {
+            this.messages.Add(Message.MakeStyle(id, MessageCaret.Primary(source, span)));
         }
 
 
@@ -110,7 +129,11 @@ namespace Trapl.Diagnostics
             SemanticsUnknownType = "301",
             SemanticsVoidType = "302",
             SemanticsStructCycleDetected = "303",
-            SemanticsDoubleDef = "304";
+            SemanticsDoubleDef = "304",
+            SemanticsShadowing = "305",
+            SemanticsCannotInferType = "306",
+            StyleWrongFunctName = "501",
+            StyleWrongStructName = "502";
     }
 
 
@@ -150,6 +173,10 @@ namespace Trapl.Diagnostics
         public static MessageID SemanticsUnknownType() { return new MessageID(MessageCode.SemanticsUnknownType, "unknown type"); }
         public static MessageID SemanticsVoidType() { return new MessageID(MessageCode.SemanticsVoidType, "cannot use Void explicitly"); }
         public static MessageID SemanticsDoubleDef() { return new MessageID(MessageCode.SemanticsDoubleDef, "double declaration with the same name"); }
+        public static MessageID SemanticsShadowing() { return new MessageID(MessageCode.SemanticsShadowing, "hiding previous declaration"); }
+        public static MessageID SemanticsCannotInferType() { return new MessageID(MessageCode.SemanticsCannotInferType, "cannot infer type"); }
+        public static MessageID StyleWrongFunctName() { return new MessageID(MessageCode.StyleWrongFunctName, "funct name should be snake_case"); }
+        public static MessageID StyleWrongStructName() { return new MessageID(MessageCode.StyleWrongStructName, "struct name should be CamelCase"); }
     }
 
 
@@ -158,6 +185,16 @@ namespace Trapl.Diagnostics
 		public static Message MakeError(MessageID id, params MessageCaret[] carets)
         {
             return new Message(id, MessageKind.Error, carets);
+        }
+
+        public static Message MakeWarning(MessageID id, params MessageCaret[] carets)
+        {
+            return new Message(id, MessageKind.Warning, carets);
+        }
+
+        public static Message MakeStyle(MessageID id, params MessageCaret[] carets)
+        {
+            return new Message(id, MessageKind.Style, carets);
         }
 
 
@@ -182,7 +219,7 @@ namespace Trapl.Diagnostics
         public void Print()
         {
             Console.ForegroundColor = ConsoleColor.White;
-            Console.Write(ErrorPositionString() + ":err" + this.id.code + ": ");
+            Console.Write(ErrorPositionString() + ":cod" + this.id.code + ": ");
             Console.ForegroundColor = GetLightColor(this.kind);
             Console.Write(GetKindName(this.kind) + ": ");
             Console.WriteLine(this.id.text);

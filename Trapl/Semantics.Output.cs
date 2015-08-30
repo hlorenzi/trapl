@@ -21,7 +21,7 @@ namespace Trapl.Semantics
 
                 for (int i = 0; i < segments.Count; i++)
                 {
-                    Console.Out.WriteLine("  === Segment " + i);
+                    Console.Out.WriteLine("  === Segment " + i + " ===");
                     foreach (var c in segments[i].nodes)
                     {
                         Console.Out.WriteLine("    " + c.Name());
@@ -44,7 +44,7 @@ namespace Trapl.Semantics
                     if (segments[i].outwardPaths.Count == 0)
                         goesToStr = "end";
 
-                    Console.Out.WriteLine("  -> Goes to " + goesToStr);
+                    Console.Out.WriteLine("    -> Goes to " + goesToStr);
                     Console.Out.WriteLine();
                 }
             }
@@ -144,6 +144,11 @@ namespace Trapl.Semantics
     {
         public List<CodeSegment> outwardPaths = new List<CodeSegment>();
         public List<CodeNode> nodes = new List<CodeNode>();
+
+        public void GoesTo(CodeSegment other)
+        {
+            outwardPaths.Add(other);
+        }
     }
 
 

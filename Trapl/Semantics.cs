@@ -245,7 +245,11 @@ namespace Trapl.Semantics
 
                 foreach (var exprNode in node.EnumerateChildren())
                 {
-                    segment = this.ParseExpression(exprNode, segment);
+                    try
+                    {
+                        segment = this.ParseExpression(exprNode, segment);
+                    }
+                    catch (ParserException) { }
                 }
 
                 for (int i = this.funct.localVariables.Count - 1; i >= curLocalIndex; i--)
@@ -270,6 +274,8 @@ namespace Trapl.Semantics
                     return this.ParseControlLet(node, segment);
                 else if (node.kind == Syntax.NodeKind.ControlIf)
                     return this.ParseControlIf(node, segment);
+                else if (node.kind == Syntax.NodeKind.ControlWhile)
+                    return this.ParseControlWhile(node, segment);
                 //else
                 //    throw new ParserException();
 
@@ -279,9 +285,23 @@ namespace Trapl.Semantics
 
             private CodeSegment ParseControlLet(Syntax.Node node, CodeSegment segment)
             {
+                if (node.ChildNumber() == 1)
+                {
+                    this.owner.diagn.AddError(MessageID.SemanticsCannotInferType(), this.funct.source, node.Span());
+                    throw new ParserException();
+                }
+
                 var varName = this.funct.source.Excerpt(node.Child(0).Span());
                 var varType = this.owner.ResolveType(node.Child(1), this.funct.source, false);
                 var varSpan = node.Span();
+
+                var previousDecl = this.funct.localVariables.FindLast(v => v.name == varName && !v.outOfScope);
+                if (previousDecl != null)
+                {
+                    this.owner.diagn.AddWarning(MessageID.SemanticsShadowing(),
+                        MessageCaret.Primary(this.funct.source, varSpan),
+                        MessageCaret.Primary(this.funct.source, previousDecl.declSpan));
+                }
 
                 var newVariable = new FunctDef.Variable(varName, varType, varSpan);
                 this.funct.localVariables.Add(newVariable);
@@ -294,27 +314,72 @@ namespace Trapl.Semantics
             }
 
 
-            private CodeSegment ParseControlIf(Syntax.Node node, CodeSegment segment)
+            private CodeSegment ParseControlIf(Syntax.Node node, CodeSegment segmentBefore)
             {
-                var blockTrue = node.Child(1);
-                var blockFalse = node.Child(2);
+                /*       SEGMENT BEFORE                         SEGMENT BEFORE
+                               |                                      |
+                       +-------+-------+                      +-------+-------+
+                       |               |                      |               |
+                       v               v                      |               v
+                 SEGMENT FALSE    SEGMENT TRUE       or       |          SEGMENT TRUE
+                       |               |                      |               |
+                       +-------+-------+                      +-------+-------+
+                               |                                      |
+                               v                                      v
+                         SEGMENT AFTER                          SEGMENT AFTER            */
 
-                var codeNode = new CodeNodeIf();
-                segment.nodes.Add(codeNode);
+                segmentBefore.nodes.Add(new CodeNodeIf());
 
-                var segmentTrueBegin = new CodeSegment();
-                var segmentTrueEnd = this.ParseBlock(blockTrue, segmentTrueBegin);
+                var segmentTrue = new CodeSegment();
+                var segmentTrueEnd = this.ParseBlock(node.Child(1), segmentTrue);
 
-                var segmentFalseBegin = new CodeSegment();
-                var segmentFalseEnd = this.ParseBlock(blockFalse, segmentFalseBegin);
+                var segmentAfter = new CodeSegment();
+                segmentBefore.GoesTo(segmentTrue);
+                segmentTrueEnd.GoesTo(segmentAfter);
 
-                segment.outwardPaths.Add(segmentTrueBegin);
-                segment.outwardPaths.Add(segmentFalseBegin);
+                if (node.ChildNumber() == 3)
+                {
+                    var segmentFalse = new CodeSegment();
+                    var segmentFalseEnd = this.ParseBlock(node.Child(2), segmentFalse);
+                    segmentBefore.GoesTo(segmentFalse);
+                    segmentFalseEnd.GoesTo(segmentAfter);
+                }
+                else
+                {
+                    segmentBefore.GoesTo(segmentAfter);
+                }
 
-                segment = new CodeSegment();
-                segmentTrueEnd.outwardPaths.Add(segment);
-                segmentFalseEnd.outwardPaths.Add(segment);
-                return segment;
+                return segmentAfter;
+            }
+
+
+            private CodeSegment ParseControlWhile(Syntax.Node node, CodeSegment segmentBefore)
+            {
+                /*    SEGMENT BEFORE
+                        |
+                        v
+                  +-> SEGMENT CONDITION
+                  |               |
+                  |       +-------+-------+
+                  |       |               |
+                  |       v               v
+                  +-- SEGMENT BODY    SEGMENT AFTER         */
+
+                var segmentCondition = new CodeSegment();
+                var segmentBody = new CodeSegment();
+                var segmentAfter = new CodeSegment();
+
+                segmentBefore.GoesTo(segmentCondition);
+
+                segmentCondition.nodes.Add(new CodeNodeIf());
+                segmentCondition.GoesTo(segmentBody);
+
+                var segmentBodyEnd = this.ParseBlock(node.Child(1), segmentBody);
+                segmentBodyEnd.GoesTo(segmentCondition);
+
+                segmentCondition.GoesTo(segmentAfter);
+
+                return segmentAfter;
             }
         }
     }

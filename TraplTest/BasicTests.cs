@@ -90,10 +90,11 @@ namespace TraplTest
         [TestMethod]
         public void CodeSyntaxTests()
         {
-            EmbedDelegate Embed = str => { return "Main: funct() { " + str + " }"; };
+            EmbedDelegate Embed = str => { return "test: funct() { " + str + " }"; };
 
             SyntaxPasses(Embed(""));
             SyntaxPasses(Embed("{ }"));
+            SyntaxPasses(Embed("let x"));
             SyntaxPasses(Embed("let x = 0"));
             SyntaxPasses(Embed("let x = 0;"));
             SyntaxPasses(Embed("let x: Int8;"));
@@ -103,6 +104,22 @@ namespace TraplTest
             SyntaxFails(Embed(";"));
             SyntaxFails(Embed("let;"));
             SyntaxFails(Embed("let = 0;"));
+        }
+
+
+        [TestMethod]
+        public void CodeSemanticsTests()
+        {
+            EmbedDelegate Embed = str => { return "test: funct() { " + str + " }"; };
+
+            SemanticsPass(Embed(""));
+            SemanticsPass(Embed("{ }"));
+            SemanticsPass(Embed("let x: Int8"));
+            SemanticsPass(Embed("let x: Int8 = 0"));
+            SemanticsPass(Embed("let x = 0"));
+            SemanticsPass(Embed("let x: Int8; let x: Int16"));
+
+            SemanticsFail(Embed("let x"));
         }
 
 
@@ -116,7 +133,6 @@ namespace TraplTest
                 var lex = Trapl.Lexer.Analyzer.Pass(src, diagn);
                 var syn = Trapl.Syntax.Analyzer.Pass(lex, src, diagn);
                 var struc = Trapl.Structure.Analyzer.Pass(syn, src, diagn);
-                var semantics = Trapl.Semantics.Analyzer.Pass(struc, diagn);
 
                 diagn.Print();
             }
