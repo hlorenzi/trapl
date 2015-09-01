@@ -1,6 +1,11 @@
 test: funct()
 {
-	let x: Int32;
+	let x: Int8;
+	let ptr: &Int8;
 
-	x;
+	x = @ptr;
+	@ptr = x;
+	@&@ptr = x;
+	x = @&@ptr;
+	(x) = @(&(@(ptr)));
 }

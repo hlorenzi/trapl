@@ -38,7 +38,9 @@ namespace Trapl.Semantics
             if (node.kind != Syntax.NodeKind.TypeName)
                 throw new ParserException();
 
-            var name = source.Excerpt(node.Span());
+            var isPointer = (node.Child(0).kind == Syntax.NodeKind.Operator);
+            var name = source.Excerpt((node.ChildNumber() == 2 ? node.Child(1).Span() : node.Child(0).Span()));
+
             var structDefWithName = this.output.structDefs.Find(s => s.name == name);
             if (structDefWithName != null)
             {
@@ -47,14 +49,19 @@ namespace Trapl.Semantics
 
                 if (!voidAllowed && type.IsSame(this.MakeVoidType()))
                 {
-                    this.diagn.AddError(MessageID.SemanticsVoidType(), source, node.Span());
+                    this.diagn.Add(MessageKind.Error, MessageCode.ExplicitVoid,
+                        "Void type used explicitly", source, node.Span());
                     throw new ParserException();
                 }
 
-                return type;
+                if (isPointer)
+                    return new VariableTypePointer(type);
+                else
+                    return type;
             }
 
-            this.diagn.AddError(MessageID.SemanticsUnknownType(), source, node.Span());
+            this.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
+                "unknown type", source, node.Span());
             throw new ParserException();
         }
 
@@ -126,7 +133,8 @@ namespace Trapl.Semantics
                 alreadyChecked.Push(st);
                 if (TestForStructCyclesInner(alreadyChecked, st))
                 {
-                    this.diagn.AddError(MessageID.SemanticsStructCycleDetected(), st.source, st.declSpan);
+                    this.diagn.Add(MessageKind.Error, MessageCode.StructRecursion,
+                        "infinite struct member recursion", st.source, st.declSpan);
                     result = true;
                 }
 
@@ -168,7 +176,8 @@ namespace Trapl.Semantics
                     var doubleDef = this.output.functDefs.Find(f => f.name == decl.name);
                     if (doubleDef != null)
                     {
-                        this.diagn.AddError(MessageID.SemanticsDoubleDef(),
+                        this.diagn.Add(MessageKind.Error, MessageCode.DoubleDecl,
+                            "double name declaration",
                             MessageCaret.Primary(decl.source, decl.syntaxNode.Span()),
                             MessageCaret.Primary(doubleDef.source, doubleDef.declSpan));
                         continue;
@@ -281,6 +290,12 @@ namespace Trapl.Semantics
                     return this.ParseControlWhile(node, segment, out type);
                 else if (node.kind == Syntax.NodeKind.Identifier)
                     return this.ParseIdentifier(node, segment, out type);
+                else if (node.kind == Syntax.NodeKind.NumberLiteral)
+                    return this.ParseLiteral(node, segment, out type);
+                else if (node.kind == Syntax.NodeKind.BinaryOp)
+                    return this.ParseBinaryOp(node, segment, out type);
+                else if (node.kind == Syntax.NodeKind.UnaryOp)
+                    return this.ParseUnaryOp(node, segment, out type);
                 //else
                 //    throw new ParserException();
 
@@ -293,18 +308,21 @@ namespace Trapl.Semantics
             {
                 if (node.ChildNumber() == 1)
                 {
-                    this.owner.diagn.AddError(MessageID.SemanticsCannotInferType(), this.funct.source, node.Span());
+                    this.owner.diagn.Add(MessageKind.Error, MessageCode.InferenceImpossible,
+                        "cannot infer type without initializer", this.funct.source, node.Span());
                     throw new ParserException();
                 }
 
                 var varName = this.funct.source.Excerpt(node.Child(0).Span());
                 var varType = this.owner.ResolveType(node.Child(1), this.funct.source, false);
+                varType.addressable = true;
                 var varSpan = node.Span();
 
                 var shadowedDecl = this.funct.localVariables.FindLast(v => v.name == varName && !v.outOfScope);
                 if (shadowedDecl != null)
                 {
-                    this.owner.diagn.AddWarning(MessageID.SemanticsShadowing(),
+                    this.owner.diagn.Add(MessageKind.Warning, MessageCode.Shadowing,
+                        "hiding previous declaration",
                         MessageCaret.Primary(this.funct.source, varSpan),
                         MessageCaret.Primary(this.funct.source, shadowedDecl.declSpan));
                 }
@@ -336,13 +354,117 @@ namespace Trapl.Semantics
                     return segment;
                 }
 
-                this.owner.diagn.AddError(MessageID.SemanticsUnknownIdentifier(), this.funct.source, node.Span());
+                var functIndex = this.owner.output.functDefs.FindLastIndex(f => f.name == varName);
+                if (functIndex >= 0)
+                {
+                    var codeNode = new CodeNodePushFunct();
+                    codeNode.functIndex = functIndex;
+                    segment.nodes.Add(codeNode);
+
+                    var functType = new VariableTypeFunct();
+                    functType.addressable = false;
+                    functType.returnType = this.owner.output.functDefs[functIndex].returnType;
+                    for (int i = 0; i < this.owner.output.functDefs[functIndex].arguments.Count; i++)
+                        functType.argumentTypes.Add(this.owner.output.functDefs[functIndex].arguments[i].type);
+                    type = functType;
+                    return segment;
+                }
+
+                this.owner.diagn.Add(MessageKind.Error, MessageCode.UnknownIdentifier,
+                    "unknown identifier", this.funct.source, node.Span());
 
                 var outOfScopeDecl = this.funct.localVariables.FindLast(v => v.name == varName && v.outOfScope);
                 if (outOfScopeDecl != null)
                     { } // FIXME: Add info message about out-of-scope local.
 
                 throw new ParserException();
+            }
+
+
+            private CodeSegment ParseLiteral(Syntax.Node node, CodeSegment segment, out VariableType type)
+            {
+                var codeNode = new CodeNodePushLiteral();
+                codeNode.literalExcerpt = this.funct.source.Excerpt(node.Span());
+                segment.nodes.Add(codeNode);
+
+                var stType = new VariableTypeStruct();
+                stType.structDef = this.owner.output.structDefs.Find(s => s.name == "Int32");
+                type = stType;
+                return segment;
+            }
+
+
+            private CodeSegment ParseBinaryOp(Syntax.Node node, CodeSegment segment, out VariableType type)
+            {
+                var op = this.funct.source.Excerpt(node.Child(0).Span());
+
+                if (op == "=")
+                {
+                    VariableType lhsType, rhsType;
+                    var segment2 = this.ParseExpression(node.Child(1), segment, out lhsType);
+                    var segment3 = this.ParseExpression(node.Child(2), segment2, out rhsType);
+
+                    if (!lhsType.addressable)
+                        this.owner.diagn.Add(MessageKind.Error, MessageCode.CannotAssign,
+                            "expression is not assignable", this.funct.source, node.Child(1).Span());
+
+                    else if (!lhsType.IsSame(rhsType))
+                        this.owner.diagn.Add(MessageKind.Error, MessageCode.CannotAssign,
+                            "assignment type mismatch: '" + lhsType.Name() + "' and " +
+                            "'" + rhsType.Name() + "'",
+                            MessageCaret.Primary(this.funct.source, node.Child(1).Span()),
+                            MessageCaret.Primary(this.funct.source, node.Child(2).Span()));
+
+                    segment3.nodes.Add(new CodeNodeStore());
+                    type = this.owner.MakeVoidType();
+                    return segment3;
+                }
+
+                type = this.owner.MakeVoidType();
+                return segment;
+            }
+
+
+            private CodeSegment ParseUnaryOp(Syntax.Node node, CodeSegment segment, out VariableType type)
+            {
+                var op = this.funct.source.Excerpt(node.Child(0).Span());
+
+                if (op == "&")
+                {
+                    VariableType operandType;
+                    var segment2 = this.ParseExpression(node.Child(1), segment, out operandType);
+
+                    if (!operandType.addressable)
+                    {
+                        this.owner.diagn.Add(MessageKind.Error, MessageCode.CannotAddress,
+                            "expression is not addressable", this.funct.source, node.Child(1).Span());
+                        throw new ParserException();
+                    }
+
+                    segment2.nodes.Add(new CodeNodeAddress());
+                    type = new VariableTypePointer(operandType);
+                    return segment2;
+                }
+                else if (op == "@")
+                {
+                    VariableType operandType;
+                    var segment2 = this.ParseExpression(node.Child(1), segment, out operandType);
+
+                    if (!(operandType is VariableTypePointer))
+                    {
+                        this.owner.diagn.Add(MessageKind.Error, MessageCode.CannotDereference,
+                            "expression is not dereferenceable", this.funct.source, node.Child(1).Span());
+                        throw new ParserException();
+                    }
+
+                    segment2.nodes.Add(new CodeNodeDereference());
+                    type = ((VariableTypePointer)operandType).pointeeType;
+                    type.addressable = true;
+                    return segment2;
+                }
+
+                type = this.owner.MakeVoidType();
+                return segment;
             }
 
 

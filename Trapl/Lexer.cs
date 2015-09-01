@@ -15,6 +15,8 @@ namespace Trapl.Lexer
         BraceOpen, BraceClose, ParenOpen, ParenClose,
         Period, Comma, Colon, Semicolon, Arrow,
         Equal, Plus, Minus, Asterisk, Slash,
+        Ampersand, VerticalBar, Circumflex, At,
+        DoubleAmpersand, DoubleVerticalBar,
         ExclamationMark, ExclamationMarkEqual, QuestionMark,
         LessThan, LessThanEqual, GreaterThan, GreaterThanEqual
     }
@@ -99,7 +101,7 @@ namespace Trapl.Lexer
                 var span = new Span(index, index + match.representation.Length);
 
                 if (match.kind == TokenKind.Error)
-                    diagn.AddError(MessageID.LexerUnexpectedChar(), src, span);
+                    diagn.Add(MessageKind.Error, MessageCode.UnexpectedChar, "unexpected character", src, span);
 
                 output.tokens.Add(new Token(match.kind, span));
 
@@ -152,6 +154,12 @@ namespace Trapl.Lexer
                 new TokenMatch("<", TokenKind.LessThan),
                 new TokenMatch(">=", TokenKind.GreaterThanEqual),
                 new TokenMatch(">", TokenKind.GreaterThan),
+                new TokenMatch("&&", TokenKind.DoubleAmpersand),
+                new TokenMatch("&", TokenKind.Ampersand),
+                new TokenMatch("||", TokenKind.DoubleVerticalBar),
+                new TokenMatch("|", TokenKind.VerticalBar),
+                new TokenMatch("^", TokenKind.Circumflex),
+                new TokenMatch("@", TokenKind.At),
                 new TokenMatch("funct", TokenKind.KeywordFunct),
                 new TokenMatch("struct", TokenKind.KeywordStruct),
                 new TokenMatch("trait", TokenKind.KeywordTrait),

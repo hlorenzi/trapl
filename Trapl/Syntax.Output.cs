@@ -51,7 +51,7 @@ namespace Trapl.Syntax
         TraitDecl, TraitMemberDecl,
         Identifier, NumberLiteral, TypeName,
         Block,
-        BinaryOp, Operator, Call,
+        BinaryOp, UnaryOp, Operator, Call,
         ControlLet, ControlIf, ControlWhile, ControlReturn,
     }
 

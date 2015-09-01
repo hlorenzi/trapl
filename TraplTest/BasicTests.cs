@@ -101,11 +101,20 @@ namespace TraplTest
             SyntaxPasses(Embed("let x = 0;"));
             SyntaxPasses(Embed("let x: Int8;"));
             SyntaxPasses(Embed("let x: Int8 = 0;"));
+            SyntaxPasses(Embed("let x: Int8 = 0; x = 1 + 1;"));
+            SyntaxPasses(Embed("let x: Int8 = 0; x = x + 1;"));
+            SyntaxPasses(Embed("let x: Int8 = 0; x = 1 + x;"));
             SyntaxPasses(Embed("let x: Int8 = 0; x = x + x;"));
+            SyntaxPasses(Embed("let x: Int8 = 0; x = 1 - 1;"));
+            SyntaxPasses(Embed("let x: Int8 = 0; x = 1 + -1;"));
+            SyntaxPasses(Embed("let x: Int8 = 0; x = 1 + (-1);"));
+            SyntaxPasses(Embed("let x: Int8; let ptr: &Int8; ptr = &x"));
+            SyntaxPasses(Embed("let x: Int8; let ptr: &Int8; @ptr = x"));
 
             SyntaxFails(Embed(";"));
             SyntaxFails(Embed("let;"));
             SyntaxFails(Embed("let = 0;"));
+            SyntaxFails(Embed("let x: Int8; let ptr: &Int8 = &&x;"));
         }
 
 
@@ -113,6 +122,7 @@ namespace TraplTest
         public void CodeSemanticsTests()
         {
             EmbedDelegate Embed = str => { return "test: funct() { " + str + " }"; };
+            EmbedDelegate Embed2 = str => { return "test: funct() { let x: Int8 = 0; let ptr: &Int8 = &x; " + str + " }"; };
 
             SemanticsPass(Embed(""));
             SemanticsPass(Embed("{ }"));
@@ -120,8 +130,17 @@ namespace TraplTest
             SemanticsPass(Embed("let x: Int8 = 0"));
             SemanticsPass(Embed("let x = 0"));
             SemanticsPass(Embed("let x: Int8; let x: Int16"));
+            SemanticsPass(Embed2(""));
+            SemanticsPass(Embed2("@ptr = x"));
+            SemanticsPass(Embed2("x = @ptr"));
+            SemanticsPass(Embed2("@&@ptr = x"));
+            SemanticsPass(Embed2("x = @&@ptr"));
+            SemanticsPass(Embed2("ptr = &@&x"));
 
             SemanticsFail(Embed("let x"));
+            SemanticsFail(Embed2("ptr = x"));
+            SemanticsFail(Embed2("x = ptr"));
+            SemanticsFail(Embed2("&x = ptr"));
         }
 
 

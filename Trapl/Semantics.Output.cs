@@ -122,8 +122,24 @@ namespace Trapl.Semantics
 
     public abstract class VariableType
     {
+        public bool addressable;
+
         public virtual string Name() { return "error"; }
         public virtual bool IsSame(VariableType other) { return false; }
+    }
+
+
+    public class VariableTypePointer : VariableType
+    {
+        public VariableType pointeeType;
+
+        public VariableTypePointer(VariableType pointeeType) { this.pointeeType = pointeeType; }
+        public override string Name() { return "&" + pointeeType.Name(); }
+        public override bool IsSame(VariableType other)
+        {
+            if (!(other is VariableTypePointer)) return false;
+            return (((VariableTypePointer)other).pointeeType.IsSame(this.pointeeType));
+        }
     }
 
 
@@ -136,6 +152,34 @@ namespace Trapl.Semantics
         {
             if (!(other is VariableTypeStruct)) return false;
             return (((VariableTypeStruct)other).structDef == this.structDef);
+        }
+    }
+    
+
+    public class VariableTypeFunct : VariableType
+    {
+        public List<VariableType> argumentTypes = new List<VariableType>();
+        public VariableType returnType;
+
+        public override string Name()
+        {
+            var result = "(";
+            for (int i = 0; i < argumentTypes.Count; i++)
+            {
+                result += argumentTypes[i].Name();
+                if (i < argumentTypes.Count - 1) result += ", ";
+            }
+            return result + " -> " + returnType.Name() + ")";
+        }
+
+        public override bool IsSame(VariableType other)
+        {
+            var otherf = other as VariableTypeFunct;
+            if (otherf == null) return false;
+            if (this.argumentTypes.Count != otherf.argumentTypes.Count) return false;
+            for (int i = 0; i < argumentTypes.Count; i++)
+                if (!this.argumentTypes[i].IsSame(otherf.argumentTypes[i])) return false;
+            return true;
         }
     }
 
@@ -190,6 +234,14 @@ namespace Trapl.Semantics
     }
 
 
+    public class CodeNodePushLocalAddress : CodeNode
+    {
+        public int localIndex;
+
+        public override string Name() { return "PushLocalAddress " + localIndex; }
+    }
+
+
     public class CodeNodePushLiteral : CodeNode
     {
         public VariableType type;
@@ -199,9 +251,35 @@ namespace Trapl.Semantics
     }
 
 
+    public class CodeNodePushFunct : CodeNode
+    {
+        public int functIndex;
+
+        public override string Name() { return "PushFunct " + functIndex; }
+    }
+
+
+    public class CodeNodeStore : CodeNode
+    {
+        public override string Name() { return "Store"; }
+    }
+
+
     public class CodeNodePop : CodeNode
     {
         public override string Name() { return "Pop"; }
+    }
+
+
+    public class CodeNodeAddress : CodeNode
+    {
+        public override string Name() { return "Address"; }
+    }
+
+
+    public class CodeNodeDereference : CodeNode
+    {
+        public override string Name() { return "Dereference"; }
     }
 
 

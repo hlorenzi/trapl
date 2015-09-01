@@ -41,45 +41,21 @@ namespace Trapl.Diagnostics
         }
 
 
-        public void AddError(MessageID id, Source source, Diagnostics.Span span)
+        public void Add(Message msg)
         {
-            this.messages.Add(Message.MakeError(id, MessageCaret.Primary(source, span)));
+            this.messages.Add(msg);
         }
 
 
-        public void AddError(MessageID id, params MessageCaret[] carets)
+        public void Add(MessageKind kind, MessageCode code, string text, Source source, Diagnostics.Span span)
         {
-            this.messages.Add(Message.MakeError(id, carets));
+            this.messages.Add(Message.Make(code, text, kind, MessageCaret.Primary(source, span)));
         }
 
 
-        public void AddWarning(MessageID id, Source source, Diagnostics.Span span)
+        public void Add(MessageKind kind, MessageCode code, string text, params MessageCaret[] carets)
         {
-            this.messages.Add(Message.MakeWarning(id, MessageCaret.Primary(source, span)));
-        }
-
-
-        public void AddWarning(MessageID id, params MessageCaret[] carets)
-        {
-            this.messages.Add(Message.MakeWarning(id, carets));
-        }
-
-
-        public void AddStyle(MessageID id, Source source, Diagnostics.Span span)
-        {
-            this.messages.Add(Message.MakeStyle(id, MessageCaret.Primary(source, span)));
-        }
-
-
-        public void AddInfo(MessageID id, Source source, Diagnostics.Span span)
-        {
-            this.messages.Add(Message.MakeInfo(id, MessageCaret.Primary(source, span)));
-        }
-
-
-        public void AddInfoToLast(MessageID id, Source source, Diagnostics.Span span)
-        {
-            //this.messages.Add(Message.MakeInfo(id, MessageCaret.Primary(source, span)));
+            this.messages.Add(Message.Make(code, text, kind, carets));
         }
 
 
@@ -105,11 +81,11 @@ namespace Trapl.Diagnostics
         }
 
 
-        public bool ContainsCode(string code)
+        public bool ContainsCode(MessageCode code)
         {
             foreach (var msg in this.messages)
             {
-                if (msg.GetMessageID().code == code)
+                if (msg.GetCode() == code)
                     return true;
             }
             return false;
@@ -126,102 +102,39 @@ namespace Trapl.Diagnostics
     }
 
 
-    public static class MessageCode
+    public enum MessageCode
     {
-        public const string
-            Internal = "0",
-            LexerUnexpectedChar = "100",
-            SyntaxExpected = "200",
-            SyntaxExpectedExpression = "201",
-            SyntaxExpectedType = "202",
-            SyntaxExpectedIdentifier = "203",
-            SyntaxExpectedNumber = "203",
-            SyntaxExpectedDecl = "203",
-            SyntaxUnmatchedElse = "204",
-            SemanticsUnknownType = "301",
-            SemanticsVoidType = "302",
-            SemanticsStructCycleDetected = "303",
-            SemanticsDoubleDef = "304",
-            SemanticsShadowing = "305",
-            SemanticsCannotInferType = "306",
-            SemanticsUnknownIdentifier = "307",
-            StyleWrongFunctName = "501",
-            StyleWrongStructName = "502",
-            InfoOutOfScope = "601";
-    }
-
-
-    public class MessageID
-    {
-        public string code;
-        public string text;
-
-
-        public MessageID(string code, string text)
-        {
-            this.code = code;
-            this.text = text;
-        }
-
-
-        public static MessageID Internal(string str) { return new MessageID(MessageCode.Internal, "[internal] " + str); }
-        public static MessageID LexerUnexpectedChar() { return new MessageID(MessageCode.LexerUnexpectedChar, "unexpected character"); }
-        public static MessageID SyntaxExpected(params string[] strs)
-        {
-            string charsStr = "";
-            for (int i = 0; i < strs.Length; i++)
-            {
-                charsStr += "'" + strs[i] + "'";
-                if (i < strs.Length - 2) charsStr += ", ";
-                else if (i < strs.Length - 1) charsStr += " or ";
-            }
-            return new MessageID(MessageCode.SyntaxExpected, "expecting " + charsStr);
-        }
-        public static MessageID SyntaxExpectedExpression() { return new MessageID(MessageCode.SyntaxExpectedExpression, "expecting expression"); }
-        public static MessageID SyntaxExpectedType() { return new MessageID(MessageCode.SyntaxExpectedType, "expecting type name"); }
-        public static MessageID SyntaxExpectedIdentifier() { return new MessageID(MessageCode.SyntaxExpectedIdentifier, "expecting identifier"); }
-        public static MessageID SyntaxExpectedNumber() { return new MessageID(MessageCode.SyntaxExpectedNumber, "expecting number literal"); }
-        public static MessageID SyntaxExpectedDecl() { return new MessageID(MessageCode.SyntaxExpectedDecl, "expecting a declaration"); }
-        public static MessageID SyntaxUnmatchedElse() { return new MessageID(MessageCode.SyntaxUnmatchedElse, "unmatched 'else'"); }
-        public static MessageID SemanticsStructCycleDetected() { return new MessageID(MessageCode.SemanticsStructCycleDetected, "struct cycle detected"); }
-        public static MessageID SemanticsUnknownType() { return new MessageID(MessageCode.SemanticsUnknownType, "unknown type"); }
-        public static MessageID SemanticsVoidType() { return new MessageID(MessageCode.SemanticsVoidType, "cannot use Void explicitly"); }
-        public static MessageID SemanticsDoubleDef() { return new MessageID(MessageCode.SemanticsDoubleDef, "double declaration with the same name"); }
-        public static MessageID SemanticsShadowing() { return new MessageID(MessageCode.SemanticsShadowing, "hiding previous declaration"); }
-        public static MessageID SemanticsCannotInferType() { return new MessageID(MessageCode.SemanticsCannotInferType, "cannot infer type"); }
-        public static MessageID SemanticsUnknownIdentifier() { return new MessageID(MessageCode.SemanticsUnknownIdentifier, "unknown identifier"); }
-        public static MessageID StyleWrongFunctName() { return new MessageID(MessageCode.StyleWrongFunctName, "funct name should be snake_case"); }
-        public static MessageID StyleWrongStructName() { return new MessageID(MessageCode.StyleWrongStructName, "struct name should be CamelCase"); }
-        public static MessageID InfoOutOfScope() { return new MessageID(MessageCode.InfoOutOfScope, "already out of scope"); }
+        Internal,
+        UnexpectedChar,
+        Expected,
+        UnmatchedElse,
+        UnknownType,
+        ExplicitVoid,
+        StructRecursion,
+        DoubleDecl,
+        Shadowing,
+        InferenceImpossible,
+        UnknownIdentifier,
+        CannotAssign,
+        CannotAddress,
+        CannotDereference,
+        IncompatibleTypes,
+        WrongFunctNameStyle,
+        WrongStructNameStyle
     }
 
 
     public class Message
     {
-		public static Message MakeError(MessageID id, params MessageCaret[] carets)
+		public static Message Make(MessageCode code, string text, MessageKind kind, params MessageCaret[] carets)
         {
-            return new Message(id, MessageKind.Error, carets);
-        }
-
-        public static Message MakeWarning(MessageID id, params MessageCaret[] carets)
-        {
-            return new Message(id, MessageKind.Warning, carets);
-        }
-
-        public static Message MakeStyle(MessageID id, params MessageCaret[] carets)
-        {
-            return new Message(id, MessageKind.Style, carets);
-        }
-
-        public static Message MakeInfo(MessageID id, params MessageCaret[] carets)
-        {
-            return new Message(id, MessageKind.Info, carets);
+            return new Message(code, text, kind, carets);
         }
 
 
         public string GetText()
         {
-            return this.id.text;
+            return this.text;
         }
 
 
@@ -231,33 +144,35 @@ namespace Trapl.Diagnostics
         }
 
 
-        public MessageID GetMessageID()
+        public MessageCode GetCode()
         {
-            return this.id;
+            return this.code;
         }
 
 
         public void Print()
         {
             Console.ForegroundColor = ConsoleColor.White;
-            Console.Write(ErrorPositionString() + ":cod" + this.id.code + ": ");
+            Console.Write(ErrorPositionString() + ": ");
             Console.ForegroundColor = GetLightColor(this.kind);
             Console.Write(GetKindName(this.kind) + ": ");
-            Console.WriteLine(this.id.text);
+            Console.WriteLine(this.text);
             PrintErrorWithHighlighting();
             Console.ResetColor();
         }
 
 
-        private MessageID id;
+        private MessageCode code;
+        private string text;
         private MessageKind kind;
         private MessageCaret[] carets;
         private Source source; // FIXME! Workaround for the time being. Each caret should contain its source.
 
 
-        private Message(MessageID id, MessageKind kind, params MessageCaret[] carets)
+        private Message(MessageCode code, string text, MessageKind kind, params MessageCaret[] carets)
         {
-            this.id = id;
+            this.code = code;
+            this.text = text;
             this.kind = kind;
             this.carets = carets;
             this.source = this.carets[0].source;

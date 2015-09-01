@@ -78,7 +78,7 @@ namespace Trapl.Structure
 
         private static ParserException ErrorAt(Syntax.Node node, Source source, Diagnostics.MessageList diagn)
         {
-            diagn.AddError(MessageID.Internal("unexpected node"), source, node.Span());
+            diagn.Add(MessageKind.Error, MessageCode.Internal, "unexpected node", source, node.Span());
             return new ParserException();
         }
 
