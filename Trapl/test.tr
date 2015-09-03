@@ -8,10 +8,22 @@ test: funct()
 	zptr = &&x;
 	@zptr = &x;
 	@@zptr = 0;
+
+	test();
+	x();
+	@zptr();
+	templated();
+	templated(1, 2);
 }
 
 
 templated::<Int8, Float64>: funct()
+{
+
+}
+
+
+templated::<Int32, Int32>: funct(x: Int32, y: Int32)
 {
 
 }

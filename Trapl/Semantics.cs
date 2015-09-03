@@ -177,23 +177,50 @@ namespace Trapl.Semantics
         }
 
 
+        private TemplateList ParseTemplateList(Syntax.Node node, Source src)
+        {
+            var templList = new TemplateList();
+            if (node != null)
+            {
+                foreach (var paramNode in node.EnumerateChildren())
+                {
+                    if (paramNode.kind == Syntax.NodeKind.TypeName)
+                    {
+                        var param = new TemplateList.Parameter();
+                        param.kind = TemplateList.ParameterKind.Specific;
+                        param.specificType = this.ResolveType(paramNode, src, true);
+                        templList.parameters.Add(param);
+                    }
+                    else if (paramNode.kind == Syntax.NodeKind.TemplateType)
+                    {
+                        var param = new TemplateList.Parameter();
+                        param.kind = TemplateList.ParameterKind.Generic;
+                        param.genericName = ""; // FIXME!
+                        templList.parameters.Add(param);
+                    }
+                }
+            }
+            return templList;
+        }
+
+
         private void ParseFunctDecls()
         {
             foreach (var decl in this.syn.functDecls)
             {
                 try
                 {
-                    var doubleDef = this.output.functDefs.Find(f => f.name == decl.name);
-                    if (doubleDef != null)
+                    var templList = this.ParseTemplateList(decl.templateListNode, decl.source);
+
+                    if (templList.IsGeneric())
                     {
-                        this.diagn.Add(MessageKind.Error, MessageCode.DoubleDecl,
-                            "double name declaration",
-                            MessageCaret.Primary(decl.source, decl.syntaxNode.Span()),
-                            MessageCaret.Primary(doubleDef.source, doubleDef.declSpan));
+                        this.output.templFunctDecls.Add(decl);
                         continue;
                     }
 
-                    var funct = new FunctDef(decl.name, decl.source, decl.syntaxNode.Span());
+                    var functName = decl.name;
+                    var funct = new FunctDef(functName, decl.source, decl.nameSpan, decl.syntaxNode.Span());
+                    funct.templateList = templList;
 
                     // Parse arguments.
                     foreach (var argNode in decl.syntaxNode.EnumerateChildren())
@@ -249,12 +276,14 @@ namespace Trapl.Semantics
 
             private Semantics.Analyzer owner;
             private FunctDef funct;
+            private VariableType[] callContext;
 
 
             private FunctBodyAnalyzer(Semantics.Analyzer owner, FunctDef funct)
             {
                 this.owner = owner;
                 this.funct = funct;
+                this.callContext = null;
             }
 
 
@@ -292,25 +321,29 @@ namespace Trapl.Semantics
 
             private CodeSegment ParseExpression(Syntax.Node node, CodeSegment segment, out VariableType type)
             {
-                if (node.kind == Syntax.NodeKind.ControlLet)
-                    return this.ParseControlLet(node, segment, out type);
-                else if (node.kind == Syntax.NodeKind.ControlIf)
-                    return this.ParseControlIf(node, segment, out type);
-                else if (node.kind == Syntax.NodeKind.ControlWhile)
-                    return this.ParseControlWhile(node, segment, out type);
-                else if (node.kind == Syntax.NodeKind.Identifier)
+                if (node.kind == Syntax.NodeKind.Identifier)
                     return this.ParseIdentifier(node, segment, out type);
-                else if (node.kind == Syntax.NodeKind.NumberLiteral)
-                    return this.ParseLiteral(node, segment, out type);
-                else if (node.kind == Syntax.NodeKind.BinaryOp)
-                    return this.ParseBinaryOp(node, segment, out type);
-                else if (node.kind == Syntax.NodeKind.UnaryOp)
-                    return this.ParseUnaryOp(node, segment, out type);
-                //else
-                //    throw new ParserException();
+                else
+                {
+                    this.callContext = null;
 
-                type = this.owner.MakeVoidType();
-                return segment;
+                    if (node.kind == Syntax.NodeKind.ControlLet)
+                        return this.ParseControlLet(node, segment, out type);
+                    else if (node.kind == Syntax.NodeKind.ControlIf)
+                        return this.ParseControlIf(node, segment, out type);
+                    else if (node.kind == Syntax.NodeKind.ControlWhile)
+                        return this.ParseControlWhile(node, segment, out type);
+                    else if (node.kind == Syntax.NodeKind.NumberLiteral)
+                        return this.ParseLiteral(node, segment, out type);
+                    else if (node.kind == Syntax.NodeKind.BinaryOp)
+                        return this.ParseBinaryOp(node, segment, out type);
+                    else if (node.kind == Syntax.NodeKind.UnaryOp)
+                        return this.ParseUnaryOp(node, segment, out type);
+                    else if (node.kind == Syntax.NodeKind.Call)
+                        return this.ParseCall(node, segment, out type);
+                    else
+                        throw new ParserException();
+                }
             }
 
 
@@ -403,6 +436,8 @@ namespace Trapl.Semantics
             private CodeSegment ParseIdentifier(Syntax.Node node, CodeSegment segment, out VariableType type)
             {
                 var varName = this.funct.source.Excerpt(node.Span());
+                var callCtx = this.callContext;
+                this.callContext = null;
 
                 var localDeclIndex = this.funct.localVariables.FindLastIndex(v => v.name == varName && !v.outOfScope);
                 if (localDeclIndex >= 0)
@@ -414,19 +449,44 @@ namespace Trapl.Semantics
                     type = this.funct.localVariables[localDeclIndex].type;
                     return segment;
                 }
-
-                var functIndex = this.owner.output.functDefs.FindLastIndex(f => f.name == varName);
-                if (functIndex >= 0)
+                
+                for (int i = 0; i < this.owner.output.functDefs.Count; i++)
                 {
+                    var fn = this.owner.output.functDefs[i];
+                    if (fn.name != varName)
+                        continue;
+
+                    if (fn.templateList.IsGeneric())
+                        continue;
+
+                    if (fn.templateList.parameters.Count > 0)
+                    {
+                        if (callCtx == null)
+                            continue;
+
+                        if (fn.templateList.parameters.Count != callCtx.Length)
+                            continue;
+
+                        bool match = true;
+                        for (int j = 0; j < fn.templateList.parameters.Count; j++)
+                        {
+                            if (!fn.templateList.parameters[j].specificType.IsSame(callCtx[j]))
+                                match = false;
+                        }
+
+                        if (!match)
+                            continue;
+                    }
+
                     var codeNode = new CodeNodePushFunct();
-                    codeNode.functIndex = functIndex;
+                    codeNode.functIndex = i;
                     segment.nodes.Add(codeNode);
 
                     var functType = new VariableTypeFunct();
                     functType.addressable = false;
-                    functType.returnType = this.owner.output.functDefs[functIndex].returnType;
-                    for (int i = 0; i < this.owner.output.functDefs[functIndex].arguments.Count; i++)
-                        functType.argumentTypes.Add(this.owner.output.functDefs[functIndex].arguments[i].type);
+                    functType.returnType = fn.returnType;
+                    for (int j = 0; j < fn.arguments.Count; j++)
+                        functType.argumentTypes.Add(fn.arguments[j].type);
                     type = functType;
                     return segment;
                 }
@@ -498,7 +558,8 @@ namespace Trapl.Semantics
                     if (!operandType.addressable)
                     {
                         this.owner.diagn.Add(MessageKind.Error, MessageCode.CannotAddress,
-                            "expression is not addressable", this.funct.source, node.Child(1).Span());
+                            "expression is not addressable",
+                            this.funct.source, node.Child(1).Span());
                         throw new ParserException();
                     }
 
@@ -514,7 +575,8 @@ namespace Trapl.Semantics
                     if (!(operandType is VariableTypePointer))
                     {
                         this.owner.diagn.Add(MessageKind.Error, MessageCode.CannotDereference,
-                            "expression is not dereferenceable", this.funct.source, node.Child(1).Span());
+                            "'" + operandType.Name() + "' expression is not dereferenceable",
+                            this.funct.source, node.Child(1).Span());
                         throw new ParserException();
                     }
 
@@ -525,6 +587,55 @@ namespace Trapl.Semantics
                 }
 
                 type = this.owner.MakeVoidType();
+                return segment;
+            }
+
+
+            private CodeSegment ParseCall(Syntax.Node node, CodeSegment segment, out VariableType type)
+            {
+                var argTypes = new VariableType[node.ChildNumber() - 1];
+                VariableType targetType;
+
+                for (int i = 1; i < node.ChildNumber(); i++)
+                {
+                    segment = this.ParseExpression(node.Child(i), segment, out argTypes[i - 1]);
+                }
+
+                this.callContext = argTypes;
+                segment = this.ParseExpression(node.Child(0), segment, out targetType);
+
+                var targetFunctType = targetType as VariableTypeFunct;
+                if (targetFunctType == null)
+                {
+                    this.owner.diagn.Add(MessageKind.Error, MessageCode.CannotCall,
+                        "'" + targetType.Name() + "' expression is not callable",
+                        this.funct.source, node.Child(0).Span());
+                    throw new ParserException();
+                }
+
+                if (targetFunctType.argumentTypes.Count != argTypes.Length)
+                {
+                    this.owner.diagn.Add(MessageKind.Error, MessageCode.WrongArgumentNumber,
+                        "wrong number of arguments to '" + targetType.Name() + "' funct",
+                        this.funct.source, node.Span());
+                    throw new ParserException();
+                }
+
+                for (int i = 0; i < argTypes.Length; i++)
+                {
+                    if (!argTypes[i].IsSame(targetFunctType.argumentTypes[i]))
+                    {
+                        this.owner.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
+                            "incompatible '" + argTypes[i].Name() + "' expression " +
+                            "to '" + targetFunctType.argumentTypes[i].Name() + "' argument",
+                            this.funct.source, node.Child(i + 1).Span());
+                    }
+                }
+
+                var codeNode = new CodeNodeCall();
+                segment.nodes.Add(codeNode);
+
+                type = targetFunctType.returnType;
                 return segment;
             }
 
@@ -541,7 +652,9 @@ namespace Trapl.Semantics
                        +-------+-------+                      +-------+-------+
                                |                                      |
                                v                                      v
-                         SEGMENT AFTER                          SEGMENT AFTER            */
+                         SEGMENT AFTER                          SEGMENT AFTER
+                         
+                */
 
                 segmentBefore.nodes.Add(new CodeNodeIf());
 
@@ -579,7 +692,9 @@ namespace Trapl.Semantics
                   |       +-------+-------+
                   |       |               |
                   |       v               v
-                  +-- SEGMENT BODY    SEGMENT AFTER         */
+                  +-- SEGMENT BODY    SEGMENT AFTER
+                
+                */
 
                 var segmentCondition = new CodeSegment();
                 var segmentBody = new CodeSegment();

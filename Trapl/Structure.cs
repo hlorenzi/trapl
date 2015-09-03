@@ -24,8 +24,10 @@ namespace Trapl.Structure
     public class Declaration
     {
         public string name;
+        public Syntax.Node templateListNode;
         public Syntax.Node syntaxNode;
         public Source source;
+        public Diagnostics.Span nameSpan;
     }
 
 
@@ -40,15 +42,23 @@ namespace Trapl.Structure
                 try
                 {
                     EnsureKind(node, Syntax.NodeKind.TopLevelDecl, source, diagn);
+                    EnsureKind(node.Child(0), Syntax.NodeKind.Identifier, source, diagn);
+                    EnsureKind(node.Child(0).Child(0), Syntax.NodeKind.Name, source, diagn);
 
-                    var nameNode = node.Child(0);
+                    var nameNode = node.Child(0).Child(0);
                     var declNode = node.Child(1);
-
-                    EnsureKind(nameNode, Syntax.NodeKind.Identifier, source, diagn);
+                    Syntax.Node templNode = null;
+                    if (node.Child(0).ChildNumber() > 1)
+                    {
+                        EnsureKind(node.Child(0).Child(1), Syntax.NodeKind.TemplateList, source, diagn);
+                        templNode = node.Child(0).Child(1);
+                    }
 
                     var decl = new Declaration();
                     decl.name = source.Excerpt(nameNode.Span());
+                    decl.nameSpan = node.Child(0).Span();
                     decl.syntaxNode = declNode;
+                    decl.templateListNode = templNode;
                     decl.source = source;
 
                     if (declNode.kind == Syntax.NodeKind.FunctDecl)

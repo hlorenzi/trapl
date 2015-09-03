@@ -118,6 +118,8 @@ namespace Trapl.Diagnostics
         CannotAssign,
         CannotAddress,
         CannotDereference,
+        CannotCall,
+        WrongArgumentNumber,
         IncompatibleTypes,
         WrongFunctNameStyle,
         WrongStructNameStyle

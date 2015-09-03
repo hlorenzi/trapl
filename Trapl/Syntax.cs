@@ -522,7 +522,7 @@ namespace Trapl.Syntax
         {
             // If reached the end of operators list, continue parsing inner expressions.
             if (level >= unaryOpList.GetLength(0))
-                return this.ParseLeafExpression();
+                return this.ParseCallExpression();
 
             // Find a unary operator that matches the current token.
             var match = unaryOpList[level].Find(op => this.CurrentIs(op.tokenKind));
@@ -544,10 +544,37 @@ namespace Trapl.Syntax
             return node;
         }
 
+
+        private Node ParseCallExpression()
+        {
+            var targetNode = this.ParseLeafExpression();
+            if (this.CurrentIsNot(Lexer.TokenKind.ParenOpen))
+                return targetNode;
+
+            this.Advance();
+
+            var callNode = new Node(NodeKind.Call);
+            callNode.AddChild(targetNode);
+            callNode.SetLastChildSpan();
+
+            while (this.CurrentIsNot(Lexer.TokenKind.ParenClose))
+            {
+                callNode.AddChild(this.ParseExpression());
+                this.MatchListSeparator(Lexer.TokenKind.Comma, Lexer.TokenKind.ParenClose,
+                    MessageCode.Expected, "expected ',' or ')'");
+            }
+
+            callNode.AddSpan(this.Current().span);
+            this.Match(Lexer.TokenKind.ParenClose, MessageCode.Expected, "expected ')'");
+
+            return callNode;
+        }
+
+
         private Node ParseLeafExpression()
         {
             if (this.CurrentIs(Lexer.TokenKind.Identifier))
-                return this.ParseIdentifier(MessageCode.Internal, "expected identifier");
+                return this.ParseTemplatedIdentifier(MessageCode.Internal, "expected identifier");
             else if (this.CurrentIs(Lexer.TokenKind.Number))
                 return this.ParseNumberLiteral();
             else if (this.CurrentIs(Lexer.TokenKind.BraceOpen))

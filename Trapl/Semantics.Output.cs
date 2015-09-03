@@ -10,6 +10,9 @@ namespace Trapl.Semantics
     {
         public List<StructDef> structDefs = new List<StructDef>();
         public List<FunctDef> functDefs = new List<FunctDef>();
+        public List<Structure.Declaration> templStructDecls = new List<Structure.Declaration>();
+        public List<Structure.Declaration> templFunctDecls = new List<Structure.Declaration>();
+
 
         public void PrintFunctsDebug()
         {
@@ -55,6 +58,53 @@ namespace Trapl.Semantics
                     Console.Out.WriteLine();
                 }
             }
+        }
+    }
+
+
+    public class TemplateList
+    {
+        public enum ParameterKind
+        {
+            Specific, Generic, Variadic
+        }
+
+
+        public class Parameter
+        {
+            public ParameterKind kind;
+            public string genericName;
+            public VariableType specificType;
+        }
+
+
+        public List<Parameter> parameters = new List<Parameter>();
+
+
+        public bool IsGeneric()
+        {
+            foreach (var p in parameters)
+            {
+                if (p.kind != ParameterKind.Specific) return true;
+            }
+            return false;
+        }
+
+
+        public string SpecificName()
+        {
+            var result = "";
+            if (parameters.Count > 0)
+            {
+                result += "__templ__";
+                for (int i = 0; i < parameters.Count; i++)
+                {
+                    result += parameters[i].specificType.Name();
+                    if (i < parameters.Count - 1)
+                        result += "__";
+                }
+            }
+            return result;
         }
     }
 
@@ -110,18 +160,21 @@ namespace Trapl.Semantics
         }
 
         public string name;
+        public TemplateList templateList = new TemplateList();
         public List<Variable> arguments = new List<Variable>();
         public VariableType returnType;
         public List<Variable> localVariables = new List<Variable>();
         public CodeSegment body;
         public Source source;
+        public Diagnostics.Span nameSpan;
         public Diagnostics.Span declSpan;
 
 
-        public FunctDef(string name, Source source, Diagnostics.Span declSpan)
+        public FunctDef(string name, Source source, Diagnostics.Span nameSpan, Diagnostics.Span declSpan)
         {
             this.name = name;
             this.source = source;
+            this.nameSpan = nameSpan;
             this.declSpan = declSpan;
         }
     }
