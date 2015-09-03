@@ -9,27 +9,29 @@ namespace TraplTest
     public class BasicTests
     {
         [TestMethod]
-        public void StructuralSyntaxTests()
+        public void StructuralTests()
         {
-            SyntaxPasses("");
+            Passes("");
 
-            SyntaxPasses("Test: struct { }");
-            SyntaxPasses("Test: struct { x: Int8 }");
-            SyntaxPasses("Test: struct { x: Int8, y: Int8 }");
-            SyntaxPasses("Test: struct { x: Int8, y: Int16, }");
+            Passes("Test: struct { }");
+            Passes("Test: struct { x: Int8 }");
+            Passes("Test: struct { x: Int8, y: Int8 }");
+            Passes("Test: struct { x: Int8, y: Int16, }");
+            Passes("Test1: struct { x: Test2 } Test2: struct { x: Int8 }");
+            Passes("Test1: struct { x: Int8 } Test2: struct { x: Test1 }");
 
-            SyntaxPasses("test: funct() { }");
-            SyntaxPasses("test: funct(x: Int8) { }");
-            SyntaxPasses("test: funct(x: Int8, y: Int8) { }");
-            SyntaxPasses("test: funct(x: Int8, y: Int8,) { }");
-            SyntaxPasses("test: funct(-> Int8) { return 0; }");
-            SyntaxPasses("test: funct(x: Int8 -> Int8) { return 0; }");
-            SyntaxPasses("test: funct(x: Int8, y: Int8 -> Int8) { return 0; }");
-            SyntaxPasses("test: funct(x: Int8, y: Int8, -> Int8) { return 0; }");
+            Passes("test: funct() { }");
+            Passes("test: funct(x: Int8) { }");
+            Passes("test: funct(x: Int8, y: Int8) { }");
+            Passes("test: funct(x: Int8, y: Int8,) { }");
+            Passes("test: funct(-> Int8) { return 0; }");
+            Passes("test: funct(x: Int8 -> Int8) { return 0; }");
+            Passes("test: funct(x: Int8, y: Int8 -> Int8) { return 0; }");
+            Passes("test: funct(x: Int8, y: Int8, -> Int8) { return 0; }");
 
-            SyntaxPasses("Test: trait { }");
+            Passes("Test: trait { }");
 
-            SyntaxPasses("test: funct() { } Test2: struct { }");
+            Passes("test: funct() { } Test2: struct { }");
 
             SyntaxFails("{ }");
             SyntaxFails("test");
@@ -61,16 +63,6 @@ namespace TraplTest
             SyntaxFails("test: funct(x: Int8 y: Int8) { }");
             SyntaxFails("test: funct(x: Int8, y: Int8 -> ) { }");
             SyntaxFails("test: funct(x: Int8, y: Int8 - > Int8) { return 0; }");
-        }
-
-
-        [TestMethod]
-        public void StructuralSemanticsTests()
-        {
-            SemanticsPass("Test: struct { x: Int8 }");
-            SemanticsPass("Test: struct { x: Int8, y: Int16 }");
-            SemanticsPass("Test1: struct { x: Test2 } Test2: struct { x: Int8 }");
-            SemanticsPass("Test1: struct { x: Int8 } Test2: struct { x: Test1 }");
 
             SemanticsFail("Test: struct { x: UnknownType }");
             //SemanticsFail("RepeatedMembers: struct { x: Int8, x: Int16 }");
@@ -91,51 +83,42 @@ namespace TraplTest
 
 
         [TestMethod]
-        public void CodeSyntaxTests()
+        public void CodeTests()
         {
             EmbedDelegate Embed = str => { return "test: funct() { " + str + " }"; };
+            EmbedDelegate Embed2 = str => { return "test: funct() { let x: Int32 = 0; let ptr: &Int32 = &x; " + str + " }"; };
 
-            SyntaxPasses(Embed(""));
-            SyntaxPasses(Embed("{ }"));
-            SyntaxPasses(Embed("let x = 0"));
-            SyntaxPasses(Embed("let x = 0;"));
-            SyntaxPasses(Embed("let x: Int8;"));
-            SyntaxPasses(Embed("let x: Int8 = 0;"));
-            SyntaxPasses(Embed("let x: Int8 = 0; x = 1 + 1;"));
-            SyntaxPasses(Embed("let x: Int8 = 0; x = x + 1;"));
-            SyntaxPasses(Embed("let x: Int8 = 0; x = 1 + x;"));
-            SyntaxPasses(Embed("let x: Int8 = 0; x = x + x;"));
-            SyntaxPasses(Embed("let x: Int8 = 0; x = 1 - 1;"));
-            SyntaxPasses(Embed("let x: Int8 = 0; x = 1 + -1;"));
-            SyntaxPasses(Embed("let x: Int8 = 0; x = 1 + (-1);"));
-            SyntaxPasses(Embed("let x: Int8; let ptr: &Int8; ptr = &x"));
-            SyntaxPasses(Embed("let x: Int8; let ptr: &Int8; @ptr = x"));
+            Passes(Embed(""));
+            Passes(Embed("{ }"));
+            Passes(Embed("let x = 0"));
+            Passes(Embed("let x = 0;"));
+            Passes(Embed("let x: Int32;"));
+            Passes(Embed("let x: Int32 = 0;"));
+            /*Passes(Embed("let x: Int32 = 0; x = 1 + 1;"));
+            Passes(Embed("let x: Int32 = 0; x = x + 1;"));
+            Passes(Embed("let x: Int32 = 0; x = 1 + x;"));
+            Passes(Embed("let x: Int32 = 0; x = x + x;"));
+            Passes(Embed("let x: Int32 = 0; x = 1 - 1;"));
+            Passes(Embed("let x: Int32 = 0; x = 1 + -1;"));
+            Passes(Embed("let x: Int32 = 0; x = 1 + (-1);"));*/
+
+            Passes(Embed("let x: Int32; let x: Int64"));
+            Passes(Embed("let x: &Int32"));
+            Passes(Embed("let x: &&Int32"));
+            Passes(Embed("let x: &&&&&Int32"));
+            Passes(Embed("let x: Int32; let ptr: &Int32; ptr = &x"));
+            Passes(Embed("let x: Int32; let ptr: &Int32; @ptr = x"));
+
+            Passes(Embed2("@ptr = x"));
+            Passes(Embed2("x = @ptr"));
+            Passes(Embed2("@&@ptr = x"));
+            Passes(Embed2("x = @&@ptr"));
+            Passes(Embed2("ptr = &@&x"));
+            Passes(Embed2("let ptrptr: &&Int32 = &ptr"));
 
             SyntaxFails(Embed(";"));
             SyntaxFails(Embed("let;"));
             SyntaxFails(Embed("let = 0;"));
-            SyntaxFails(Embed("let x: Int8; let ptr: &Int8 = &&x;"));
-        }
-
-
-        [TestMethod]
-        public void CodeSemanticsTests()
-        {
-            EmbedDelegate Embed = str => { return "test: funct() { " + str + " }"; };
-            EmbedDelegate Embed2 = str => { return "test: funct() { let x: Int8 = 0; let ptr: &Int8 = &x; " + str + " }"; };
-
-            SemanticsPass(Embed(""));
-            SemanticsPass(Embed("{ }"));
-            SemanticsPass(Embed("let x: Int8"));
-            SemanticsPass(Embed("let x: Int8 = 0"));
-            SemanticsPass(Embed("let x = 0"));
-            SemanticsPass(Embed("let x: Int8; let x: Int16"));
-            SemanticsPass(Embed2(""));
-            SemanticsPass(Embed2("@ptr = x"));
-            SemanticsPass(Embed2("x = @ptr"));
-            SemanticsPass(Embed2("@&@ptr = x"));
-            SemanticsPass(Embed2("x = @&@ptr"));
-            SemanticsPass(Embed2("ptr = &@&x"));
 
             SemanticsFail(Embed("let x"));
             SemanticsFail(Embed2("ptr = x"));
@@ -144,7 +127,7 @@ namespace TraplTest
         }
 
 
-        private void SyntaxPasses(string str)
+        private void Passes(string str)
         {
             var diagn = new Trapl.Diagnostics.MessageList();
 
@@ -154,6 +137,7 @@ namespace TraplTest
                 var lex = Trapl.Lexer.Analyzer.Pass(src, diagn);
                 var syn = Trapl.Syntax.Analyzer.Pass(lex, src, diagn);
                 var struc = Trapl.Structure.Analyzer.Pass(syn, src, diagn);
+                var semantics = Trapl.Semantics.Analyzer.Pass(struc, diagn);
 
                 diagn.Print();
             }
@@ -185,29 +169,6 @@ namespace TraplTest
             }
 
             Assert.IsTrue(diagn.Failed());
-        }
-
-
-        private void SemanticsPass(string str)
-        {
-            var diagn = new Trapl.Diagnostics.MessageList();
-
-            try
-            {
-                var src = Trapl.Source.FromString(str);
-                var lex = Trapl.Lexer.Analyzer.Pass(src, diagn);
-                var syn = Trapl.Syntax.Analyzer.Pass(lex, src, diagn);
-                var struc = Trapl.Structure.Analyzer.Pass(syn, src, diagn);
-                var semantics = Trapl.Semantics.Analyzer.Pass(struc, diagn);
-
-                diagn.Print();
-            }
-            catch
-            {
-                Assert.Inconclusive();
-            }
-
-            Assert.IsTrue(diagn.Passed());
         }
 
 

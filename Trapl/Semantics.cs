@@ -38,8 +38,14 @@ namespace Trapl.Semantics
             if (node.kind != Syntax.NodeKind.TypeName)
                 throw new ParserException();
 
-            var isPointer = (node.Child(0).kind == Syntax.NodeKind.Operator);
-            var name = source.Excerpt((node.ChildNumber() == 2 ? node.Child(1).Span() : node.Child(0).Span()));
+            int pointerLevel = 0;
+            int curChild = 0;
+            while (node.ChildNumber() > curChild && node.Child(curChild).kind == Syntax.NodeKind.Operator)
+            {
+                pointerLevel += 1;
+                curChild += 1;
+            }
+            var name = source.Excerpt(node.Child(curChild).Span());
 
             var structDefWithName = this.output.structDefs.Find(s => s.name == name);
             if (structDefWithName != null)
@@ -50,14 +56,18 @@ namespace Trapl.Semantics
                 if (!voidAllowed && type.IsSame(this.MakeVoidType()))
                 {
                     this.diagn.Add(MessageKind.Error, MessageCode.ExplicitVoid,
-                        "Void type used explicitly", source, node.Span());
+                        "'Void' type used explicitly", source, node.Span());
                     throw new ParserException();
                 }
 
-                if (isPointer)
-                    return new VariableTypePointer(type);
-                else
-                    return type;
+                VariableType finalType = type;
+                while (pointerLevel > 0)
+                {
+                    finalType = new VariableTypePointer(finalType);
+                    pointerLevel -= 1;
+                }
+
+                return finalType;
             }
 
             this.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
@@ -271,7 +281,7 @@ namespace Trapl.Semantics
                         continue;
 
                     v.outOfScope = true;
-                    var codeNode = new CodeNodeVariableEnd();
+                    var codeNode = new CodeNodeLocalEnd();
                     codeNode.localIndex = i;
                     segment.nodes.Add(codeNode);
                 }
@@ -306,36 +316,87 @@ namespace Trapl.Semantics
 
             private CodeSegment ParseControlLet(Syntax.Node node, CodeSegment segment, out VariableType type)
             {
-                if (node.ChildNumber() == 1)
-                {
-                    this.owner.diagn.Add(MessageKind.Error, MessageCode.InferenceImpossible,
-                        "cannot infer type without initializer", this.funct.source, node.Span());
-                    throw new ParserException();
-                }
-
                 var varName = this.funct.source.Excerpt(node.Child(0).Span());
-                var varType = this.owner.ResolveType(node.Child(1), this.funct.source, false);
-                varType.addressable = true;
                 var varSpan = node.Span();
 
                 var shadowedDecl = this.funct.localVariables.FindLast(v => v.name == varName && !v.outOfScope);
                 if (shadowedDecl != null)
                 {
                     this.owner.diagn.Add(MessageKind.Warning, MessageCode.Shadowing,
-                        "hiding previous declaration",
+                        "previous declaration hidden",
                         MessageCaret.Primary(this.funct.source, varSpan),
                         MessageCaret.Primary(this.funct.source, shadowedDecl.declSpan));
                 }
 
-                var newVariable = new FunctDef.Variable(varName, varType, varSpan);
-                this.funct.localVariables.Add(newVariable);
+                if (node.ChildNumber() == 1)
+                {
+                    this.owner.diagn.Add(MessageKind.Error, MessageCode.InferenceImpossible,
+                        "type inference impossible without initializer", this.funct.source, node.Span());
+                    throw new ParserException();
+                }
 
-                var codeNode = new CodeNodeVariableBegin();
-                codeNode.localIndex = this.funct.localVariables.Count - 1;
+                VariableType varType;
+                if (node.Child(1).kind == Syntax.NodeKind.TypeName)
+                {
+                    varType = this.owner.ResolveType(node.Child(1), this.funct.source, false);
+                    varType.addressable = true;
 
-                segment.nodes.Add(codeNode);
-                type = this.owner.MakeVoidType();
-                return segment;
+                    if (node.ChildNumber() == 3)
+                    {
+                        VariableType initializerType;
+                        segment = this.ParseExpression(node.Child(2), segment, out initializerType);
+                        if (!varType.IsSame(initializerType))
+                        {
+                            this.owner.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
+                                "incompatible '" + initializerType.Name() + "' initializer",
+                                MessageCaret.Primary(this.funct.source, node.Child(2).Span()),
+                                MessageCaret.Primary(this.funct.source, node.Child(1).Span()));
+                        }
+                    }
+
+                    var newVariable = new FunctDef.Variable(varName, varType, varSpan);
+                    this.funct.localVariables.Add(newVariable);
+
+                    var codeNode = new CodeNodeLocalBegin();
+                    codeNode.localIndex = this.funct.localVariables.Count - 1;
+                    segment.nodes.Add(codeNode);
+
+                    type = this.owner.MakeVoidType();
+                    return segment;
+                }
+                else
+                {
+                    var initializerSegment = new CodeSegment();
+                    var initializerSegmentEnd = this.ParseExpression(node.Child(1), initializerSegment, out varType);
+
+                    if (varType.IsSame(this.owner.MakeVoidType()))
+                    {
+                        this.owner.diagn.Add(MessageKind.Error, MessageCode.ExplicitVoid,
+                            "type inferred to be 'Void'",
+                            MessageCaret.Primary(this.funct.source, node.Child(1).Span()),
+                            MessageCaret.Primary(this.funct.source, node.Child(0).Span()));
+                        throw new ParserException();
+                    }
+
+                    var newVariable = new FunctDef.Variable(varName, varType, varSpan);
+                    this.funct.localVariables.Add(newVariable);
+
+                    var codeNode = new CodeNodeLocalBegin();
+                    codeNode.localIndex = this.funct.localVariables.Count - 1;
+                    segment.nodes.Add(codeNode);
+
+                    var pushLocalNode = new CodeNodePushLocal();
+                    pushLocalNode.localIndex = this.funct.localVariables.Count - 1;
+                    segment.nodes.Add(pushLocalNode);
+
+                    segment.GoesTo(initializerSegment);
+
+                    var storeNode = new CodeNodeStore();
+                    initializerSegmentEnd.nodes.Add(storeNode);
+
+                    type = this.owner.MakeVoidType();
+                    return initializerSegmentEnd;
+                }
             }
 
 

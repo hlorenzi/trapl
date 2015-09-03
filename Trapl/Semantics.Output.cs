@@ -19,6 +19,13 @@ namespace Trapl.Semantics
                 var segments = new List<CodeSegment>();
                 segments.Add(f.body);
 
+                for (int i = 0; i < f.localVariables.Count; i++)
+                {
+                    Console.Out.WriteLine("  LOCAL " + i + " = " + f.localVariables[i].name + ": " + f.localVariables[i].type.Name());
+                }
+
+                Console.Out.WriteLine();
+
                 for (int i = 0; i < segments.Count; i++)
                 {
                     Console.Out.WriteLine("  === Segment " + i + " ===");
@@ -202,27 +209,19 @@ namespace Trapl.Semantics
     }
 
 
-    public class CodeNodeVariableBegin : CodeNode
+    public class CodeNodeLocalBegin : CodeNode
     {
         public int localIndex;
 
-        public override string Name() { return "VariableBegin " + localIndex; }
+        public override string Name() { return "LocalBegin " + localIndex; }
     }
 
 
-    public class CodeNodeVariableEnd : CodeNode
+    public class CodeNodeLocalEnd : CodeNode
     {
         public int localIndex;
 
-        public override string Name() { return "VariableEnd " + localIndex; }
-    }
-
-
-    public class CodeNodeStoreLocal : CodeNode
-    {
-        public int localIndex;
-
-        public override string Name() { return "StoreLocal " + localIndex; }
+        public override string Name() { return "LocalEnd " + localIndex; }
     }
 
 

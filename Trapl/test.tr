@@ -1,11 +1,17 @@
 test: funct()
 {
-	let x: Int8;
-	let ptr: &Int8;
+	let x: Int32 = 0;
+	let z: &Int32 = &x;
+	let zptr = &z;
+	let manyptr: &&&&&Int32;
 
-	x = @ptr;
-	@ptr = x;
-	@&@ptr = x;
-	x = @&@ptr;
-	(x) = @(&(@(ptr)));
+	zptr = &&x;
+	@zptr = &x;
+	@@zptr = 0;
+}
+
+
+templated::<Int8, Float64>: funct()
+{
+
 }

@@ -144,7 +144,7 @@ namespace Trapl.Syntax
                 {
                     var node = new Node(NodeKind.TopLevelDecl);
                     node.SetSpan(this.Current().span);
-                    node.AddChild(this.ParseIdentifier());
+                    node.AddChild(this.ParseTemplatedIdentifier(MessageCode.Expected, "expected declaration name"));
                     this.Match(Lexer.TokenKind.Colon, MessageCode.Expected, "expected ':'");
                     if (this.CurrentIs(Lexer.TokenKind.KeywordFunct))
                         node.AddChild(this.ParseFunctDecl(true));
@@ -172,7 +172,7 @@ namespace Trapl.Syntax
             while (this.CurrentIsNot(Lexer.TokenKind.ParenClose, Lexer.TokenKind.Arrow))
             {
                 var argNode = new Node(NodeKind.FunctArgDecl);
-                argNode.AddChild(this.ParseIdentifier());
+                argNode.AddChild(this.ParseIdentifier(MessageCode.Expected, "expected argument name"));
                 argNode.SetLastChildSpan();
                 this.Match(Lexer.TokenKind.Colon, MessageCode.Expected, "expected ':'");
                 argNode.AddChild(this.ParseType());
@@ -213,7 +213,7 @@ namespace Trapl.Syntax
             while (this.CurrentIsNot(Lexer.TokenKind.BraceClose))
             {
                 var memberNode = new Node(NodeKind.StructMemberDecl);
-                memberNode.AddChild(this.ParseIdentifier());
+                memberNode.AddChild(this.ParseIdentifier(MessageCode.Expected, "expected member name"));
                 memberNode.SetLastChildSpan();
                 this.Match(Lexer.TokenKind.Colon, MessageCode.Expected, "expected ':'");
                 memberNode.AddChild(this.ParseType());
@@ -237,7 +237,7 @@ namespace Trapl.Syntax
             while (this.CurrentIsNot(Lexer.TokenKind.BraceClose))
             {
                 var memberNode = new Node(NodeKind.TraitMemberDecl);
-                memberNode.AddChild(this.ParseIdentifier());
+                memberNode.AddChild(this.ParseIdentifier(MessageCode.Expected, "expected funct name"));
                 memberNode.SetLastChildSpan();
                 this.Match(Lexer.TokenKind.Colon, MessageCode.Expected, "expected ':'");
                 memberNode.AddChild(this.ParseFunctDecl(false));
@@ -251,17 +251,55 @@ namespace Trapl.Syntax
             return node;
         }
 
-
-        private Node ParseIdentifier(MessageCode errCode, string errText)
+        private Node ParseName(MessageCode errCode, string errText)
         {
-            var token = this.Match(Lexer.TokenKind.Identifier, errCode, errText);
-            return new Node(NodeKind.Identifier, token.span);
+            var nameToken = this.Match(Lexer.TokenKind.Identifier, errCode, errText);
+            return new Node(NodeKind.Name, nameToken.span);
         }
 
 
-        private Node ParseIdentifier()
+        private Node ParseIdentifier(MessageCode errCode, string errText)
         {
-            return this.ParseIdentifier(MessageCode.Expected, "expected identifier");
+            var node = new Node(NodeKind.Identifier);
+            node.AddChild(this.ParseName(errCode, errText));
+            node.SetLastChildSpan();
+            return node;
+        }
+
+
+        private Node ParseTemplatedIdentifier(MessageCode errCode, string errText)
+        {
+            var node = new Node(NodeKind.Identifier);
+            node.SetSpan(this.Current().span);
+            var nameToken = this.Match(Lexer.TokenKind.Identifier, errCode, errText);
+            node.AddChild(new Node(NodeKind.Name, nameToken.span));
+            node.AddLastChildSpan();
+
+            if (this.CurrentIs(Lexer.TokenKind.DoubleColon))
+            {
+                this.Advance();
+                node.AddChild(this.ParseTemplateList());
+                node.AddLastChildSpan();
+            }
+
+            return node;
+        }
+
+
+        private Node ParseTemplateList()
+        {
+            var node = new Node(NodeKind.TemplateList);
+            node.SetSpan(this.Current().span);
+            this.Match(Lexer.TokenKind.LessThan, MessageCode.Expected, "expected '<'");
+            while (this.CurrentIsNot(Lexer.TokenKind.GreaterThan))
+            {
+                node.AddChild(this.ParseType());
+                this.MatchListSeparator(Lexer.TokenKind.Comma, Lexer.TokenKind.GreaterThan,
+                    MessageCode.Expected, "expected ',' or '>'");
+            }
+            node.AddSpan(this.Current().span);
+            this.Match(Lexer.TokenKind.GreaterThan, MessageCode.Expected, "expected '>'");
+            return node;
         }
 
 
@@ -276,7 +314,7 @@ namespace Trapl.Syntax
         {
             var node = new Node(NodeKind.TypeName);
             node.SetSpan(this.Current().span);
-            if (this.CurrentIs(Lexer.TokenKind.Ampersand))
+            while (this.CurrentIs(Lexer.TokenKind.Ampersand))
                 node.AddChild(new Node(NodeKind.Operator, this.Advance().span));
             node.AddChild(new Node(NodeKind.Identifier,
                 this.Match(Lexer.TokenKind.Identifier, MessageCode.Expected, "expected type").span));
@@ -324,7 +362,7 @@ namespace Trapl.Syntax
             var node = new Node(NodeKind.ControlLet);
             node.SetSpan(this.Current().span);
             this.Match(Lexer.TokenKind.KeywordLet, MessageCode.Expected, "expected 'let'");
-            node.AddChild(this.ParseIdentifier());
+            node.AddChild(this.ParseName(MessageCode.Expected, "expected variable name"));
             if (this.CurrentIs(Lexer.TokenKind.Colon))
             {
                 this.Advance();
@@ -509,7 +547,7 @@ namespace Trapl.Syntax
         private Node ParseLeafExpression()
         {
             if (this.CurrentIs(Lexer.TokenKind.Identifier))
-                return this.ParseIdentifier();
+                return this.ParseIdentifier(MessageCode.Internal, "expected identifier");
             else if (this.CurrentIs(Lexer.TokenKind.Number))
                 return this.ParseNumberLiteral();
             else if (this.CurrentIs(Lexer.TokenKind.BraceOpen))
