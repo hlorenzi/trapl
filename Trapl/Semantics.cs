@@ -7,7 +7,7 @@ namespace Trapl.Semantics
 {
     public class Analyzer 
     {
-        public static Output Pass(Structure.Output syn, Diagnostics.MessageList diagn)
+        public static Output Pass(Structure.Output syn, Diagnostics.Collection diagn)
         {
             var analyzer = new Analyzer(syn, diagn);
             analyzer.ParseStructDecls();
@@ -22,10 +22,10 @@ namespace Trapl.Semantics
 
         private Output output;
         private Structure.Output syn;
-        private Diagnostics.MessageList diagn;
+        private Diagnostics.Collection diagn;
 
 
-        private Analyzer(Structure.Output syn, Diagnostics.MessageList diagn)
+        private Analyzer(Structure.Output syn, Diagnostics.Collection diagn)
         {
             this.output = new Output();
             this.syn = syn;
@@ -33,19 +33,19 @@ namespace Trapl.Semantics
         }
 
 
-        private VariableType ResolveType(Syntax.Node node, Source source, bool voidAllowed = false)
+        private VariableType ResolveType(Grammar.ASTNode node, SourceCode source, bool voidAllowed = false)
         {
-            if (node.kind != Syntax.NodeKind.TypeName)
+            if (node.kind != Grammar.ASTNodeKind.TypeName)
                 throw new ParserException();
 
             int pointerLevel = 0;
             int curChild = 0;
-            while (node.ChildNumber() > curChild && node.Child(curChild).kind == Syntax.NodeKind.Operator)
+            while (node.ChildNumber() > curChild && node.Child(curChild).kind == Grammar.ASTNodeKind.Operator)
             {
                 pointerLevel += 1;
                 curChild += 1;
             }
-            var name = source.Excerpt(node.Child(curChild).Span());
+            var name = source.GetExcerpt(node.Child(curChild).Span());
 
             var structDefWithName = this.output.structDefs.Find(s => s.name == name);
             if (structDefWithName != null)
@@ -115,13 +115,13 @@ namespace Trapl.Semantics
                 var src = this.syn.structDecls[i].source;
                 foreach (var memberNode in this.syn.structDecls[i].syntaxNode.EnumerateChildren())
                 {
-                    if (memberNode.kind != Syntax.NodeKind.StructMemberDecl)
+                    if (memberNode.kind != Grammar.ASTNodeKind.StructMemberDecl)
                         continue;
 
                     try
                     {
                         var memberDef = new StructDef.Member();
-                        memberDef.name = src.Excerpt(memberNode.Child(0).Span());
+                        memberDef.name = src.GetExcerpt(memberNode.Child(0).Span());
                         memberDef.declSpan = memberNode.Span();
                         memberDef.type = this.ResolveType(memberNode.Child(1), src);
                         this.output.structDefs[i + userStructFirstIndex].members.Add(memberDef);
@@ -177,21 +177,21 @@ namespace Trapl.Semantics
         }
 
 
-        private TemplateList ParseTemplateList(Syntax.Node node, Source src)
+        private TemplateList ParseTemplateList(Grammar.ASTNode node, SourceCode src)
         {
             var templList = new TemplateList();
             if (node != null)
             {
                 foreach (var paramNode in node.EnumerateChildren())
                 {
-                    if (paramNode.kind == Syntax.NodeKind.TypeName)
+                    if (paramNode.kind == Grammar.ASTNodeKind.TypeName)
                     {
                         var param = new TemplateList.Parameter();
                         param.kind = TemplateList.ParameterKind.Specific;
                         param.specificType = this.ResolveType(paramNode, src, true);
                         templList.parameters.Add(param);
                     }
-                    else if (paramNode.kind == Syntax.NodeKind.TemplateType)
+                    else if (paramNode.kind == Grammar.ASTNodeKind.TemplateType)
                     {
                         var param = new TemplateList.Parameter();
                         param.kind = TemplateList.ParameterKind.Generic;
@@ -225,10 +225,10 @@ namespace Trapl.Semantics
                     // Parse arguments.
                     foreach (var argNode in decl.syntaxNode.EnumerateChildren())
                     {
-                        if (argNode.kind != Syntax.NodeKind.FunctArgDecl)
+                        if (argNode.kind != Grammar.ASTNodeKind.FunctArgDecl)
                             continue;
 
-                        var argName = decl.source.Excerpt(argNode.Child(0).Span());
+                        var argName = decl.source.GetExcerpt(argNode.Child(0).Span());
                         var argType = this.ResolveType(argNode.Child(1), decl.source);
                         funct.arguments.Add(new FunctDef.Variable(argName, argType, argNode.Span()));
                         funct.localVariables.Add(new FunctDef.Variable(argName, argType, argNode.Span()));
@@ -238,7 +238,7 @@ namespace Trapl.Semantics
                     funct.returnType = this.MakeVoidType();
                     foreach (var argNode in decl.syntaxNode.EnumerateChildren())
                     {
-                        if (argNode.kind != Syntax.NodeKind.FunctReturnDecl)
+                        if (argNode.kind != Grammar.ASTNodeKind.FunctReturnDecl)
                             continue;
 
                         funct.returnType = this.ResolveType(argNode.Child(0), decl.source);
@@ -257,7 +257,7 @@ namespace Trapl.Semantics
 
                 funct.body = FunctBodyAnalyzer.Analyze(
                     this,
-                    decl.syntaxNode.ChildWithKind(Syntax.NodeKind.Block),
+                    decl.syntaxNode.ChildWithKind(Grammar.ASTNodeKind.Block),
                     funct);
             }
         }
@@ -265,7 +265,7 @@ namespace Trapl.Semantics
 
         private class FunctBodyAnalyzer
         {
-            public static CodeSegment Analyze(Semantics.Analyzer owner, Syntax.Node node, FunctDef funct)
+            public static CodeSegment Analyze(Semantics.Analyzer owner, Grammar.ASTNode node, FunctDef funct)
             {
                 var analyzer = new FunctBodyAnalyzer(owner, funct);
                 var segment = new CodeSegment();
@@ -287,7 +287,7 @@ namespace Trapl.Semantics
             }
 
 
-            private CodeSegment ParseBlock(Syntax.Node node, CodeSegment segment)
+            private CodeSegment ParseBlock(Grammar.ASTNode node, CodeSegment segment)
             {
                 var curLocalIndex = this.funct.localVariables.Count;
 
@@ -319,27 +319,27 @@ namespace Trapl.Semantics
             }
 
 
-            private CodeSegment ParseExpression(Syntax.Node node, CodeSegment segment, out VariableType type)
+            private CodeSegment ParseExpression(Grammar.ASTNode node, CodeSegment segment, out VariableType type)
             {
-                if (node.kind == Syntax.NodeKind.Identifier)
+                if (node.kind == Grammar.ASTNodeKind.Identifier)
                     return this.ParseIdentifier(node, segment, out type);
                 else
                 {
                     this.callContext = null;
 
-                    if (node.kind == Syntax.NodeKind.ControlLet)
+                    if (node.kind == Grammar.ASTNodeKind.ControlLet)
                         return this.ParseControlLet(node, segment, out type);
-                    else if (node.kind == Syntax.NodeKind.ControlIf)
+                    else if (node.kind == Grammar.ASTNodeKind.ControlIf)
                         return this.ParseControlIf(node, segment, out type);
-                    else if (node.kind == Syntax.NodeKind.ControlWhile)
+                    else if (node.kind == Grammar.ASTNodeKind.ControlWhile)
                         return this.ParseControlWhile(node, segment, out type);
-                    else if (node.kind == Syntax.NodeKind.NumberLiteral)
+                    else if (node.kind == Grammar.ASTNodeKind.NumberLiteral)
                         return this.ParseLiteral(node, segment, out type);
-                    else if (node.kind == Syntax.NodeKind.BinaryOp)
+                    else if (node.kind == Grammar.ASTNodeKind.BinaryOp)
                         return this.ParseBinaryOp(node, segment, out type);
-                    else if (node.kind == Syntax.NodeKind.UnaryOp)
+                    else if (node.kind == Grammar.ASTNodeKind.UnaryOp)
                         return this.ParseUnaryOp(node, segment, out type);
-                    else if (node.kind == Syntax.NodeKind.Call)
+                    else if (node.kind == Grammar.ASTNodeKind.Call)
                         return this.ParseCall(node, segment, out type);
                     else
                         throw new ParserException();
@@ -347,9 +347,9 @@ namespace Trapl.Semantics
             }
 
 
-            private CodeSegment ParseControlLet(Syntax.Node node, CodeSegment segment, out VariableType type)
+            private CodeSegment ParseControlLet(Grammar.ASTNode node, CodeSegment segment, out VariableType type)
             {
-                var varName = this.funct.source.Excerpt(node.Child(0).Span());
+                var varName = this.funct.source.GetExcerpt(node.Child(0).Span());
                 var varSpan = node.Span();
 
                 var shadowedDecl = this.funct.localVariables.FindLast(v => v.name == varName && !v.outOfScope);
@@ -369,7 +369,7 @@ namespace Trapl.Semantics
                 }
 
                 VariableType varType;
-                if (node.Child(1).kind == Syntax.NodeKind.TypeName)
+                if (node.Child(1).kind == Grammar.ASTNodeKind.TypeName)
                 {
                     varType = this.owner.ResolveType(node.Child(1), this.funct.source, false);
                     varType.addressable = true;
@@ -433,9 +433,9 @@ namespace Trapl.Semantics
             }
 
 
-            private CodeSegment ParseIdentifier(Syntax.Node node, CodeSegment segment, out VariableType type)
+            private CodeSegment ParseIdentifier(Grammar.ASTNode node, CodeSegment segment, out VariableType type)
             {
-                var varName = this.funct.source.Excerpt(node.Span());
+                var varName = this.funct.source.GetExcerpt(node.Span());
                 var callCtx = this.callContext;
                 this.callContext = null;
 
@@ -502,10 +502,10 @@ namespace Trapl.Semantics
             }
 
 
-            private CodeSegment ParseLiteral(Syntax.Node node, CodeSegment segment, out VariableType type)
+            private CodeSegment ParseLiteral(Grammar.ASTNode node, CodeSegment segment, out VariableType type)
             {
                 var codeNode = new CodeNodePushLiteral();
-                codeNode.literalExcerpt = this.funct.source.Excerpt(node.Span());
+                codeNode.literalExcerpt = this.funct.source.GetExcerpt(node.Span());
                 segment.nodes.Add(codeNode);
 
                 var stType = new VariableTypeStruct();
@@ -515,9 +515,9 @@ namespace Trapl.Semantics
             }
 
 
-            private CodeSegment ParseBinaryOp(Syntax.Node node, CodeSegment segment, out VariableType type)
+            private CodeSegment ParseBinaryOp(Grammar.ASTNode node, CodeSegment segment, out VariableType type)
             {
-                var op = this.funct.source.Excerpt(node.Child(0).Span());
+                var op = this.funct.source.GetExcerpt(node.Child(0).Span());
 
                 if (op == "=")
                 {
@@ -546,9 +546,9 @@ namespace Trapl.Semantics
             }
 
 
-            private CodeSegment ParseUnaryOp(Syntax.Node node, CodeSegment segment, out VariableType type)
+            private CodeSegment ParseUnaryOp(Grammar.ASTNode node, CodeSegment segment, out VariableType type)
             {
-                var op = this.funct.source.Excerpt(node.Child(0).Span());
+                var op = this.funct.source.GetExcerpt(node.Child(0).Span());
 
                 if (op == "&")
                 {
@@ -591,7 +591,7 @@ namespace Trapl.Semantics
             }
 
 
-            private CodeSegment ParseCall(Syntax.Node node, CodeSegment segment, out VariableType type)
+            private CodeSegment ParseCall(Grammar.ASTNode node, CodeSegment segment, out VariableType type)
             {
                 var argTypes = new VariableType[node.ChildNumber() - 1];
                 VariableType targetType;
@@ -640,7 +640,7 @@ namespace Trapl.Semantics
             }
 
 
-            private CodeSegment ParseControlIf(Syntax.Node node, CodeSegment segmentBefore, out VariableType type)
+            private CodeSegment ParseControlIf(Grammar.ASTNode node, CodeSegment segmentBefore, out VariableType type)
             {
                 /*       SEGMENT BEFORE                         SEGMENT BEFORE
                                |                                      |
@@ -682,7 +682,7 @@ namespace Trapl.Semantics
             }
 
 
-            private CodeSegment ParseControlWhile(Syntax.Node node, CodeSegment segmentBefore, out VariableType type)
+            private CodeSegment ParseControlWhile(Grammar.ASTNode node, CodeSegment segmentBefore, out VariableType type)
             {
                 /*    SEGMENT BEFORE
                         |

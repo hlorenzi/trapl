@@ -24,16 +24,16 @@ namespace Trapl.Structure
     public class Declaration
     {
         public string name;
-        public Syntax.Node templateListNode;
-        public Syntax.Node syntaxNode;
-        public Source source;
+        public Grammar.ASTNode templateListNode;
+        public Grammar.ASTNode syntaxNode;
+        public SourceCode source;
         public Diagnostics.Span nameSpan;
     }
 
 
     public class Analyzer
     {
-        public static Output Pass(Syntax.Output syn, Source source, Diagnostics.MessageList diagn)
+        public static Output Pass(Grammar.AST syn, SourceCode source, Diagnostics.Collection diagn)
         {
             var output = new Output();
 
@@ -41,31 +41,31 @@ namespace Trapl.Structure
             {
                 try
                 {
-                    EnsureKind(node, Syntax.NodeKind.TopLevelDecl, source, diagn);
-                    EnsureKind(node.Child(0), Syntax.NodeKind.Identifier, source, diagn);
-                    EnsureKind(node.Child(0).Child(0), Syntax.NodeKind.Name, source, diagn);
+                    EnsureKind(node, Grammar.ASTNodeKind.TopLevelDecl, source, diagn);
+                    EnsureKind(node.Child(0), Grammar.ASTNodeKind.Identifier, source, diagn);
+                    EnsureKind(node.Child(0).Child(0), Grammar.ASTNodeKind.Name, source, diagn);
 
                     var nameNode = node.Child(0).Child(0);
                     var declNode = node.Child(1);
-                    Syntax.Node templNode = null;
+                    Grammar.ASTNode templNode = null;
                     if (node.Child(0).ChildNumber() > 1)
                     {
-                        EnsureKind(node.Child(0).Child(1), Syntax.NodeKind.TemplateList, source, diagn);
+                        EnsureKind(node.Child(0).Child(1), Grammar.ASTNodeKind.TemplateList, source, diagn);
                         templNode = node.Child(0).Child(1);
                     }
 
                     var decl = new Declaration();
-                    decl.name = source.Excerpt(nameNode.Span());
+                    decl.name = source.GetExcerpt(nameNode.Span());
                     decl.nameSpan = node.Child(0).Span();
                     decl.syntaxNode = declNode;
                     decl.templateListNode = templNode;
                     decl.source = source;
 
-                    if (declNode.kind == Syntax.NodeKind.FunctDecl)
+                    if (declNode.kind == Grammar.ASTNodeKind.FunctDecl)
                         output.functDecls.Add(decl);
-                    else if (declNode.kind == Syntax.NodeKind.StructDecl)
+                    else if (declNode.kind == Grammar.ASTNodeKind.StructDecl)
                         output.structDecls.Add(decl);
-                    else if (declNode.kind == Syntax.NodeKind.TraitDecl)
+                    else if (declNode.kind == Grammar.ASTNodeKind.TraitDecl)
                         output.traitDecls.Add(decl);
                     else
                         throw ErrorAt(declNode, source, diagn);
@@ -86,14 +86,14 @@ namespace Trapl.Structure
         }
 
 
-        private static ParserException ErrorAt(Syntax.Node node, Source source, Diagnostics.MessageList diagn)
+        private static ParserException ErrorAt(Grammar.ASTNode node, SourceCode source, Diagnostics.Collection diagn)
         {
             diagn.Add(MessageKind.Error, MessageCode.Internal, "unexpected node", source, node.Span());
             return new ParserException();
         }
 
 
-        private static void EnsureKind(Syntax.Node node, Syntax.NodeKind kind, Source source, Diagnostics.MessageList diagn)
+        private static void EnsureKind(Grammar.ASTNode node, Grammar.ASTNodeKind kind, SourceCode source, Diagnostics.Collection diagn)
         {
             if (node.kind != kind)
                 throw ErrorAt(node, source, diagn);

@@ -2,33 +2,33 @@
 using System.Collections.Generic;
 
 
-namespace Trapl.Syntax
+namespace Trapl.Grammar
 {
-    public class Output
+    public class AST
     {
-        public List<Node> topDecls;
+        public List<ASTNode> topDecls;
 
 
-        public Output()
+        public AST()
         {
-            this.topDecls = new List<Node>();
+            this.topDecls = new List<ASTNode>();
         }
 
 
-        public void PrintDebug(Source src)
+        public void PrintDebug(SourceCode src)
         {
             foreach (var node in this.topDecls)
                 PrintDebugRecursive(src, node, 0);
         }
 
 
-        private void PrintDebugRecursive(Source src, Node node, int indentLevel)
+        private void PrintDebugRecursive(SourceCode src, ASTNode node, int indentLevel)
         {
             string firstColumn =
                 new string(' ', indentLevel * 2) +
-                System.Enum.GetName(typeof(NodeKind), node.kind);
+                System.Enum.GetName(typeof(ASTNodeKind), node.kind);
 
-            string excerpt = src.Excerpt(node.Span());
+            string excerpt = src.GetExcerpt(node.Span());
             string secondColumn =
                 new string(' ', indentLevel * 2) +
                 excerpt.Substring(0, Math.Min(excerpt.Length, 20)).Replace("\n", " ").Replace("\r", "").Replace("\t", " ") +
@@ -43,7 +43,7 @@ namespace Trapl.Syntax
     }
 
 
-    public enum NodeKind
+    public enum ASTNodeKind
     {
         TopLevelDecl,
         FunctDecl, FunctArgDecl, FunctReturnDecl,
@@ -57,21 +57,21 @@ namespace Trapl.Syntax
     }
 
 
-    public class Node
+    public class ASTNode
     {
-        public NodeKind kind;
+        public ASTNodeKind kind;
         private Diagnostics.Span span;
         private Diagnostics.Span spanWithDelimiters;
-        private List<Node> children = new List<Node>();
+        private List<ASTNode> children = new List<ASTNode>();
 
 
-        public Node(NodeKind kind)
+        public ASTNode(ASTNodeKind kind)
         {
             this.kind = kind;
         }
 
 
-        public Node(NodeKind kind, Diagnostics.Span span)
+        public ASTNode(ASTNodeKind kind, Diagnostics.Span span)
         {
             this.kind = kind;
             this.span = span;
@@ -111,19 +111,19 @@ namespace Trapl.Syntax
         }
 
 
-        public void AddChild(Node node)
+        public void AddChild(ASTNode node)
         {
             this.children.Add(node);
         }
 
 
-        public Node Child(int index)
+        public ASTNode Child(int index)
         {
             return this.children[index];
         }
 
 
-        public Node ChildWithKind(NodeKind kind)
+        public ASTNode ChildWithKind(ASTNodeKind kind)
         {
             return this.children.Find(c => c.kind == kind);
         }
@@ -149,7 +149,7 @@ namespace Trapl.Syntax
         }
 
 
-        public virtual IEnumerable<Node> EnumerateChildren()
+        public virtual IEnumerable<ASTNode> EnumerateChildren()
         {
             foreach (var child in this.children)
                 yield return child;

@@ -120,7 +120,7 @@ namespace Trapl.Semantics
 
         public string name;
         public List<Member> members = new List<Member>();
-        public Source source;
+        public SourceCode source;
         public Diagnostics.Span declSpan;
 
 
@@ -132,7 +132,7 @@ namespace Trapl.Semantics
         }
 
 
-        public StructDef(string name, Source source, Diagnostics.Span declSpan)
+        public StructDef(string name, SourceCode source, Diagnostics.Span declSpan)
         {
             this.name = name;
             this.source = source;
@@ -165,12 +165,12 @@ namespace Trapl.Semantics
         public VariableType returnType;
         public List<Variable> localVariables = new List<Variable>();
         public CodeSegment body;
-        public Source source;
+        public SourceCode source;
         public Diagnostics.Span nameSpan;
         public Diagnostics.Span declSpan;
 
 
-        public FunctDef(string name, Source source, Diagnostics.Span nameSpan, Diagnostics.Span declSpan)
+        public FunctDef(string name, SourceCode source, Diagnostics.Span nameSpan, Diagnostics.Span declSpan)
         {
             this.name = name;
             this.source = source;

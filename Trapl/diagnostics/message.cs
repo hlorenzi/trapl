@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 
 namespace Trapl.Diagnostics
@@ -12,92 +11,20 @@ namespace Trapl.Diagnostics
 
 	public class MessageCaret
     {
-        public Source source;
+        public SourceCode source;
         public Diagnostics.Span span;
 
 
-        public static MessageCaret Primary(Source source, Diagnostics.Span span)
+        public static MessageCaret Primary(SourceCode source, Diagnostics.Span span)
         {
             return new MessageCaret(source, span);
         }
 
 
-		private MessageCaret(Source source, Diagnostics.Span span)
+		private MessageCaret(SourceCode source, Diagnostics.Span span)
         {
             this.source = source;
             this.span = span;
-        }
-    }
-
-
-    public class MessageList
-    {
-        private List<Message> messages;
-
-
-        public MessageList()
-        {
-            this.messages = new List<Message>();
-        }
-
-
-        public void Add(Message msg)
-        {
-            this.messages.Add(msg);
-        }
-
-
-        public void Add(MessageKind kind, MessageCode code, string text, Source source, Diagnostics.Span span)
-        {
-            this.messages.Add(Message.Make(code, text, kind, MessageCaret.Primary(source, span)));
-        }
-
-
-        public void Add(MessageKind kind, MessageCode code, string text, params MessageCaret[] carets)
-        {
-            this.messages.Add(Message.Make(code, text, kind, carets));
-        }
-
-
-        public bool Passed()
-        {
-            foreach (var msg in this.messages)
-            {
-                if (msg.GetKind() == MessageKind.Error)
-                    return false;
-            }
-            return true;
-        }
-
-
-        public bool Failed()
-        {
-            foreach (var msg in this.messages)
-            {
-                if (msg.GetKind() == MessageKind.Error)
-                    return true;
-            }
-            return false;
-        }
-
-
-        public bool ContainsCode(MessageCode code)
-        {
-            foreach (var msg in this.messages)
-            {
-                if (msg.GetCode() == code)
-                    return true;
-            }
-            return false;
-        }
-
-
-        public void Print()
-        {
-            foreach (var msg in messages)
-            {
-                msg.Print();
-            }
         }
     }
 
@@ -152,10 +79,10 @@ namespace Trapl.Diagnostics
         }
 
 
-        public void Print()
+        public void PrintToConsole()
         {
             Console.ForegroundColor = ConsoleColor.White;
-            Console.Write(ErrorPositionString() + ": ");
+            Console.Write(GetErrorPositionString() + ": ");
             Console.ForegroundColor = GetLightColor(this.kind);
             Console.Write(GetKindName(this.kind) + ": ");
             Console.WriteLine(this.text);
@@ -168,7 +95,7 @@ namespace Trapl.Diagnostics
         private string text;
         private MessageKind kind;
         private MessageCaret[] carets;
-        private Source source; // FIXME! Workaround for the time being. Each caret should contain its source.
+        private SourceCode source; // FIXME! Workaround for the time being. Each caret should contain its source.
 
 
         private Message(MessageCode code, string text, MessageKind kind, params MessageCaret[] carets)
@@ -220,17 +147,17 @@ namespace Trapl.Diagnostics
         }
 
 
-        private string ErrorPositionString()
+        private string GetErrorPositionString()
         {
             string result = "";
             if (this.carets.Length > 0)
             {
-                result = this.source.Name() + ":";
+                result = this.source.GetFullName() + ":";
 
                 if (this.carets.Length > 0)
                 {
-                    result += (this.source.LineStart(this.carets[0].span) + 1) + ":";
-                    result += (this.source.ColumnStart(this.carets[0].span) + 1);
+                    result += (this.source.GetLineIndexAtSpanStart(this.carets[0].span) + 1) + ":";
+                    result += (this.source.GetColumnAtSpanStart(this.carets[0].span) + 1);
                 }
             }
             else
@@ -240,15 +167,15 @@ namespace Trapl.Diagnostics
         }
 
 
-        private int MinimumLineDistanceFromCarets(int line)
+        private int GetMinimumLineDistanceFromCarets(int line)
         {
             int min = -1;
 
             foreach (var caret in this.carets)
             {
                 int dist = Math.Min(
-                    Math.Abs(this.source.LineStart(caret.span) - line),
-                    Math.Abs(this.source.LineEnd(caret.span) - line));
+                    Math.Abs(this.source.GetLineIndexAtSpanStart(caret.span) - line),
+                    Math.Abs(this.source.GetLineIndexAtSpanEnd(caret.span) - line));
 
                 if (dist < min || min == -1)
                     min = dist;
@@ -269,8 +196,8 @@ namespace Trapl.Diagnostics
             int endLine = -1;
             foreach (var caret in this.carets)
             {
-                int start = this.source.LineStart(caret.span) - 2;
-                int end = this.source.LineEnd(caret.span) + 2;
+                int start = this.source.GetLineIndexAtSpanStart(caret.span) - 2;
+                int end = this.source.GetLineIndexAtSpanEnd(caret.span) + 2;
 
                 if (start < startLine || startLine == -1)
                     startLine = start;
@@ -282,15 +209,15 @@ namespace Trapl.Diagnostics
             if (startLine < 0)
                 startLine = 0;
 
-            if (endLine >= this.source.LineNumber())
-                endLine = this.source.LineNumber() - 1;
+            if (endLine >= this.source.GetNumberOfLines())
+                endLine = this.source.GetNumberOfLines() - 1;
 
             // Step through the referenced line range,
             // skipping lines in between that are too far away from any caret.
             bool skipped = false;
             for (int i = startLine; i <= endLine; i++)
             {
-                if (MinimumLineDistanceFromCarets(i) > 2)
+                if (GetMinimumLineDistanceFromCarets(i) > 2)
                 {
                     if (!skipped)
                     {
@@ -317,10 +244,10 @@ namespace Trapl.Diagnostics
 
         private void PrintLineExcerptWithHighlighting(int line)
         {
-            if (line >= this.source.LineNumber())
+            if (line >= this.source.GetNumberOfLines())
                 return;
 
-            int lineStart = this.source.LineStartIndex(line);
+            int lineStart = this.source.GetLineStartPos(line);
             int index = lineStart;
             var inbetweenLast = false;
 

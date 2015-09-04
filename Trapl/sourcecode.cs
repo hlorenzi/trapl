@@ -4,18 +4,18 @@ using System.IO;
 
 namespace Trapl
 {
-    public class Source
+    public class SourceCode
     {
-        public static Source FromFile(string filepath)
+        public static SourceCode MakeFromFile(string filepath)
         {
-            var src = new Source();
+            var src = new SourceCode();
             src.filepath = filepath;
             return src;
         }
 
-        public static Source FromString(string str)
+        public static SourceCode MakeFromString(string str)
         {
-            var src = new Source();
+            var src = new SourceCode();
             src.stringContents = str;
             return src;
         }
@@ -26,7 +26,7 @@ namespace Trapl
         private WeakReference<string> fileContents;
 
 
-        private Source()
+        private SourceCode()
         {
             this.stringContents = null;
             this.filepath = null;
@@ -34,7 +34,7 @@ namespace Trapl
         }
 
 
-        public string Name()
+        public string GetFullName()
         {
             if (this.stringContents != null)
                 return "string";
@@ -45,13 +45,13 @@ namespace Trapl
         }
 
 
-        public string Excerpt(Diagnostics.Span span)
+        public string GetExcerpt(Diagnostics.Span span)
         {
-            return this.Contents().Substring(span.start, span.Length());
+            return this.GetContentString().Substring(span.start, span.Length());
         }
 
 
-        public string Contents()
+        public string GetContentString()
         {
             if (this.stringContents != null)
                 return this.stringContents;
@@ -79,25 +79,25 @@ namespace Trapl
                 if (index < 0 || index >= this.Length())
                     return '\0';
                 else
-                    return this.Contents()[index];
+                    return this.GetContentString()[index];
             }
         }
 
 
         public int Length()
         {
-            return this.Contents().Length;
+            return this.GetContentString().Length;
         }
 
 
-        public int LineNumber()
+        public int GetNumberOfLines()
         {
             int lineCount = 0;
             int charCount = 0;
 
-            while (charCount < this.Contents().Length)
+            while (charCount < this.GetContentString().Length)
             {
-                var c = this.Contents()[charCount];
+                var c = this.GetContentString()[charCount];
                 charCount++;
 
                 if (c == '\n')
@@ -108,14 +108,14 @@ namespace Trapl
         }
 
 
-        public int LineAt(int pos)
+        public int GetLineAtPos(int pos)
         {
             int lineCount = 0;
             int charCount = 0;
 
-            while (charCount < this.Contents().Length && charCount < pos)
+            while (charCount < this.GetContentString().Length && charCount < pos)
             {
-                var c = this.Contents()[charCount];
+                var c = this.GetContentString()[charCount];
                 charCount++;
 
                 if (c == '\n')
@@ -126,15 +126,15 @@ namespace Trapl
         }
 
 
-        public int ColumnAt(int pos)
+        public int GetColumnAtPos(int pos)
         {
             int lineCount = 0;
             int columnCount = 0;
             int charCount = 0;
 
-            while (charCount < this.Contents().Length && charCount < pos)
+            while (charCount < this.GetContentString().Length && charCount < pos)
             {
-                var c = this.Contents()[charCount];
+                var c = this.GetContentString()[charCount];
                 charCount++;
                 columnCount++;
 
@@ -149,14 +149,14 @@ namespace Trapl
         }
 
 
-        public int LineStartIndex(int line)
+        public int GetLineStartPos(int line)
         {
             int lineCount = 0;
             int charCount = 0;
 
-            while (charCount < this.Contents().Length && lineCount < line)
+            while (charCount < this.GetContentString().Length && lineCount < line)
             {
-                var c = this.Contents()[charCount];
+                var c = this.GetContentString()[charCount];
                 charCount++;
 
                 if (c == '\n')
@@ -167,13 +167,13 @@ namespace Trapl
         }
 
 
-        public int LineEndIndex(int line)
+        public int GetLineEndPos(int line)
         {
-            int charCount = LineStartIndex(line);
+            int charCount = GetLineStartPos(line);
 
-            while (charCount < this.Contents().Length)
+            while (charCount < this.GetContentString().Length)
             {
-                var c = this.Contents()[charCount];
+                var c = this.GetContentString()[charCount];
                 charCount++;
 
                 if (c == '\n')
@@ -184,35 +184,35 @@ namespace Trapl
         }
 
 
-        public string LineExcerpt(int line)
+        public string GetLineExcerpt(int line)
         {
-            int start = LineStartIndex(line);
-            int end = LineEndIndex(line);
-            return this.Contents().Substring(start, end - start);
+            int start = GetLineStartPos(line);
+            int end = GetLineEndPos(line);
+            return this.GetContentString().Substring(start, end - start);
         }
 
 
-        public int LineStart(Diagnostics.Span span)
+        public int GetLineIndexAtSpanStart(Diagnostics.Span span)
         {
-            return this.LineAt(span.start);
+            return this.GetLineAtPos(span.start);
         }
 
 
-        public int LineEnd(Diagnostics.Span span)
+        public int GetLineIndexAtSpanEnd(Diagnostics.Span span)
         {
-            return this.LineAt(span.end);
+            return this.GetLineAtPos(span.end);
         }
 
 
-        public int ColumnStart(Diagnostics.Span span)
+        public int GetColumnAtSpanStart(Diagnostics.Span span)
         {
-            return this.ColumnAt(span.start);
+            return this.GetColumnAtPos(span.start);
         }
 
 
-        public int ColumnEnd(Diagnostics.Span span)
+        public int GetColumnAtSpanEnd(Diagnostics.Span span)
         {
-            return this.ColumnAt(span.end);
+            return this.GetColumnAtPos(span.end);
         }
     }
 }

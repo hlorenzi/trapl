@@ -7,13 +7,13 @@ namespace Trapl
     {
         static void Main(string[] args)
         {
-            var src = Source.FromFile("../../test.tr");
-            var diagn = new Diagnostics.MessageList();
+            var src = SourceCode.MakeFromFile("../../test.tr");
+            var diagn = new Diagnostics.Collection();
 
-            var lex = Lexer.Analyzer.Pass(src, diagn);
+            var lex = Grammar.Tokenizer.Tokenize(src, diagn);
             //lex.PrintDebug(src);
 
-            var syn = Syntax.Analyzer.Pass(lex, src, diagn);
+            var syn = Grammar.ASTParser.Parse(lex, src, diagn);
             syn.PrintDebug(src);
 
             var struc = Structure.Analyzer.Pass(syn, src, diagn);
@@ -22,7 +22,7 @@ namespace Trapl
             var semantics = Semantics.Analyzer.Pass(struc, diagn);
             semantics.PrintFunctsDebug();
 
-            diagn.Print();
+            diagn.PrintToConsole();
 
             Console.ReadKey();
         }

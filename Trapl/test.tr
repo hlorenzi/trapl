@@ -17,6 +17,9 @@ test: funct()
 }
 
 
+templated::<gen T, gen U>: funct(x: T, y: U);
+
+
 templated::<Int8, Float64>: funct()
 {
 

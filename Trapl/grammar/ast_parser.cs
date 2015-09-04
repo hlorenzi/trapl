@@ -3,22 +3,18 @@ using System.Collections.Generic;
 using Trapl.Diagnostics;
 
 
-namespace Trapl.Syntax
+namespace Trapl.Grammar
 {
-    public class Analyzer
+    public class ASTParser
     {
-        public static Output Pass(Lexer.Output lex, Source source, Diagnostics.MessageList diagn)
+        public static AST Parse(TokenCollection tokenColl, SourceCode source, Diagnostics.Collection diagn)
         {
-            var analyzer = new Analyzer(lex, source, diagn);
-            try
-            {
-                analyzer.ParseTopLevel();
-            }
-            catch (ParserException)
-            {
+            var parser = new ASTParser(tokenColl, source, diagn);
 
-            }
-            return analyzer.output;
+            try { parser.ParseTopLevel(); }
+            catch (ParserException) { }
+
+            return parser.ast;
         }
 
 
@@ -29,44 +25,47 @@ namespace Trapl.Syntax
 
 
         private int readhead;
-        private Lexer.Output input;
-        private Source source;
-        private Output output;
-        private Diagnostics.MessageList diagn;
+        private TokenCollection tokenColl;
+        private SourceCode source;
+        private AST ast;
+        private Diagnostics.Collection diagn;
 
 
-        private Analyzer(Lexer.Output lex, Source source, Diagnostics.MessageList diagn)
+        private ASTParser(TokenCollection tokenColl, SourceCode source, Diagnostics.Collection diagn)
         {
             this.readhead = 0;
-            this.input = lex;
+            this.tokenColl = tokenColl;
             this.source = source;
-            this.output = new Output();
+            this.ast = new AST();
             this.diagn = diagn;
         }
 
 
-        private Lexer.Token Current()
+        #region Helper Methods
+
+
+        private Token Current()
         {
-            return this.input[this.readhead];
+            return this.tokenColl[this.readhead];
         }
 
 
-        private bool CurrentIs(Lexer.TokenKind kind)
+        private bool CurrentIs(TokenKind kind)
         {
             return (this.Current().kind == kind);
         }
 
 
-        private bool CurrentIsNot(params Lexer.TokenKind[] kinds)
+        private bool CurrentIsNot(params TokenKind[] kinds)
         {
             for (int i = 0; i < kinds.Length; i++)
                 if (this.Current().kind == kinds[i])
                     return false;
-            return (this.Current().kind != Lexer.TokenKind.Error);
+            return (this.Current().kind != TokenKind.Error);
         }
 
 
-        private Lexer.Token Advance()
+        private Token Advance()
         {
             var cur = this.Current();
             this.readhead++;
@@ -74,19 +73,19 @@ namespace Trapl.Syntax
         }
 
 
-        private Lexer.Token Previous()
+        private Token Previous()
         {
-            return this.input[this.readhead - 1];
+            return this.tokenColl[this.readhead - 1];
         }
 
 
         private bool IsOver()
         {
-            return (this.readhead >= this.input.tokens.Count);
+            return (this.readhead >= this.tokenColl.tokens.Count);
         }
 
 
-        private Lexer.Token Match(Lexer.TokenKind tokenKind, MessageCode errCode, string errText)
+        private Token Match(TokenKind tokenKind, MessageCode errCode, string errText)
         {
             if (this.Current().kind == tokenKind)
                 return this.Advance();
@@ -95,7 +94,7 @@ namespace Trapl.Syntax
         }
 
 
-        private bool MatchListSeparator(Lexer.TokenKind separatorKind, Lexer.TokenKind endingKind, MessageCode errCode, string errText)
+        private bool MatchListSeparator(TokenKind separatorKind, TokenKind endingKind, MessageCode errCode, string errText)
         {
             if (this.Current().kind == separatorKind)
             {
@@ -130,32 +129,32 @@ namespace Trapl.Syntax
         }
 
 
+        #endregion
 
 
-
-
+        #region Parser Methods
 
 
         private void ParseTopLevel()
         {
             while (!this.IsOver())
             {
-                if (this.CurrentIs(Lexer.TokenKind.Identifier))
+                if (this.CurrentIs(TokenKind.Identifier))
                 {
-                    var node = new Node(NodeKind.TopLevelDecl);
+                    var node = new ASTNode(ASTNodeKind.TopLevelDecl);
                     node.SetSpan(this.Current().span);
                     node.AddChild(this.ParseTemplatedIdentifier(MessageCode.Expected, "expected declaration name"));
-                    this.Match(Lexer.TokenKind.Colon, MessageCode.Expected, "expected ':'");
-                    if (this.CurrentIs(Lexer.TokenKind.KeywordFunct))
+                    this.Match(TokenKind.Colon, MessageCode.Expected, "expected ':'");
+                    if (this.CurrentIs(TokenKind.KeywordFunct))
                         node.AddChild(this.ParseFunctDecl(true));
-                    else if (this.CurrentIs(Lexer.TokenKind.KeywordStruct))
+                    else if (this.CurrentIs(TokenKind.KeywordStruct))
                         node.AddChild(this.ParseStructDecl());
-                    else if (this.CurrentIs(Lexer.TokenKind.KeywordTrait))
+                    else if (this.CurrentIs(TokenKind.KeywordTrait))
                         node.AddChild(this.ParseTraitDecl());
                     else
                         throw this.FatalBefore(MessageCode.Expected, "expected 'funct', 'struct' or 'trait'");
                     node.AddLastChildSpan();
-                    this.output.topDecls.Add(node);
+                    this.ast.topDecls.Add(node);
                 }
                 else
                     throw this.FatalBefore(MessageCode.Expected, "expected a declaration");
@@ -163,38 +162,38 @@ namespace Trapl.Syntax
         }
 
 
-        private Node ParseFunctDecl(bool withBody)
+        private ASTNode ParseFunctDecl(bool withBody)
         {
-            var node = new Node(NodeKind.FunctDecl);
+            var node = new ASTNode(ASTNodeKind.FunctDecl);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordFunct, MessageCode.Expected, "expected 'funct'");
-            this.Match(Lexer.TokenKind.ParenOpen, MessageCode.Expected, "expected '('");
-            while (this.CurrentIsNot(Lexer.TokenKind.ParenClose, Lexer.TokenKind.Arrow))
+            this.Match(TokenKind.KeywordFunct, MessageCode.Expected, "expected 'funct'");
+            this.Match(TokenKind.ParenOpen, MessageCode.Expected, "expected '('");
+            while (this.CurrentIsNot(TokenKind.ParenClose, TokenKind.Arrow))
             {
-                var argNode = new Node(NodeKind.FunctArgDecl);
+                var argNode = new ASTNode(ASTNodeKind.FunctArgDecl);
                 argNode.AddChild(this.ParseIdentifier(MessageCode.Expected, "expected argument name"));
                 argNode.SetLastChildSpan();
-                this.Match(Lexer.TokenKind.Colon, MessageCode.Expected, "expected ':'");
+                this.Match(TokenKind.Colon, MessageCode.Expected, "expected ':'");
                 argNode.AddChild(this.ParseType());
                 argNode.AddLastChildSpan();
                 node.AddChild(argNode);
                 node.AddLastChildSpan();
-                if (this.Current().kind == Lexer.TokenKind.Comma)
+                if (this.Current().kind == TokenKind.Comma)
                     this.Advance();
-                else if (this.Current().kind != Lexer.TokenKind.ParenClose &&
-                    this.Current().kind != Lexer.TokenKind.Arrow)
+                else if (this.Current().kind != TokenKind.ParenClose &&
+                    this.Current().kind != TokenKind.Arrow)
                     throw this.FatalAfterPrevious(MessageCode.Expected, "expected ',', '->' or ')'");
             }
-            if (this.CurrentIs(Lexer.TokenKind.Arrow))
+            if (this.CurrentIs(TokenKind.Arrow))
             {
                 this.Advance();
-                var retNode = new Node(NodeKind.FunctReturnDecl);
+                var retNode = new ASTNode(ASTNodeKind.FunctReturnDecl);
                 retNode.AddChild(this.ParseType());
                 retNode.SetLastChildSpan();
                 node.AddChild(retNode);
                 node.AddLastChildSpan();
             }
-            this.Match(Lexer.TokenKind.ParenClose, MessageCode.Expected, "expected ')'");
+            this.Match(TokenKind.ParenClose, MessageCode.Expected, "expected ')'");
             if (withBody)
             {
                 node.AddChild(this.ParseBlock());
@@ -204,78 +203,78 @@ namespace Trapl.Syntax
         }
 
 
-        private Node ParseStructDecl()
+        private ASTNode ParseStructDecl()
         {
-            var node = new Node(NodeKind.StructDecl);
+            var node = new ASTNode(ASTNodeKind.StructDecl);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordStruct, MessageCode.Expected, "expected 'struct'");
-            this.Match(Lexer.TokenKind.BraceOpen, MessageCode.Expected, "expected '{'");
-            while (this.CurrentIsNot(Lexer.TokenKind.BraceClose))
+            this.Match(TokenKind.KeywordStruct, MessageCode.Expected, "expected 'struct'");
+            this.Match(TokenKind.BraceOpen, MessageCode.Expected, "expected '{'");
+            while (this.CurrentIsNot(TokenKind.BraceClose))
             {
-                var memberNode = new Node(NodeKind.StructMemberDecl);
+                var memberNode = new ASTNode(ASTNodeKind.StructMemberDecl);
                 memberNode.AddChild(this.ParseIdentifier(MessageCode.Expected, "expected member name"));
                 memberNode.SetLastChildSpan();
-                this.Match(Lexer.TokenKind.Colon, MessageCode.Expected, "expected ':'");
+                this.Match(TokenKind.Colon, MessageCode.Expected, "expected ':'");
                 memberNode.AddChild(this.ParseType());
                 memberNode.AddLastChildSpan();
                 node.AddChild(memberNode);
-                this.MatchListSeparator(Lexer.TokenKind.Comma, Lexer.TokenKind.BraceClose,
+                this.MatchListSeparator(TokenKind.Comma, TokenKind.BraceClose,
                     MessageCode.Expected, "expected ',' or '}'");
             }
             node.AddSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.BraceClose, MessageCode.Expected, "expected '}'");
+            this.Match(TokenKind.BraceClose, MessageCode.Expected, "expected '}'");
             return node;
         }
 
 
-        private Node ParseTraitDecl()
+        private ASTNode ParseTraitDecl()
         {
-            var node = new Node(NodeKind.TraitDecl);
+            var node = new ASTNode(ASTNodeKind.TraitDecl);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordTrait, MessageCode.Expected, "expected 'trait'");
-            this.Match(Lexer.TokenKind.BraceOpen, MessageCode.Expected, "expected '{'");
-            while (this.CurrentIsNot(Lexer.TokenKind.BraceClose))
+            this.Match(TokenKind.KeywordTrait, MessageCode.Expected, "expected 'trait'");
+            this.Match(TokenKind.BraceOpen, MessageCode.Expected, "expected '{'");
+            while (this.CurrentIsNot(TokenKind.BraceClose))
             {
-                var memberNode = new Node(NodeKind.TraitMemberDecl);
+                var memberNode = new ASTNode(ASTNodeKind.TraitMemberDecl);
                 memberNode.AddChild(this.ParseIdentifier(MessageCode.Expected, "expected funct name"));
                 memberNode.SetLastChildSpan();
-                this.Match(Lexer.TokenKind.Colon, MessageCode.Expected, "expected ':'");
+                this.Match(TokenKind.Colon, MessageCode.Expected, "expected ':'");
                 memberNode.AddChild(this.ParseFunctDecl(false));
                 memberNode.AddLastChildSpan();
                 node.AddChild(memberNode);
-                this.MatchListSeparator(Lexer.TokenKind.Semicolon, Lexer.TokenKind.BraceClose,
+                this.MatchListSeparator(TokenKind.Semicolon, TokenKind.BraceClose,
                     MessageCode.Expected, "expected ';' or '}'");
             }
             node.AddSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.BraceClose, MessageCode.Expected, "expected '}'");
+            this.Match(TokenKind.BraceClose, MessageCode.Expected, "expected '}'");
             return node;
         }
 
-        private Node ParseName(MessageCode errCode, string errText)
+        private ASTNode ParseName(MessageCode errCode, string errText)
         {
-            var nameToken = this.Match(Lexer.TokenKind.Identifier, errCode, errText);
-            return new Node(NodeKind.Name, nameToken.span);
+            var nameToken = this.Match(TokenKind.Identifier, errCode, errText);
+            return new ASTNode(ASTNodeKind.Name, nameToken.span);
         }
 
 
-        private Node ParseIdentifier(MessageCode errCode, string errText)
+        private ASTNode ParseIdentifier(MessageCode errCode, string errText)
         {
-            var node = new Node(NodeKind.Identifier);
+            var node = new ASTNode(ASTNodeKind.Identifier);
             node.AddChild(this.ParseName(errCode, errText));
             node.SetLastChildSpan();
             return node;
         }
 
 
-        private Node ParseTemplatedIdentifier(MessageCode errCode, string errText)
+        private ASTNode ParseTemplatedIdentifier(MessageCode errCode, string errText)
         {
-            var node = new Node(NodeKind.Identifier);
+            var node = new ASTNode(ASTNodeKind.Identifier);
             node.SetSpan(this.Current().span);
-            var nameToken = this.Match(Lexer.TokenKind.Identifier, errCode, errText);
-            node.AddChild(new Node(NodeKind.Name, nameToken.span));
+            var nameToken = this.Match(TokenKind.Identifier, errCode, errText);
+            node.AddChild(new ASTNode(ASTNodeKind.Name, nameToken.span));
             node.AddLastChildSpan();
 
-            if (this.CurrentIs(Lexer.TokenKind.DoubleColon))
+            if (this.CurrentIs(TokenKind.DoubleColon))
             {
                 this.Advance();
                 node.AddChild(this.ParseTemplateList());
@@ -286,89 +285,89 @@ namespace Trapl.Syntax
         }
 
 
-        private Node ParseTemplateList()
+        private ASTNode ParseTemplateList()
         {
-            var node = new Node(NodeKind.TemplateList);
+            var node = new ASTNode(ASTNodeKind.TemplateList);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.LessThan, MessageCode.Expected, "expected '<'");
-            while (this.CurrentIsNot(Lexer.TokenKind.GreaterThan))
+            this.Match(TokenKind.LessThan, MessageCode.Expected, "expected '<'");
+            while (this.CurrentIsNot(TokenKind.GreaterThan))
             {
                 node.AddChild(this.ParseType());
-                this.MatchListSeparator(Lexer.TokenKind.Comma, Lexer.TokenKind.GreaterThan,
+                this.MatchListSeparator(TokenKind.Comma, TokenKind.GreaterThan,
                     MessageCode.Expected, "expected ',' or '>'");
             }
             node.AddSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.GreaterThan, MessageCode.Expected, "expected '>'");
+            this.Match(TokenKind.GreaterThan, MessageCode.Expected, "expected '>'");
             return node;
         }
 
 
-        private Node ParseNumberLiteral()
+        private ASTNode ParseNumberLiteral()
         {
-            var token = this.Match(Lexer.TokenKind.Number, MessageCode.Expected, "expected number");
-            return new Node(NodeKind.NumberLiteral, token.span);
+            var token = this.Match(TokenKind.Number, MessageCode.Expected, "expected number");
+            return new ASTNode(ASTNodeKind.NumberLiteral, token.span);
         }
 
 
-        private Node ParseType()
+        private ASTNode ParseType()
         {
-            var node = new Node(NodeKind.TypeName);
+            var node = new ASTNode(ASTNodeKind.TypeName);
             node.SetSpan(this.Current().span);
-            while (this.CurrentIs(Lexer.TokenKind.Ampersand))
-                node.AddChild(new Node(NodeKind.Operator, this.Advance().span));
-            node.AddChild(new Node(NodeKind.Identifier,
-                this.Match(Lexer.TokenKind.Identifier, MessageCode.Expected, "expected type").span));
+            while (this.CurrentIs(TokenKind.Ampersand))
+                node.AddChild(new ASTNode(ASTNodeKind.Operator, this.Advance().span));
+            node.AddChild(new ASTNode(ASTNodeKind.Identifier,
+                this.Match(TokenKind.Identifier, MessageCode.Expected, "expected type").span));
             node.AddLastChildSpan();
             return node;
         }
 
 
-        private Node ParseBlock()
+        private ASTNode ParseBlock()
         {
-            var node = new Node(NodeKind.Block);
+            var node = new ASTNode(ASTNodeKind.Block);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.BraceOpen, MessageCode.Expected, "expected '{'");
-            while (this.CurrentIsNot(Lexer.TokenKind.BraceClose))
+            this.Match(TokenKind.BraceOpen, MessageCode.Expected, "expected '{'");
+            while (this.CurrentIsNot(TokenKind.BraceClose))
             {
                 node.AddChild(ParseExpression());
-                this.MatchListSeparator(Lexer.TokenKind.Semicolon, Lexer.TokenKind.BraceClose,
+                this.MatchListSeparator(TokenKind.Semicolon, TokenKind.BraceClose,
                     MessageCode.Expected, "expected ';' or '}'");
             }
             node.AddSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.BraceClose, MessageCode.Expected, "expected '}'");
+            this.Match(TokenKind.BraceClose, MessageCode.Expected, "expected '}'");
             return node;
         }
 
 
-        private Node ParseExpression()
+        private ASTNode ParseExpression()
         {
-            if (this.CurrentIs(Lexer.TokenKind.KeywordLet))
+            if (this.CurrentIs(TokenKind.KeywordLet))
                 return this.ParseLetExpression();
-            else if (this.CurrentIs(Lexer.TokenKind.KeywordIf))
+            else if (this.CurrentIs(TokenKind.KeywordIf))
                 return this.ParseIfExpression();
-            else if (this.CurrentIs(Lexer.TokenKind.KeywordElse))
+            else if (this.CurrentIs(TokenKind.KeywordElse))
                 throw this.FatalCurrent(MessageCode.UnmatchedElse, "unmatched 'else'");
-            else if (this.CurrentIs(Lexer.TokenKind.KeywordWhile))
+            else if (this.CurrentIs(TokenKind.KeywordWhile))
                 return this.ParseWhileExpression();
-            else if (this.CurrentIs(Lexer.TokenKind.KeywordReturn))
+            else if (this.CurrentIs(TokenKind.KeywordReturn))
                 return this.ParseReturnExpression();
             else
                 return this.ParseBinaryOp(0);
         }
 
 
-        private Node ParseLetExpression()
+        private ASTNode ParseLetExpression()
         {
-            var node = new Node(NodeKind.ControlLet);
+            var node = new ASTNode(ASTNodeKind.ControlLet);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordLet, MessageCode.Expected, "expected 'let'");
+            this.Match(TokenKind.KeywordLet, MessageCode.Expected, "expected 'let'");
             node.AddChild(this.ParseName(MessageCode.Expected, "expected variable name"));
-            if (this.CurrentIs(Lexer.TokenKind.Colon))
+            if (this.CurrentIs(TokenKind.Colon))
             {
                 this.Advance();
                 node.AddChild(this.ParseType());
             }
-            if (this.CurrentIs(Lexer.TokenKind.Equal))
+            if (this.CurrentIs(TokenKind.Equal))
             {
                 this.Advance();
                 node.AddChild(this.ParseExpression());
@@ -378,14 +377,14 @@ namespace Trapl.Syntax
         }
 
 
-        private Node ParseIfExpression()
+        private ASTNode ParseIfExpression()
         {
-            var node = new Node(NodeKind.ControlIf);
+            var node = new ASTNode(ASTNodeKind.ControlIf);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordIf, MessageCode.Expected, "expected 'if'");
+            this.Match(TokenKind.KeywordIf, MessageCode.Expected, "expected 'if'");
             node.AddChild(this.ParseExpression());
             node.AddChild(this.ParseBlock());
-            if (this.CurrentIs(Lexer.TokenKind.KeywordElse))
+            if (this.CurrentIs(TokenKind.KeywordElse))
             {
                 this.Advance();
                 node.AddChild(this.ParseBlock());
@@ -395,11 +394,11 @@ namespace Trapl.Syntax
         }
 
 
-        private Node ParseWhileExpression()
+        private ASTNode ParseWhileExpression()
         {
-            var node = new Node(NodeKind.ControlWhile);
+            var node = new ASTNode(ASTNodeKind.ControlWhile);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordWhile, MessageCode.Expected, "expected 'while'");
+            this.Match(TokenKind.KeywordWhile, MessageCode.Expected, "expected 'while'");
             node.AddChild(this.ParseExpression());
             node.AddChild(this.ParseBlock());
             node.AddLastChildSpan();
@@ -407,14 +406,14 @@ namespace Trapl.Syntax
         }
 
 
-        private Node ParseReturnExpression()
+        private ASTNode ParseReturnExpression()
         {
-            var node = new Node(NodeKind.ControlReturn);
+            var node = new ASTNode(ASTNodeKind.ControlReturn);
             node.SetSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.KeywordReturn, MessageCode.Expected, "expected 'return'");
-            if (!this.CurrentIs(Lexer.TokenKind.Semicolon) &&
-                !this.CurrentIs(Lexer.TokenKind.BraceClose) &&
-                !this.CurrentIs(Lexer.TokenKind.ParenClose))
+            this.Match(TokenKind.KeywordReturn, MessageCode.Expected, "expected 'return'");
+            if (!this.CurrentIs(TokenKind.Semicolon) &&
+                !this.CurrentIs(TokenKind.BraceClose) &&
+                !this.CurrentIs(TokenKind.ParenClose))
             {
                 node.AddChild(this.ParseExpression());
                 node.AddLastChildSpan();
@@ -429,10 +428,10 @@ namespace Trapl.Syntax
 
 
             public Associativity associativity;
-            public Lexer.TokenKind tokenKind;
+            public TokenKind tokenKind;
 
 
-            public OperatorModel(Associativity assoc, Lexer.TokenKind tokenKind)
+            public OperatorModel(Associativity assoc, TokenKind tokenKind)
             {
                 this.associativity = assoc;
                 this.tokenKind = tokenKind;
@@ -443,18 +442,18 @@ namespace Trapl.Syntax
         private static readonly List<OperatorModel>[] binaryOpList = new List<OperatorModel>[]
         {
             new List<OperatorModel> {
-                new OperatorModel(OperatorModel.Associativity.Right, Lexer.TokenKind.Equal)
+                new OperatorModel(OperatorModel.Associativity.Right, TokenKind.Equal)
             },
             new List<OperatorModel> {
-                new OperatorModel(OperatorModel.Associativity.Left, Lexer.TokenKind.Plus),
-                new OperatorModel(OperatorModel.Associativity.Left, Lexer.TokenKind.Minus)
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Plus),
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Minus)
             },
             new List<OperatorModel> {
-                new OperatorModel(OperatorModel.Associativity.Left, Lexer.TokenKind.Asterisk),
-                new OperatorModel(OperatorModel.Associativity.Left, Lexer.TokenKind.Slash)
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Asterisk),
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Slash)
             },
             new List<OperatorModel> {
-                new OperatorModel(OperatorModel.Associativity.Left, Lexer.TokenKind.Period)
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Period)
             }
         };
 
@@ -462,17 +461,17 @@ namespace Trapl.Syntax
         private static readonly List<OperatorModel>[] unaryOpList = new List<OperatorModel>[]
         {
             new List<OperatorModel> {
-                new OperatorModel(OperatorModel.Associativity.Left, Lexer.TokenKind.Plus),
-                new OperatorModel(OperatorModel.Associativity.Left, Lexer.TokenKind.Minus)
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Plus),
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Minus)
             },
             new List<OperatorModel> {
-                new OperatorModel(OperatorModel.Associativity.Left, Lexer.TokenKind.At),
-                new OperatorModel(OperatorModel.Associativity.Left, Lexer.TokenKind.Ampersand)
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.At),
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Ampersand)
             }
         };
 
 
-        private Node ParseBinaryOp(int level)
+        private ASTNode ParseBinaryOp(int level)
         {
             // If reached the end of operators list, continue parsing inner expressions.
             if (level >= binaryOpList.GetLength(0))
@@ -484,7 +483,7 @@ namespace Trapl.Syntax
             // Infinite loop for left associativity.
             while (true)
             {
-                var node = new Node(NodeKind.BinaryOp);
+                var node = new ASTNode(ASTNodeKind.BinaryOp);
 
                 // Find a binary operator that matches the current token.
                 var match = binaryOpList[level].Find(op => this.CurrentIs(op.tokenKind));
@@ -493,11 +492,11 @@ namespace Trapl.Syntax
                 if (match == null)
                     return lhsNode;
 
-                node.AddChild(new Node(NodeKind.Operator, this.Current().span));
+                node.AddChild(new ASTNode(ASTNodeKind.Operator, this.Current().span));
                 this.Advance();
 
                 // Parse right-hand side. 
-                Node rhsNode;
+                ASTNode rhsNode;
                 if (match.associativity == OperatorModel.Associativity.Right)
                     rhsNode = this.ParseExpression();
                 else
@@ -518,7 +517,7 @@ namespace Trapl.Syntax
         }
 
 
-        private Node ParseUnaryOp(int level)
+        private ASTNode ParseUnaryOp(int level)
         {
             // If reached the end of operators list, continue parsing inner expressions.
             if (level >= unaryOpList.GetLength(0))
@@ -532,8 +531,8 @@ namespace Trapl.Syntax
                 return this.ParseUnaryOp(level + 1);
 
             // Prepare the node.
-            var node = new Node(NodeKind.UnaryOp);
-            node.AddChild(new Node(NodeKind.Operator, this.Current().span));
+            var node = new ASTNode(ASTNodeKind.UnaryOp);
+            node.AddChild(new ASTNode(ASTNodeKind.Operator, this.Current().span));
             node.SetLastChildSpan();
             this.Advance();
 
@@ -545,50 +544,52 @@ namespace Trapl.Syntax
         }
 
 
-        private Node ParseCallExpression()
+        private ASTNode ParseCallExpression()
         {
             var targetNode = this.ParseLeafExpression();
-            if (this.CurrentIsNot(Lexer.TokenKind.ParenOpen))
+            if (this.CurrentIsNot(TokenKind.ParenOpen))
                 return targetNode;
 
             this.Advance();
 
-            var callNode = new Node(NodeKind.Call);
+            var callNode = new ASTNode(ASTNodeKind.Call);
             callNode.AddChild(targetNode);
             callNode.SetLastChildSpan();
 
-            while (this.CurrentIsNot(Lexer.TokenKind.ParenClose))
+            while (this.CurrentIsNot(TokenKind.ParenClose))
             {
                 callNode.AddChild(this.ParseExpression());
-                this.MatchListSeparator(Lexer.TokenKind.Comma, Lexer.TokenKind.ParenClose,
+                this.MatchListSeparator(TokenKind.Comma, TokenKind.ParenClose,
                     MessageCode.Expected, "expected ',' or ')'");
             }
 
             callNode.AddSpan(this.Current().span);
-            this.Match(Lexer.TokenKind.ParenClose, MessageCode.Expected, "expected ')'");
+            this.Match(TokenKind.ParenClose, MessageCode.Expected, "expected ')'");
 
             return callNode;
         }
 
 
-        private Node ParseLeafExpression()
+        private ASTNode ParseLeafExpression()
         {
-            if (this.CurrentIs(Lexer.TokenKind.Identifier))
+            if (this.CurrentIs(TokenKind.Identifier))
                 return this.ParseTemplatedIdentifier(MessageCode.Internal, "expected identifier");
-            else if (this.CurrentIs(Lexer.TokenKind.Number))
+            else if (this.CurrentIs(TokenKind.Number))
                 return this.ParseNumberLiteral();
-            else if (this.CurrentIs(Lexer.TokenKind.BraceOpen))
+            else if (this.CurrentIs(TokenKind.BraceOpen))
                 return this.ParseBlock();
-            else if (this.CurrentIs(Lexer.TokenKind.ParenOpen))
+            else if (this.CurrentIs(TokenKind.ParenOpen))
             {
                 var parenOpenSpan = this.Advance().span;
                 var node = this.ParseExpression();
                 node.AddSpanWithDelimiters(parenOpenSpan.Merge(this.Current().span));
-                this.Match(Lexer.TokenKind.ParenClose, MessageCode.Expected, "expected ')'");
+                this.Match(TokenKind.ParenClose, MessageCode.Expected, "expected ')'");
                 return node;
             }
             else
                 throw this.FatalBefore(MessageCode.Expected, "expected expression");
         }
+
+        #endregion
     }
 }

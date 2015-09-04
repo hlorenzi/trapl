@@ -1,84 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using Trapl.Diagnostics;
 
 
-namespace Trapl.Lexer
+namespace Trapl.Grammar
 {
-    public enum TokenKind
+    public class Tokenizer
     {
-        Error,
-        Identifier, Number,
-        KeywordFunct, KeywordStruct, KeywordTrait, KeywordGen,
-        KeywordLet, KeywordIf, KeywordElse, KeywordWhile, KeywordReturn,
-        BraceOpen, BraceClose, ParenOpen, ParenClose,
-        Period, Comma, Colon, Semicolon, Arrow, DoubleColon, TriplePeriod,
-        Equal, Plus, Minus, Asterisk, Slash,
-        Ampersand, VerticalBar, Circumflex, At,
-        ExclamationMark, ExclamationMarkEqual, QuestionMark,
-        LessThan, LessThanEqual, GreaterThan, GreaterThanEqual
-    }
-
-
-    public class Token
-    {
-        public TokenKind kind;
-        public Diagnostics.Span span;
-
-
-        public Token(TokenKind kind, Diagnostics.Span span)
+        public static TokenCollection Tokenize(SourceCode src, Diagnostics.Collection diagn)
         {
-            this.kind = kind;
-            this.span = span;
-        }
-    }
-
-
-    public class Output
-    {
-        public List<Token> tokens = new List<Token>();
-        public Token tokenAfterEnd;
-
-
-        public Token this[int index]
-        {
-            get
-            {
-                if (index < 0)
-                    return new Token(TokenKind.Error, new Diagnostics.Span());
-
-                if (index >= tokens.Count)
-                    return tokenAfterEnd;
-
-                return tokens[index];
-            }
-        }
-
-
-        public void PrintDebug(Source src)
-        {
-            foreach (var token in this.tokens)
-            {
-                Console.Out.Write(token.span.start.ToString().PadLeft(4));
-                Console.Out.Write(" ");
-                Console.Out.Write(token.span.Length().ToString().PadLeft(2));
-                Console.Out.Write(" ");
-                Console.Out.Write(
-                    System.Enum.GetName(typeof(TokenKind), token.kind).PadRight(14));
-                Console.Out.Write(" ");
-                Console.Out.Write(src.Excerpt(token.span));
-                Console.Out.WriteLine();
-            }
-        }
-    }
-
-
-    public class Analyzer
-    {
-        public static Output Pass(Source src, Diagnostics.MessageList diagn)
-        {
-            var output = new Output();
+            var output = new TokenCollection();
 
             // Iterate through all characters in input.
             var index = 0;
@@ -128,7 +59,7 @@ namespace Trapl.Lexer
         }
 
 
-        private static TokenMatch TryMatchModelToken(Source src, int index)
+        private static TokenMatch TryMatchModelToken(SourceCode src, int index)
         {
             var models = new List<TokenMatch>
             {
@@ -199,7 +130,7 @@ namespace Trapl.Lexer
         }
 
 
-        private static TokenMatch TryMatchVaryingToken(Source src, int index)
+        private static TokenMatch TryMatchVaryingToken(SourceCode src, int index)
         {
             // Check for alphabetic identifiers.
             if (IsIdentifierBeginning(src[index]))
