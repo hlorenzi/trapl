@@ -44,7 +44,11 @@ namespace Trapl.Interface
         {
             foreach (var topDecl in this.topDecls)
             {
-                Console.Out.WriteLine("TOPDECL " + topDecl.qualifiedName + "::" + topDecl.pattern.GetString(this));
+                Console.Out.WriteLine(
+                    "TOPDECL " +
+                    topDecl.qualifiedName + "::" +
+                    topDecl.pattern.GetString(this) + " " +
+                    topDecl.patternSubst.GetString(this, topDecl.source));
 
                 if (topDecl.generic)
                     Console.Out.WriteLine("  generic, unresolved");

@@ -24,7 +24,7 @@ namespace Trapl.Semantics
 
             // Read the name. (ex.: '&&Data::List::<Int32>' will read 'Data::List')
             var nameASTNode = node.Child(0);
-            var name = src.GetExcerpt(nameASTNode.Span());
+            var name = nameASTNode.GetExcerpt(src);
 
             // Find the top declarations that match the name.
             var sameNameTopDecls = session.topDecls.FindAll(decl => decl.qualifiedName == name);
@@ -65,6 +65,13 @@ namespace Trapl.Semantics
 
             // Ask the matching top declaration to parse and resolve its definition, if not yet done.
             var matchingTopDecl = compatibleTopDecls[0];
+            if (matchingTopDecl.generic)
+            {
+                matchingTopDecl = matchingTopDecl.CloneAndSubstitute(session, matchingTopDecl.pattern.GetSubstitution(genPattern));
+                session.topDecls.Add(matchingTopDecl);
+                matchingTopDecl.defASTNode.PrintDebugRecursive(matchingTopDecl.source, 1);
+            }
+
             matchingTopDecl.Resolve(session);
 
             // Check that what the matching top declaration defines is a struct.
@@ -92,7 +99,9 @@ namespace Trapl.Semantics
                 {
                     if (((TypeStruct)type).structDef == topDecl.def)
                     {
-                        return topDecl.qualifiedName;
+                        return topDecl.qualifiedName + "::" +
+                            topDecl.pattern.GetString(session) + " " +
+                            topDecl.patternSubst.GetString(session, topDecl.source);
                     }
                 }
             }

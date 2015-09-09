@@ -100,5 +100,33 @@ namespace Trapl.Semantics
             }
             list.Add(astNode);
         }
+
+
+        public string GetString(Interface.Session session, Interface.SourceCode src)
+        {
+            if (this.nameToASTNodeMap.Count == 0)
+                return "";
+            else
+            {
+                var result = "[with ";
+                var count = 0;
+                foreach (var pair in this.nameToASTNodeMap)
+                {
+                    if (count != 0)
+                        result += "; ";
+
+                    count++;
+                    result += pair.Key + " = ";
+                    for (int i = 0; i < pair.Value.Count; i++)
+                    {
+                        result += "'" + src.GetExcerpt(pair.Value[i].Span()) + "'";
+                        if (i < pair.Value.Count - 1)
+                            result += ", ";
+                    }
+                    
+                }
+                return result + "]";
+            }
+        }
     }
 }

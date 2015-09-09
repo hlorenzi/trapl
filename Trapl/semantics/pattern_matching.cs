@@ -107,7 +107,7 @@ namespace Trapl.Semantics
                         return false;
                 }
 
-                var genericName = genericPattern.src.GetExcerpt(thisNode.Child(genericTypeChildIndex).Span());
+                var genericName = thisNode.Child(genericTypeChildIndex).GetExcerpt(genericPattern.src);
 
                 // If there is nothing to the right, set all the rest as the substitution.
                 if (genericTypeChildIndex + 1 >= thisNode.ChildNumber())
@@ -121,6 +121,7 @@ namespace Trapl.Semantics
                         else
                             node.AddLastChildSpan();
                     }
+
                     this.subst.Add(genericName, node);
                     return true;
                 }
@@ -128,7 +129,15 @@ namespace Trapl.Semantics
                 if (thisNode.ChildNumber() != otherNode.ChildNumber())
                     return false;
 
-                this.subst.Add(genericName, otherNode.Child(genericTypeChildIndex));
+                if (otherNode.Child(genericTypeChildIndex).kind != Grammar.ASTNodeKind.TypeName)
+                {
+                    var typeNode = new Grammar.ASTNode(Grammar.ASTNodeKind.TypeName);
+                    typeNode.AddChild(otherNode.Child(genericTypeChildIndex));
+                    typeNode.SetLastChildSpan();
+                    this.subst.Add(genericName, typeNode);
+                }
+                else
+                    this.subst.Add(genericName, otherNode.Child(genericTypeChildIndex));
 
                 // Or else, match up to the inner pattern, and match recursively into it.
                 for (int i = genericTypeChildIndex + 1; i < thisNode.ChildNumber(); i++)

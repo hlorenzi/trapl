@@ -1,15 +1,12 @@
-
-List::<gen T::<gen U...>...>: struct
+Container::<gen T>: struct
 {
-	data: &Int32,
-	num: Int32
+	data: T
 }
 
 
-List::<gen T...>: struct
+List::<gen T::<gen U>>: struct
 {
-	data: &Int32,
-	num: Int32
+	data: T::<U>
 }
 
 
@@ -18,14 +15,6 @@ Tests: struct
 	a: Int32,
 	b: Int64,
 	c: &Int32,
-	d: &&&&Int64,
-	e: List,
-	f: List::<Int32>,
-	g: List::<Int32, Int32>,
-	h: List::<&Int32, Int64>,
-	i: &List::<Int32, &&&Int32>,
-	j: List::<List::<&Int32>, &&Int32>,
-	k: List::<List::<Int32, Int64, Int32>, &&Int32>,
-	l: List::<List::<Int32, Int64, Int32>, List::<Int64, Int64>>,
-	m: List::<Int32, &Int32, &&Int32, &&&Int64, &&&&Int64>
+	d: List::<Container::<Int32>>,
+	e: List::<Container::<Int32>>
 }

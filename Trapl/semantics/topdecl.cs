@@ -13,7 +13,7 @@ namespace Trapl.Semantics
         public DeclPattern pattern;
         public Grammar.ASTNode patternASTNode;
 
-        public DeclPatternSubstitution patternSubst;
+        public DeclPatternSubstitution patternSubst = new DeclPatternSubstitution();
 
         public Def def;
         public Grammar.ASTNode defASTNode;
@@ -44,6 +44,19 @@ namespace Trapl.Semantics
             }
             else
                 throw new InternalException("unexpected def node");
+        }
+
+
+        public TopDecl CloneAndSubstitute(Interface.Session session, DeclPatternSubstitution subst)
+        {
+            var newDecl = (TopDecl)this.MemberwiseClone();
+            newDecl.patternSubst = subst;
+            newDecl.def = null;
+            newDecl.resolved = false;
+            newDecl.generic = false;
+            newDecl.synthesized = true;
+            newDecl.defASTNode = ASTPatternSubstitution.CloneAndSubstitute(newDecl.source, newDecl.defASTNode, subst);
+            return newDecl;
         }
     }
 
