@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace Trapl.Semantics
 {
-    public class Output
+    /*public class DeclarationCollectionOLD
     {
         public List<StructDef> structDefs = new List<StructDef>();
         public List<FunctDef> functDefs = new List<FunctDef>();
-        public List<Structure.Declaration> templStructDecls = new List<Structure.Declaration>();
-        public List<Structure.Declaration> templFunctDecls = new List<Structure.Declaration>();
+        public List<Semantics.Declaration> templStructDecls = new List<Semantics.Declaration>();
+        public List<Semantics.Declaration> templFunctDecls = new List<Semantics.Declaration>();
 
 
         public void PrintFunctsDebug()
@@ -105,141 +105,6 @@ namespace Trapl.Semantics
                 }
             }
             return result;
-        }
-    }
-
-
-    public class StructDef
-    {
-        public class Member
-        {
-            public string name;
-            public VariableType type;
-            public Diagnostics.Span declSpan;
-        }
-
-        public string name;
-        public List<Member> members = new List<Member>();
-        public SourceCode source;
-        public Diagnostics.Span declSpan;
-
-
-        public StructDef(string name)
-        {
-            this.name = name;
-            this.source = null;
-            this.declSpan = new Diagnostics.Span();
-        }
-
-
-        public StructDef(string name, SourceCode source, Diagnostics.Span declSpan)
-        {
-            this.name = name;
-            this.source = source;
-            this.declSpan = declSpan;
-        }
-    }
-
-
-    public class FunctDef
-    {
-        public class Variable
-        {
-            public string name;
-            public VariableType type;
-            public Diagnostics.Span declSpan;
-            public bool outOfScope;
-
-            public Variable(string name, VariableType type, Diagnostics.Span declSpan)
-            {
-                this.name = name;
-                this.type = type;
-                this.declSpan = declSpan;
-                this.outOfScope = false;
-            }
-        }
-
-        public string name;
-        public TemplateList templateList = new TemplateList();
-        public List<Variable> arguments = new List<Variable>();
-        public VariableType returnType;
-        public List<Variable> localVariables = new List<Variable>();
-        public CodeSegment body;
-        public SourceCode source;
-        public Diagnostics.Span nameSpan;
-        public Diagnostics.Span declSpan;
-
-
-        public FunctDef(string name, SourceCode source, Diagnostics.Span nameSpan, Diagnostics.Span declSpan)
-        {
-            this.name = name;
-            this.source = source;
-            this.nameSpan = nameSpan;
-            this.declSpan = declSpan;
-        }
-    }
-
-
-    public abstract class VariableType
-    {
-        public bool addressable;
-
-        public virtual string Name() { return "error"; }
-        public virtual bool IsSame(VariableType other) { return false; }
-    }
-
-
-    public class VariableTypePointer : VariableType
-    {
-        public VariableType pointeeType;
-
-        public VariableTypePointer(VariableType pointeeType) { this.pointeeType = pointeeType; }
-        public override string Name() { return "&" + pointeeType.Name(); }
-        public override bool IsSame(VariableType other)
-        {
-            if (!(other is VariableTypePointer)) return false;
-            return (((VariableTypePointer)other).pointeeType.IsSame(this.pointeeType));
-        }
-    }
-
-
-    public class VariableTypeStruct : VariableType
-    {
-        public StructDef structDef;
-
-        public override string Name() { return structDef.name; }
-        public override bool IsSame(VariableType other)
-        {
-            if (!(other is VariableTypeStruct)) return false;
-            return (((VariableTypeStruct)other).structDef == this.structDef);
-        }
-    }
-    
-
-    public class VariableTypeFunct : VariableType
-    {
-        public List<VariableType> argumentTypes = new List<VariableType>();
-        public VariableType returnType;
-
-        public override string Name()
-        {
-            var result = "(";
-            for (int i = 0; i < argumentTypes.Count; i++)
-            {
-                result += argumentTypes[i].Name();
-                if (i < argumentTypes.Count - 1) result += ", ";
-            }
-            return result + " -> " + returnType.Name() + ")";
-        }
-
-        public override bool IsSame(VariableType other)
-        {
-            var otherf = other as VariableTypeFunct;
-            if (otherf == null) return false;
-            if (this.argumentTypes.Count != otherf.argumentTypes.Count) return false;
-            for (int i = 0; i < argumentTypes.Count; i++)
-                if (!this.argumentTypes[i].IsSame(otherf.argumentTypes[i])) return false;
-            return true;
         }
     }
 
@@ -344,5 +209,5 @@ namespace Trapl.Semantics
     public class CodeNodeIf : CodeNode
     {
         public override string Name() { return "If"; }
-    }
+    }*/
 }

@@ -7,7 +7,7 @@ namespace Trapl.Grammar
 {
     public class Tokenizer
     {
-        public static TokenCollection Tokenize(SourceCode src, Diagnostics.Collection diagn)
+        public static TokenCollection Tokenize(Interface.Session session, Interface.SourceCode src)
         {
             var output = new TokenCollection();
 
@@ -31,7 +31,7 @@ namespace Trapl.Grammar
                 var span = new Span(index, index + match.representation.Length);
 
                 if (match.kind == TokenKind.Error)
-                    diagn.Add(MessageKind.Error, MessageCode.UnexpectedChar, "unexpected character", src, span);
+                    session.diagn.Add(MessageKind.Error, MessageCode.UnexpectedChar, "unexpected character", src, span);
 
                 output.tokens.Add(new Token(match.kind, span));
 
@@ -59,7 +59,7 @@ namespace Trapl.Grammar
         }
 
 
-        private static TokenMatch TryMatchModelToken(SourceCode src, int index)
+        private static TokenMatch TryMatchModelToken(Interface.SourceCode src, int index)
         {
             var models = new List<TokenMatch>
             {
@@ -130,7 +130,7 @@ namespace Trapl.Grammar
         }
 
 
-        private static TokenMatch TryMatchVaryingToken(SourceCode src, int index)
+        private static TokenMatch TryMatchVaryingToken(Interface.SourceCode src, int index)
         {
             // Check for alphabetic identifiers.
             if (IsIdentifierBeginning(src[index]))

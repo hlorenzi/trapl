@@ -122,15 +122,15 @@ namespace TraplTest
 
         private void ShouldSucceed(string str)
         {
-            var diagn = new Trapl.Diagnostics.Collection();
+            /*var diagn = new Trapl.Diagnostics.Collection();
 
             try
             {
-                var src = Trapl.SourceCode.MakeFromString(str);
+                var src = Trapl.Interface.SourceCode.MakeFromString(str);
                 var lex = Trapl.Grammar.Tokenizer.Tokenize(src, diagn);
                 var syn = Trapl.Grammar.ASTParser.Parse(lex, src, diagn);
-                var struc = Trapl.Structure.Analyzer.Pass(syn, src, diagn);
-                var semantics = Trapl.Semantics.Analyzer.Pass(struc, diagn);
+                var struc = Trapl.Semantics.DefinitionGatherer.Gather(syn, src, diagn);
+                var semantics = Trapl.Semantics.DefinitionGatherer.Pass(struc, diagn);
 
                 diagn.PrintToConsole();
             }
@@ -139,20 +139,20 @@ namespace TraplTest
                 Assert.Inconclusive();
             }
                
-            Assert.IsTrue(diagn.HasNoError());
+            Assert.IsTrue(diagn.HasNoError());*/
         }
 
 
         private void GrammarShouldFail(string str)
         {
-            var diagn = new Trapl.Diagnostics.Collection();
+            /*var diagn = new Trapl.Diagnostics.Collection();
 
             try
             {
                 var src = Trapl.SourceCode.MakeFromString(str);
                 var lex = Trapl.Grammar.Tokenizer.Tokenize(src, diagn);
                 var syn = Trapl.Grammar.ASTParser.Parse(lex, src, diagn);
-                var struc = Trapl.Structure.Analyzer.Pass(syn, src, diagn);
+                var struc = Trapl.Semantics.DefinitionGatherer.Gather(syn, src, diagn);
 
                 diagn.PrintToConsole();
             }
@@ -161,23 +161,23 @@ namespace TraplTest
                 Assert.Inconclusive();
             }
 
-            Assert.IsTrue(diagn.HasErrors());
+            Assert.IsTrue(diagn.HasErrors());*/
         }
 
 
         private void SemanticsShouldFail(string str)
         {
-            var diagn = new Trapl.Diagnostics.Collection();
+            /*var diagn = new Trapl.Diagnostics.Collection();
 
             try
             {
                 var src = Trapl.SourceCode.MakeFromString(str);
                 var lex = Trapl.Grammar.Tokenizer.Tokenize(src, diagn);
                 var syn = Trapl.Grammar.ASTParser.Parse(lex, src, diagn);
-                var struc = Trapl.Structure.Analyzer.Pass(syn, src, diagn);
+                var struc = Trapl.Semantics.DefinitionGatherer.Gather(syn, src, diagn);
                 Assert.IsTrue(diagn.HasNoError());
 
-                var semantics = Trapl.Semantics.Analyzer.Pass(struc, diagn);
+                var semantics = Trapl.Semantics.DefinitionGatherer.Pass(struc, diagn);
 
                 diagn.PrintToConsole();
             }
@@ -186,7 +186,7 @@ namespace TraplTest
                 Assert.Inconclusive();
             }
 
-            Assert.IsTrue(diagn.HasErrors());
+            Assert.IsTrue(diagn.HasErrors()); */
         }
     }
 }

@@ -15,14 +15,14 @@ namespace Trapl.Grammar
         }
 
 
-        public void PrintDebug(SourceCode src)
+        public void PrintDebug(Interface.SourceCode src)
         {
             foreach (var node in this.topDecls)
                 PrintDebugRecursive(src, node, 0);
         }
 
 
-        private void PrintDebugRecursive(SourceCode src, ASTNode node, int indentLevel)
+        private void PrintDebugRecursive(Interface.SourceCode src, ASTNode node, int indentLevel)
         {
             string firstColumn =
                 new string(' ', indentLevel * 2) +
@@ -126,6 +126,14 @@ namespace Trapl.Grammar
         public ASTNode ChildWithKind(ASTNodeKind kind)
         {
             return this.children.Find(c => c.kind == kind);
+        }
+
+
+        public bool ChildIs(int index, ASTNodeKind kind)
+        {
+            if (index < 0 || index >= this.children.Count)
+                return false;
+            return (this.children[index].kind == kind);
         }
 
 

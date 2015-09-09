@@ -1,32 +1,24 @@
-test: funct()
+Int32: struct { }
+Int64: struct { }
+
+
+List::<gen T>: struct
 {
-	let x: Int32 = 0;
-	let z: &Int32 = &x;
-	let zptr = &z;
-	let manyptr: &&&&&Int32;
-
-	zptr = &&x;
-	@zptr = &x;
-	@@zptr = 0;
-
-	test();
-	x();
-	@zptr();
-	templated();
-	templated(1, 2);
+	data: &T,
+	num: Int32
 }
 
 
-templated::<gen T, gen U>: funct(x: T, y: U);
-
-
-templated::<Int8, Float64>: funct()
+List::<Int64>: struct
 {
-
+	ohh_specialized_struct: List::<Int32>
 }
 
 
-templated::<Int32, Int32>: funct(x: Int32, y: Int32)
+Tests: struct
 {
-
+	a: List::<Int32>,
+	b: List::<&Int32>,
+	c: &List::<Int32>,
+	d: List::<List::<Int32>>
 }

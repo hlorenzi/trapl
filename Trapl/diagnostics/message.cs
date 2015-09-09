@@ -11,17 +11,17 @@ namespace Trapl.Diagnostics
 
 	public class MessageCaret
     {
-        public SourceCode source;
+        public Interface.SourceCode source;
         public Diagnostics.Span span;
 
 
-        public static MessageCaret Primary(SourceCode source, Diagnostics.Span span)
+        public static MessageCaret Primary(Interface.SourceCode source, Diagnostics.Span span)
         {
             return new MessageCaret(source, span);
         }
 
 
-		private MessageCaret(SourceCode source, Diagnostics.Span span)
+		private MessageCaret(Interface.SourceCode source, Diagnostics.Span span)
         {
             this.source = source;
             this.span = span;
@@ -48,6 +48,7 @@ namespace Trapl.Diagnostics
         CannotCall,
         WrongArgumentNumber,
         IncompatibleTypes,
+        IncompatibleTemplate,
         WrongFunctNameStyle,
         WrongStructNameStyle
     }
@@ -95,7 +96,7 @@ namespace Trapl.Diagnostics
         private string text;
         private MessageKind kind;
         private MessageCaret[] carets;
-        private SourceCode source; // FIXME! Workaround for the time being. Each caret should contain its source.
+        private Interface.SourceCode source; // FIXME! Workaround for the time being. Each caret should contain its source.
 
 
         private Message(MessageCode code, string text, MessageKind kind, params MessageCaret[] carets)

@@ -50,10 +50,20 @@
     <Compile Include="grammar\tokenizer.cs" />
     <Compile Include="main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Semantics.cs" />
-    <Compile Include="Semantics.Output.cs" />
-    <Compile Include="sourcecode.cs" />
-    <Compile Include="Structure.cs" />
+    <Compile Include="semantics\check_template_consistency.cs" />
+    <Compile Include="semantics\def_funct.cs" />
+    <Compile Include="semantics\def_name.cs" />
+    <Compile Include="semantics\def_struct.cs" />
+    <Compile Include="semantics\exception.cs" />
+    <Compile Include="semantics\resolver_struct.cs" />
+    <Compile Include="semantics\resolver_type.cs" />
+    <Compile Include="semantics\template.cs" />
+    <Compile Include="semantics\type.cs" />
+    <Compile Include="semantics\Semantics.cs" />
+    <Compile Include="semantics\Semantics.Output.cs" />
+    <Compile Include="interface\session.cs" />
+    <Compile Include="interface\sourcecode.cs" />
+    <Compile Include="semantics\check_definition_gatherer.cs" />
     <Compile Include="grammar\ast_parser.cs" />
     <Compile Include="grammar\ast.cs" />
   </ItemGroup>

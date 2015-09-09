@@ -20,7 +20,7 @@ namespace Trapl.Diagnostics
         }
 
 
-        public void Add(MessageKind kind, MessageCode code, string text, SourceCode source, Diagnostics.Span span)
+        public void Add(MessageKind kind, MessageCode code, string text, Interface.SourceCode source, Diagnostics.Span span)
         {
             this.messages.Add(Message.Make(code, text, kind, MessageCaret.Primary(source, span)));
         }

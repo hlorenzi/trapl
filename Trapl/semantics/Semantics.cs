@@ -5,11 +5,11 @@ using Trapl.Diagnostics;
 
 namespace Trapl.Semantics
 {
-    public class Analyzer 
+    /*public class DeclarationGathererOLD
     {
-        public static Output Pass(Structure.Output syn, Diagnostics.Collection diagn)
+        public static DeclarationCollection Pass(Semantics.DeclarationCollection syn, Diagnostics.Collection diagn)
         {
-            var analyzer = new Analyzer(syn, diagn);
+            var analyzer = new DeclarationGatherer(syn, diagn);
             analyzer.ParseStructDecls();
             analyzer.TestForStructCycles();
             analyzer.ParseFunctDecls();
@@ -20,14 +20,14 @@ namespace Trapl.Semantics
         private class ParserException : Exception { }
 
 
-        private Output output;
-        private Structure.Output syn;
+        private DeclarationCollection output;
+        private Semantics.DeclarationCollection syn;
         private Diagnostics.Collection diagn;
 
 
-        private Analyzer(Structure.Output syn, Diagnostics.Collection diagn)
+        private DeclarationGatherer(Semantics.DeclarationCollection syn, Diagnostics.Collection diagn)
         {
-            this.output = new Output();
+            this.output = new DeclarationCollection();
             this.syn = syn;
             this.diagn = diagn;
         }
@@ -265,7 +265,7 @@ namespace Trapl.Semantics
 
         private class FunctBodyAnalyzer
         {
-            public static CodeSegment Analyze(Semantics.Analyzer owner, Grammar.ASTNode node, FunctDef funct)
+            public static CodeSegment Analyze(Semantics.DeclarationGatherer owner, Grammar.ASTNode node, FunctDef funct)
             {
                 var analyzer = new FunctBodyAnalyzer(owner, funct);
                 var segment = new CodeSegment();
@@ -274,12 +274,12 @@ namespace Trapl.Semantics
             }
 
 
-            private Semantics.Analyzer owner;
+            private Semantics.DeclarationGatherer owner;
             private FunctDef funct;
             private VariableType[] callContext;
 
 
-            private FunctBodyAnalyzer(Semantics.Analyzer owner, FunctDef funct)
+            private FunctBodyAnalyzer(Semantics.DeclarationGatherer owner, FunctDef funct)
             {
                 this.owner = owner;
                 this.funct = funct;
@@ -654,7 +654,7 @@ namespace Trapl.Semantics
                                v                                      v
                          SEGMENT AFTER                          SEGMENT AFTER
                          
-                */
+                *//*
 
                 segmentBefore.nodes.Add(new CodeNodeIf());
 
@@ -684,7 +684,7 @@ namespace Trapl.Semantics
 
             private CodeSegment ParseControlWhile(Grammar.ASTNode node, CodeSegment segmentBefore, out VariableType type)
             {
-                /*    SEGMENT BEFORE
+                *//*    SEGMENT BEFORE
                         |
                         v
                   +-> SEGMENT CONDITION
@@ -694,7 +694,7 @@ namespace Trapl.Semantics
                   |       v               v
                   +-- SEGMENT BODY    SEGMENT AFTER
                 
-                */
+                *//*
 
                 var segmentCondition = new CodeSegment();
                 var segmentBody = new CodeSegment();
@@ -714,5 +714,5 @@ namespace Trapl.Semantics
                 return segmentAfter;
             }
         }
-    }
+    }*/
 }

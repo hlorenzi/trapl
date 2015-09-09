@@ -54,7 +54,7 @@ namespace Trapl.Grammar
         }
 
 
-        public void PrintDebug(SourceCode src)
+        public void PrintDebug(Interface.SourceCode src)
         {
             foreach (var token in this.tokens)
             {

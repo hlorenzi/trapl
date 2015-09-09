@@ -2,7 +2,7 @@
 using System.IO;
 
 
-namespace Trapl
+namespace Trapl.Interface
 {
     public class SourceCode
     {

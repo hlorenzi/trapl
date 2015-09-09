@@ -7,9 +7,9 @@ namespace Trapl.Grammar
 {
     public class ASTParser
     {
-        public static AST Parse(TokenCollection tokenColl, SourceCode source, Diagnostics.Collection diagn)
+        public static AST Parse(Interface.Session session, TokenCollection tokenColl, Interface.SourceCode source)
         {
-            var parser = new ASTParser(tokenColl, source, diagn);
+            var parser = new ASTParser(session, tokenColl, source);
 
             try { parser.ParseTopLevel(); }
             catch (ParserException) { }
@@ -26,18 +26,18 @@ namespace Trapl.Grammar
 
         private int readhead;
         private TokenCollection tokenColl;
-        private SourceCode source;
+        private Interface.SourceCode source;
         private AST ast;
-        private Diagnostics.Collection diagn;
+        private Interface.Session session;
 
 
-        private ASTParser(TokenCollection tokenColl, SourceCode source, Diagnostics.Collection diagn)
+        private ASTParser(Interface.Session session, TokenCollection tokenColl, Interface.SourceCode source)
         {
             this.readhead = 0;
             this.tokenColl = tokenColl;
             this.source = source;
             this.ast = new AST();
-            this.diagn = diagn;
+            this.session = session;
         }
 
 
@@ -110,21 +110,21 @@ namespace Trapl.Grammar
 
         private ParserException FatalBefore(MessageCode errCode, string errText)
         {
-            this.diagn.Add(MessageKind.Error, errCode, errText, this.source, this.Current().span.JustBefore());
+            this.session.diagn.Add(MessageKind.Error, errCode, errText, this.source, this.Current().span.JustBefore());
             return new ParserException();
         }
 
 
         private ParserException FatalCurrent(MessageCode errCode, string errText)
         {
-            this.diagn.Add(MessageKind.Error, errCode, errText, this.source, this.Current().span);
+            this.session.diagn.Add(MessageKind.Error, errCode, errText, this.source, this.Current().span);
             return new ParserException();
         }
 
 
         private ParserException FatalAfterPrevious(MessageCode errCode, string errText)
         {
-            this.diagn.Add(MessageKind.Error, errCode, errText, this.source, this.Previous().span.JustAfter());
+            this.session.diagn.Add(MessageKind.Error, errCode, errText, this.source, this.Previous().span.JustAfter());
             return new ParserException();
         }
 
@@ -146,7 +146,7 @@ namespace Trapl.Grammar
                     node.AddChild(this.ParseTemplatedIdentifier(MessageCode.Expected, "expected declaration name"));
                     this.Match(TokenKind.Colon, MessageCode.Expected, "expected ':'");
                     if (this.CurrentIs(TokenKind.KeywordFunct))
-                        node.AddChild(this.ParseFunctDecl(true));
+                        node.AddChild(this.ParseFunctDecl(false));
                     else if (this.CurrentIs(TokenKind.KeywordStruct))
                         node.AddChild(this.ParseStructDecl());
                     else if (this.CurrentIs(TokenKind.KeywordTrait))
@@ -194,11 +194,13 @@ namespace Trapl.Grammar
                 node.AddLastChildSpan();
             }
             this.Match(TokenKind.ParenClose, MessageCode.Expected, "expected ')'");
-            if (withBody)
+            if (withBody || this.CurrentIsNot(TokenKind.Semicolon))
             {
                 node.AddChild(this.ParseBlock());
                 node.AddLastChildSpan();
             }
+            else if (this.CurrentIs(TokenKind.Semicolon))
+                this.Advance();
             return node;
         }
 
@@ -292,7 +294,15 @@ namespace Trapl.Grammar
             this.Match(TokenKind.LessThan, MessageCode.Expected, "expected '<'");
             while (this.CurrentIsNot(TokenKind.GreaterThan))
             {
-                node.AddChild(this.ParseType());
+                if (this.CurrentIs(TokenKind.KeywordGen))
+                {
+                    this.Advance();
+                    var nameToken = this.Match(TokenKind.Identifier, MessageCode.Expected, "expected generic type name");
+                    node.AddChild(new ASTNode(ASTNodeKind.TemplateType, nameToken.span));
+                }
+                else
+                    node.AddChild(this.ParseType());
+
                 this.MatchListSeparator(TokenKind.Comma, TokenKind.GreaterThan,
                     MessageCode.Expected, "expected ',' or '>'");
             }
@@ -318,6 +328,12 @@ namespace Trapl.Grammar
             node.AddChild(new ASTNode(ASTNodeKind.Identifier,
                 this.Match(TokenKind.Identifier, MessageCode.Expected, "expected type").span));
             node.AddLastChildSpan();
+            if (this.CurrentIs(TokenKind.DoubleColon))
+            {
+                this.Advance();
+                node.AddChild(this.ParseTemplateList());
+                node.AddLastChildSpan();
+            }
             return node;
         }
 
