@@ -11,40 +11,40 @@ namespace Trapl.Semantics
     }
 
 
-    public class ResolvedTypePointer : Type
+    public class TypePointer : Type
     {
         public Type pointeeType;
 
-        public ResolvedTypePointer(Type pointeeType) { this.pointeeType = pointeeType; }
+        public TypePointer(Type pointeeType) { this.pointeeType = pointeeType; }
         public override bool IsSame(Type other)
         {
-            if (!(other is ResolvedTypePointer)) return false;
-            return (((ResolvedTypePointer)other).pointeeType.IsSame(this.pointeeType));
+            if (!(other is TypePointer)) return false;
+            return (((TypePointer)other).pointeeType.IsSame(this.pointeeType));
         }
     }
 
 
-    public class ResolvedTypeStruct : Type
+    public class TypeStruct : Type
     {
-        public DefinitionStruct structDef;
+        public DefStruct structDef;
 
-        public ResolvedTypeStruct(DefinitionStruct structDef) { this.structDef = structDef; }
+        public TypeStruct(DefStruct structDef) { this.structDef = structDef; }
         public override bool IsSame(Type other)
         {
-            if (!(other is ResolvedTypeStruct)) return false;
-            return (((ResolvedTypeStruct)other).structDef == this.structDef);
+            if (!(other is TypeStruct)) return false;
+            return (((TypeStruct)other).structDef == this.structDef);
         }
     }
 
 
-    public class ResolvedTypeFunct : Type
+    public class TypeFunct : Type
     {
         public List<Type> argumentTypes = new List<Type>();
         public Type returnType;
 
         public override bool IsSame(Type other)
         {
-            var otherf = other as ResolvedTypeFunct;
+            var otherf = other as TypeFunct;
             if (otherf == null) return false;
             if (this.argumentTypes.Count != otherf.argumentTypes.Count) return false;
             for (int i = 0; i < argumentTypes.Count; i++)

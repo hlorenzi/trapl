@@ -143,10 +143,10 @@ namespace Trapl.Grammar
                 {
                     var node = new ASTNode(ASTNodeKind.TopLevelDecl);
                     node.SetSpan(this.Current().span);
-                    node.AddChild(this.ParseTemplatedIdentifier(MessageCode.Expected, "expected declaration name"));
+                    node.AddChild(this.ParseNameWithGenericPattern(MessageCode.Expected, "expected declaration name"));
                     this.Match(TokenKind.Colon, MessageCode.Expected, "expected ':'");
                     if (this.CurrentIs(TokenKind.KeywordFunct))
-                        node.AddChild(this.ParseFunctDecl(false));
+                        node.AddChild(this.ParseFunctDecl(true));
                     else if (this.CurrentIs(TokenKind.KeywordStruct))
                         node.AddChild(this.ParseStructDecl());
                     else if (this.CurrentIs(TokenKind.KeywordTrait))
@@ -268,7 +268,14 @@ namespace Trapl.Grammar
         }
 
 
-        private ASTNode ParseTemplatedIdentifier(MessageCode errCode, string errText)
+        private ASTNode ParseNumberLiteral()
+        {
+            var token = this.Match(TokenKind.Number, MessageCode.Expected, "expected number");
+            return new ASTNode(ASTNodeKind.NumberLiteral, token.span);
+        }
+
+
+        private ASTNode ParseNameWithGenericPattern(MessageCode errCode, string errText)
         {
             var node = new ASTNode(ASTNodeKind.Identifier);
             node.SetSpan(this.Current().span);
@@ -279,7 +286,7 @@ namespace Trapl.Grammar
             if (this.CurrentIs(TokenKind.DoubleColon))
             {
                 this.Advance();
-                node.AddChild(this.ParseTemplateList());
+                node.AddChild(this.ParseGenericPattern());
                 node.AddLastChildSpan();
             }
 
@@ -287,24 +294,24 @@ namespace Trapl.Grammar
         }
 
 
-        private ASTNode ParseTemplateList()
+        private ASTNode ParseGenericPattern()
         {
-            var node = new ASTNode(ASTNodeKind.TemplateList);
+            var node = new ASTNode(ASTNodeKind.GenericPattern);
             node.SetSpan(this.Current().span);
             this.Match(TokenKind.LessThan, MessageCode.Expected, "expected '<'");
             while (this.CurrentIsNot(TokenKind.GreaterThan))
             {
-                if (this.CurrentIs(TokenKind.KeywordGen))
+                node.AddChild(this.ParseType());
+
+                if (this.CurrentIs(TokenKind.TriplePeriod))
                 {
                     this.Advance();
-                    var nameToken = this.Match(TokenKind.Identifier, MessageCode.Expected, "expected generic type name");
-                    node.AddChild(new ASTNode(ASTNodeKind.TemplateType, nameToken.span));
+                    node.kind = ASTNodeKind.VariadicGenericPattern;
+                    break;
                 }
                 else
-                    node.AddChild(this.ParseType());
-
-                this.MatchListSeparator(TokenKind.Comma, TokenKind.GreaterThan,
-                    MessageCode.Expected, "expected ',' or '>'");
+                    this.MatchListSeparator(TokenKind.Comma, TokenKind.GreaterThan,
+                        MessageCode.Expected, "expected ',' or '>'");
             }
             node.AddSpan(this.Current().span);
             this.Match(TokenKind.GreaterThan, MessageCode.Expected, "expected '>'");
@@ -312,28 +319,50 @@ namespace Trapl.Grammar
         }
 
 
-        private ASTNode ParseNumberLiteral()
-        {
-            var token = this.Match(TokenKind.Number, MessageCode.Expected, "expected number");
-            return new ASTNode(ASTNodeKind.NumberLiteral, token.span);
-        }
-
-
         private ASTNode ParseType()
         {
             var node = new ASTNode(ASTNodeKind.TypeName);
             node.SetSpan(this.Current().span);
-            while (this.CurrentIs(TokenKind.Ampersand))
+
+            if (this.CurrentIs(TokenKind.Ampersand))
+            {
                 node.AddChild(new ASTNode(ASTNodeKind.Operator, this.Advance().span));
-            node.AddChild(new ASTNode(ASTNodeKind.Identifier,
-                this.Match(TokenKind.Identifier, MessageCode.Expected, "expected type").span));
-            node.AddLastChildSpan();
-            if (this.CurrentIs(TokenKind.DoubleColon))
+                node.AddLastChildSpan();
+                node.AddChild(this.ParseType());
+                node.AddLastChildSpan();
+                return node;
+            }
+
+            if (this.CurrentIs(TokenKind.KeywordGen))
             {
                 this.Advance();
-                node.AddChild(this.ParseTemplateList());
+                var genNameToken = this.Match(TokenKind.Identifier, MessageCode.Expected, "expected generic type name");
+
+                var genericASTNode = new ASTNode(ASTNodeKind.GenericType, genNameToken.span);
+                node.AddChild(genericASTNode);
                 node.AddLastChildSpan();
+
+                if (this.CurrentIs(TokenKind.DoubleColon))
+                {
+                    this.Advance();
+                    node.AddChild(this.ParseGenericPattern());
+                    node.AddLastChildSpan();
+                }
             }
+            else
+            {
+                node.AddChild(new ASTNode(ASTNodeKind.Identifier,
+                    this.Match(TokenKind.Identifier, MessageCode.Expected, "expected type").span));
+                node.AddLastChildSpan();
+
+                if (this.CurrentIs(TokenKind.DoubleColon))
+                {
+                    this.Advance();
+                    node.AddChild(this.ParseGenericPattern());
+                    node.AddLastChildSpan();
+                }
+            }
+
             return node;
         }
 
@@ -589,7 +618,7 @@ namespace Trapl.Grammar
         private ASTNode ParseLeafExpression()
         {
             if (this.CurrentIs(TokenKind.Identifier))
-                return this.ParseTemplatedIdentifier(MessageCode.Internal, "expected identifier");
+                return this.ParseNameWithGenericPattern(MessageCode.Internal, "expected identifier");
             else if (this.CurrentIs(TokenKind.Number))
                 return this.ParseNumberLiteral();
             else if (this.CurrentIs(TokenKind.BraceOpen))

@@ -1,24 +1,31 @@
-Int32: struct { }
-Int64: struct { }
 
-
-List::<gen T>: struct
+List::<gen T::<gen U...>...>: struct
 {
-	data: &T,
+	data: &Int32,
 	num: Int32
 }
 
 
-List::<Int64>: struct
+List::<gen T...>: struct
 {
-	ohh_specialized_struct: List::<Int32>
+	data: &Int32,
+	num: Int32
 }
 
 
 Tests: struct
 {
-	a: List::<Int32>,
-	b: List::<&Int32>,
-	c: &List::<Int32>,
-	d: List::<List::<Int32>>
+	a: Int32,
+	b: Int64,
+	c: &Int32,
+	d: &&&&Int64,
+	e: List,
+	f: List::<Int32>,
+	g: List::<Int32, Int32>,
+	h: List::<&Int32, Int64>,
+	i: &List::<Int32, &&&Int32>,
+	j: List::<List::<&Int32>, &&Int32>,
+	k: List::<List::<Int32, Int64, Int32>, &&Int32>,
+	l: List::<List::<Int32, Int64, Int32>, List::<Int64, Int64>>,
+	m: List::<Int32, &Int32, &&Int32, &&&Int64, &&&&Int64>
 }

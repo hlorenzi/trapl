@@ -27,7 +27,7 @@ namespace Trapl.Semantics
         public List<Variable> localVariables = new List<Variable>();
         //public CodeSegment body;
 
-        public Template templateList;
+        public DeclPattern templateList;
         public Grammar.ASTNode declASTNode;
 
         public Interface.SourceCode source;

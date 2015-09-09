@@ -15,30 +15,9 @@ namespace Trapl.Grammar
         }
 
 
-        public void PrintDebug(Interface.SourceCode src)
+        public static void PrintDebug(Interface.SourceCode src, ASTNode node, int indentLevel)
         {
-            foreach (var node in this.topDecls)
-                PrintDebugRecursive(src, node, 0);
-        }
-
-
-        private void PrintDebugRecursive(Interface.SourceCode src, ASTNode node, int indentLevel)
-        {
-            string firstColumn =
-                new string(' ', indentLevel * 2) +
-                System.Enum.GetName(typeof(ASTNodeKind), node.kind);
-
-            string excerpt = src.GetExcerpt(node.Span());
-            string secondColumn =
-                new string(' ', indentLevel * 2) +
-                excerpt.Substring(0, Math.Min(excerpt.Length, 20)).Replace("\n", " ").Replace("\r", "").Replace("\t", " ") +
-                (excerpt.Length > 20 ? "..." : "");
-
-            Console.Out.Write(firstColumn.PadRight(40));
-            Console.Out.Write(": ");
-            Console.Out.WriteLine(secondColumn);
-            foreach (var child in node.EnumerateChildren())
-                PrintDebugRecursive(src, child, indentLevel + 1);
+            node.PrintDebugRecursive(src, indentLevel);
         }
     }
 
@@ -49,8 +28,8 @@ namespace Trapl.Grammar
         FunctDecl, FunctArgDecl, FunctReturnDecl,
         StructDecl, StructMemberDecl,
         TraitDecl, TraitMemberDecl,
-        Name, NumberLiteral, TypeName,
-        Identifier, TemplateList, TemplateType,
+        Identifier, Name, NumberLiteral, TypeName,
+        GenericPattern, VariadicGenericPattern, GenericType, 
         Block,
         BinaryOp, UnaryOp, Operator, Call,
         ControlLet, ControlIf, ControlWhile, ControlReturn,
@@ -62,7 +41,7 @@ namespace Trapl.Grammar
         public ASTNodeKind kind;
         private Diagnostics.Span span;
         private Diagnostics.Span spanWithDelimiters;
-        private List<ASTNode> children = new List<ASTNode>();
+        public List<ASTNode> children = new List<ASTNode>();
 
 
         public ASTNode(ASTNodeKind kind)
@@ -161,6 +140,26 @@ namespace Trapl.Grammar
         {
             foreach (var child in this.children)
                 yield return child;
+        }
+
+
+        public void PrintDebugRecursive(Interface.SourceCode src, int indentLevel)
+        {
+            string firstColumn =
+                new string(' ', indentLevel * 2) +
+                System.Enum.GetName(typeof(ASTNodeKind), this.kind);
+
+            string excerpt = src.GetExcerpt(this.Span());
+            string secondColumn =
+                new string(' ', indentLevel * 2) +
+                excerpt.Substring(0, Math.Min(excerpt.Length, 20)).Replace("\n", " ").Replace("\r", "").Replace("\t", " ") +
+                (excerpt.Length > 20 ? "..." : "");
+
+            Console.Out.Write(firstColumn.PadRight(40));
+            Console.Out.Write(": ");
+            Console.Out.WriteLine(secondColumn);
+            foreach (var child in this.EnumerateChildren())
+                child.PrintDebugRecursive(src, indentLevel + 1);
         }
     }
 }

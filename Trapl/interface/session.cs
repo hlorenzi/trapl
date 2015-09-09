@@ -14,33 +14,20 @@ namespace Trapl.Interface
             session.diagn = new Diagnostics.Collection();
 
             var tokenCollection = Grammar.Tokenizer.Tokenize(session, src);
-            //tokenCollection.PrintDebug(src);
-
             var ast = Grammar.ASTParser.Parse(session, tokenCollection, src);
-            //ast.PrintDebug(src);
 
-            Semantics.DefinitionGatherer.Gather(session, ast, src);
-            Semantics.TemplateConsistencyChecker.Check(session);
+            //foreach (var node in ast.topDecls)
+            //    Grammar.AST.PrintDebug(src, node, 0);
+
+            Semantics.CheckTopDecl.Check(session, ast, src);
 
             if (session.diagn.HasNoError())
             {
-                // FIXME! Rewrite this loop for efficiency.
-                while (true)
+                var topDeclClones = new List<Semantics.TopDecl>(session.topDecls);
+                foreach (var topDecl in topDeclClones)
                 {
-                    whileStart:
-                    for (int i = 0; i < session.structDefs.Count; i++)
-                    {
-                        for (int j = 0; j < session.structDefs[i].defs.Count; j++)
-                        {
-                            var st = session.structDefs[i].defs[j];
-                            if (!st.templateList.IsGeneric() && !st.resolved)
-                            {
-                                Semantics.ResolverStruct.Resolve(session, new Semantics.TemplateSubstitution(), st);
-                                goto whileStart;
-                            }
-                        }
-                    }
-                    break;
+                    try { topDecl.Resolve(session);  }
+                    catch (Semantics.CheckException) { }
                 }
             }
 
@@ -50,59 +37,23 @@ namespace Trapl.Interface
 
 
         public Diagnostics.Collection diagn;
-        public List<Semantics.Definition<Semantics.DefinitionStruct>> structDefs = new List<Semantics.Definition<Semantics.DefinitionStruct>>();
-        public List<Semantics.Definition<Semantics.DefinitionFunct>> functDefs = new List<Semantics.Definition<Semantics.DefinitionFunct>>();
-
-
-        public void Merge(Session other)
-        {
-            foreach (var otherDef in other.functDefs)
-            {
-                var thisDef = this.functDefs.Find(def => def.fullName == otherDef.fullName);
-                if (thisDef != null)
-                    thisDef.defs.AddRange(otherDef.defs);
-                else
-                    this.functDefs.Add(otherDef);
-            }
-
-            foreach (var otherDef in other.structDefs)
-            {
-                var thisDef = this.structDefs.Find(def => def.fullName == otherDef.fullName);
-                if (thisDef != null)
-                    thisDef.defs.AddRange(otherDef.defs);
-                else
-                    this.structDefs.Add(otherDef);
-            }
-        }
+        public List<Semantics.TopDecl> topDecls = new List<Semantics.TopDecl>();
 
 
         public void PrintDefs()
         {
-            foreach (var def in structDefs)
+            foreach (var topDecl in this.topDecls)
             {
-                Console.Out.WriteLine("STRUCT " + def.fullName + " (" + def.defs.Count + ")");
-                foreach (var st in def.defs)
-                {
-                    Console.Out.Write("  ::" + st.templateList.GetName(this));
-                    Console.Out.WriteLine(st.synthesized ? " synthesized" : "");
-                    if (!st.resolved)
-                        Console.Out.WriteLine("    Unresolved");
-                    else
-                    {
-                        foreach (var member in st.members)
-                        {
-                            Console.Out.WriteLine("    " + member.name + ": " + Semantics.ResolverType.GetName(this, member.type));
-                        }
-                    }
-                    Console.Out.WriteLine();
-                }
+                Console.Out.WriteLine("TOPDECL " + topDecl.qualifiedName + "::" + topDecl.pattern.GetString(this));
+
+                if (topDecl.generic)
+                    Console.Out.WriteLine("  generic, unresolved");
+                else if (topDecl.def == null)
+                    Console.Out.WriteLine("  unresolved");
+                else
+                    topDecl.def.PrintToConsole(this, 1);
+
                 Console.Out.WriteLine();
-            }
-            foreach (var def in functDefs)
-            {
-                Console.Out.WriteLine("FUNCT " + def.fullName.PadRight(20) + " (" + def.defs.Count + ")");
-                foreach (var f in def.defs)
-                    Console.Out.WriteLine("  ::" + f.templateList.GetName(this));
             }
         }
     }
