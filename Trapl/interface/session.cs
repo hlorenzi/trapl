@@ -48,7 +48,7 @@ namespace Trapl.Interface
                     "TOPDECL " +
                     topDecl.qualifiedName + "::" +
                     topDecl.pattern.GetString(this) + " " +
-                    topDecl.patternSubst.GetString(this, topDecl.source));
+                    topDecl.patternSubst.GetString());
 
                 if (topDecl.generic)
                     Console.Out.WriteLine("  generic, unresolved");

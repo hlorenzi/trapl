@@ -10,11 +10,17 @@ List::<gen T::<gen U>>: struct
 }
 
 
+Recursive::<gen T>: struct
+{
+	x: Recursive::<T>
+}
+
+
 Tests: struct
 {
 	a: Int32,
 	b: Int64,
 	c: &Int32,
-	d: List::<Container::<Int32>>,
-	e: List::<Container::<Int32>>
+	d: Recursive::<Int32>,
+	e: List::<List::<Container::<Int32>>>
 }

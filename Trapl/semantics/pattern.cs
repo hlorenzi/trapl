@@ -80,7 +80,13 @@ namespace Trapl.Semantics
 
     public class DeclPatternSubstitution
     {
-        public Dictionary<string, List<Grammar.ASTNode>> nameToASTNodeMap = new Dictionary<string, List<Grammar.ASTNode>>();
+        public class SubstitutionData
+        {
+            public Grammar.ASTNode astNode;
+            public Interface.SourceCode source;
+        }
+
+        public Dictionary<string, List<SubstitutionData>> nameToASTNodeMap = new Dictionary<string, List<SubstitutionData>>();
 
         
         public void Merge(DeclPatternSubstitution other)
@@ -90,19 +96,22 @@ namespace Trapl.Semantics
         }
 
 
-        public void Add(string name, Grammar.ASTNode astNode)
+        public void Add(string name, Interface.SourceCode source, Grammar.ASTNode astNode)
         {
-            List<Grammar.ASTNode> list = null;
+            List<SubstitutionData> list = null;
             if (!this.nameToASTNodeMap.TryGetValue(name, out list))
             {
-                list = new List<Grammar.ASTNode>();
+                list = new List<SubstitutionData>();
                 this.nameToASTNodeMap.Add(name, list);
             }
-            list.Add(astNode);
+            var substData = new SubstitutionData();
+            substData.astNode = astNode;
+            substData.source = source;
+            list.Add(substData);
         }
 
 
-        public string GetString(Interface.Session session, Interface.SourceCode src)
+        public string GetString()
         {
             if (this.nameToASTNodeMap.Count == 0)
                 return "";
@@ -119,7 +128,7 @@ namespace Trapl.Semantics
                     result += pair.Key + " = ";
                     for (int i = 0; i < pair.Value.Count; i++)
                     {
-                        result += "'" + src.GetExcerpt(pair.Value[i].Span()) + "'";
+                        result += "'" + pair.Value[i].astNode.GetExcerpt(pair.Value[i].source) + "'";
                         if (i < pair.Value.Count - 1)
                             result += ", ";
                     }

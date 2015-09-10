@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Trapl.Diagnostics;
+using System;
 
 
 namespace Trapl.Semantics
@@ -26,9 +27,9 @@ namespace Trapl.Semantics
             var nameASTNode = node.Child(0);
             var name = nameASTNode.GetExcerpt(src);
 
-            // Find the top declarations that match the name.
-            var sameNameTopDecls = session.topDecls.FindAll(decl => decl.qualifiedName == name);
-            if (sameNameTopDecls.Count == 0)
+            // Find the TopDecls that match the name.
+            var candidateTopDecls = session.topDecls.FindAll(decl => decl.qualifiedName == name);
+            if (candidateTopDecls.Count == 0)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
                     "unknown type", src, nameASTNode.Span());
@@ -46,35 +47,40 @@ namespace Trapl.Semantics
                 genPattern.SetPattern(genPatternASTNode);
             }
 
-            // Find the top declarations that are compatible with the generic pattern.
-            var compatibleTopDecls = sameNameTopDecls.FindAll(decl => (decl.pattern.GetSubstitution(genPattern) != null));
-            if (compatibleTopDecls.Count == 0)
+            // Refine candidate TopDecls further by compatibility with the generic pattern.
+            candidateTopDecls = candidateTopDecls.FindAll(decl => (decl.pattern.GetSubstitution(genPattern) != null));
+            if (candidateTopDecls.Count == 0)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
                     "pattern does not match any declarations",
-                    src, nameASTNode.Span().Merge(genPatternASTNode.Span()));
+                    MessageCaret.Primary(src, nameASTNode.Span()),
+                    MessageCaret.Primary(src, genPatternASTNode.Span()));
                 throw new Semantics.CheckException();
             }
-            else if (compatibleTopDecls.Count > 1)
+            else if (candidateTopDecls.Count > 1)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
                     "pattern matches more than one declaration",
-                    src, nameASTNode.Span().Merge(genPatternASTNode.Span()));
+                    MessageCaret.Primary(src, nameASTNode.Span()),
+                    MessageCaret.Primary(src, genPatternASTNode.Span()));
                 throw new Semantics.CheckException();
             }
 
-            // Ask the matching top declaration to parse and resolve its definition, if not yet done.
-            var matchingTopDecl = compatibleTopDecls[0];
+            // Ask the matching TopDecl to parse and resolve its definition, if not yet done.
+            var matchingTopDecl = candidateTopDecls[0];
+            var patternSubst = matchingTopDecl.pattern.GetSubstitution(genPattern);
             if (matchingTopDecl.generic)
             {
-                matchingTopDecl = matchingTopDecl.CloneAndSubstitute(session, matchingTopDecl.pattern.GetSubstitution(genPattern));
+                matchingTopDecl = matchingTopDecl.CloneAndSubstitute(session, patternSubst);
                 session.topDecls.Add(matchingTopDecl);
                 matchingTopDecl.defASTNode.PrintDebugRecursive(matchingTopDecl.source, 1);
             }
 
+            session.diagn.EnterSubstitutionContext(patternSubst);
             matchingTopDecl.Resolve(session);
+            session.diagn.ExitSubstitutionContext();
 
-            // Check that what the matching top declaration defines is a struct.
+            // Check that what the matching TopDecl defines is a struct.
             if (!(matchingTopDecl.def is DefStruct))
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
@@ -82,7 +88,7 @@ namespace Trapl.Semantics
                 throw new Semantics.CheckException();
             }
 
-            // Build a Type with the matching top declaration's struct.
+            // Build a Type with the matching TopDecl's struct.
             return new TypeStruct((DefStruct)matchingTopDecl.def);
         }
 
@@ -101,7 +107,7 @@ namespace Trapl.Semantics
                     {
                         return topDecl.qualifiedName + "::" +
                             topDecl.pattern.GetString(session) + " " +
-                            topDecl.patternSubst.GetString(session, topDecl.source);
+                            topDecl.patternSubst.GetString();
                     }
                 }
             }

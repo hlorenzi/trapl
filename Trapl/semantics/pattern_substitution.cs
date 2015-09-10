@@ -20,31 +20,55 @@ namespace Trapl.Semantics
 
             foreach (var child in node.EnumerateChildren())
             {
-                if (child.kind == Grammar.ASTNodeKind.TypeName)
+                // Find whether this node's excerpt matches a generic name.
+                var ident = child.GetExcerpt(src);
+                if (subst.nameToASTNodeMap.ContainsKey(ident))
                 {
-                    if (child.ChildIs(0, Grammar.ASTNodeKind.Identifier))
+                    // Check if the node's kind corresponds with the substitute's kind.
+                    var substNode = subst.nameToASTNodeMap[ident][0];
+                    if (substNode.astNode.kind == child.kind)
                     {
-                        var ident = child.Child(0).GetExcerpt(src);
-                        if (subst.nameToASTNodeMap.ContainsKey(ident))
-                        {
-                            if (subst.nameToASTNodeMap[ident].Count != 1)
-                                throw new InternalException("unimplemented");
-
-                            var substitutionNode = subst.nameToASTNodeMap[ident][0];
-                            var substitutedNode = CloneAndSubstituteRecursive(src, substitutionNode, subst);
-
-                            for (int i = 1; i < child.ChildNumber(); i++)
-                            {
-                                substitutedNode.AddChild(CloneAndSubstituteRecursive(src, child.Child(i), subst));
-                            }
-
-                            result.AddChild(substitutedNode);
-                            continue;
-                        }
+                        // Then clone children from substitute node!
+                        result.AddChild(CloneSubstituteRecursive(src, child, substNode.astNode));
+                        continue;
                     }
                 }
 
-                result.AddChild(CloneAndSubstituteRecursive(src, child, subst));
+                // Or else, just clone the children as they are.
+                var newNode = CloneAndSubstituteRecursive(src, child, subst);
+                result.AddChild(newNode);
+            }
+
+            return result;
+        }
+
+
+        private static Grammar.ASTNode CloneSubstituteRecursive(Interface.SourceCode src, Grammar.ASTNode node, Grammar.ASTNode substituteNode)
+        {
+            var result = node.CloneWithoutChildren();
+            result.OverwriteExcerpt(substituteNode.GetExcerpt(src));
+
+            var curIndex = 0;
+            while (curIndex < node.ChildNumber())
+            {
+                var child = node.Child(curIndex);
+
+                // Check whether the original node's kind matches the substitution's kind.
+                if (!substituteNode.ChildIs(curIndex, child.kind))
+                    break;
+
+                var newNode = CloneSubstituteRecursive(src, child, substituteNode.Child(curIndex));
+                result.AddChild(newNode);
+
+                curIndex++;
+            }
+
+            while (curIndex < substituteNode.ChildNumber())
+            {
+                var newNode = CloneSubstituteRecursive(src, substituteNode.Child(curIndex), substituteNode.Child(curIndex));
+                result.AddChild(newNode);
+
+                curIndex++;
             }
 
             return result;

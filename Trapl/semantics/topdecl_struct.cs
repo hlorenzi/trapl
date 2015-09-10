@@ -44,7 +44,7 @@ namespace Trapl.Semantics
                 try
                 {
                     var memberDef = new DefStruct.Member();
-                    memberDef.name = src.GetExcerpt(memberNode.Child(0).Span());
+                    memberDef.name = memberNode.Child(0).GetExcerpt(src);
                     memberDef.declSpan = memberNode.Span();
                     memberDef.type = TypeResolution.Resolve(session, subst, src, memberNode.Child(1));
                     members.Add(memberDef);

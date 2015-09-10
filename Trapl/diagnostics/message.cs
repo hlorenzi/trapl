@@ -86,7 +86,10 @@ namespace Trapl.Diagnostics
             Console.Write(GetErrorPositionString() + ": ");
             Console.ForegroundColor = GetLightColor(this.kind);
             Console.Write(GetKindName(this.kind) + ": ");
-            Console.WriteLine(this.text);
+            Console.Write(this.text);
+            if (this.substitutionContext != null)
+                Console.Write(" " + this.substitutionContext.GetString());
+            Console.WriteLine();
             PrintErrorWithHighlighting();
             Console.ResetColor();
         }
@@ -97,6 +100,7 @@ namespace Trapl.Diagnostics
         private MessageKind kind;
         private MessageCaret[] carets;
         private Interface.SourceCode source; // FIXME! Workaround for the time being. Each caret should contain its source.
+        public Semantics.DeclPatternSubstitution substitutionContext;
 
 
         private Message(MessageCode code, string text, MessageKind kind, params MessageCaret[] carets)
@@ -106,6 +110,7 @@ namespace Trapl.Diagnostics
             this.kind = kind;
             this.carets = carets;
             this.source = this.carets[0].source;
+            this.substitutionContext = null;
         }
 
 

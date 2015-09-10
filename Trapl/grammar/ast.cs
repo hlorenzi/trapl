@@ -61,15 +61,45 @@ namespace Trapl.Grammar
 
         public ASTNode CloneWithoutChildren()
         {
-            var newNode = (ASTNode)this.MemberwiseClone();
+            var newNode = new ASTNode(this.kind);
+            newNode.span = this.span;
+            newNode.spanWithDelimiters = this.spanWithDelimiters;
+            newNode.overwrittenExcerpt = this.overwrittenExcerpt;
             newNode.children = new List<ASTNode>();
+            return newNode;
+        }
+
+
+        public ASTNode CloneWithChildren()
+        {
+            var newNode = new ASTNode(this.kind);
+            newNode.span = this.span;
+            newNode.spanWithDelimiters = this.spanWithDelimiters;
+            newNode.overwrittenExcerpt = this.overwrittenExcerpt;
+            newNode.children = new List<ASTNode>();
+            foreach (var child in this.children)
+                newNode.children.Add(child.CloneWithChildren());
             return newNode;
         }
 
 
         public string GetExcerpt(Interface.SourceCode src)
         {
-            return this.overwrittenExcerpt ?? src.GetExcerpt(this.span);
+            if (src == null)
+                return "<unknown source>";
+            else
+                return this.overwrittenExcerpt ?? src.GetExcerpt(this.span);
+        }
+
+
+        public string GetExcerptWithComments(Interface.SourceCode src)
+        {
+            if (src == null)
+                return "<unknown source>";
+            else if (this.overwrittenExcerpt != null)
+                return "***" + this.overwrittenExcerpt + "***";
+            else
+                return src.GetExcerpt(this.span);
         }
 
 
@@ -170,7 +200,7 @@ namespace Trapl.Grammar
                 new string(' ', indentLevel * 2) +
                 System.Enum.GetName(typeof(ASTNodeKind), this.kind);
 
-            string excerpt = src.GetExcerpt(this.Span());
+            string excerpt = this.GetExcerptWithComments(src);
             string secondColumn =
                 new string(' ', indentLevel * 2) +
                 excerpt.Substring(0, Math.Min(excerpt.Length, 20)).Replace("\n", " ").Replace("\r", "").Replace("\t", " ") +

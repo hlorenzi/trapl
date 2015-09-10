@@ -12,6 +12,8 @@ namespace Trapl.Semantics
         {
             var matcher = new ASTPatternMatcher(subst, genericPattern, concretePattern);
             //Console.Out.WriteLine("Pattern matching start");
+            //Grammar.AST.PrintDebug(genericPattern.src, genericPattern.astNode, 4);
+            //Grammar.AST.PrintDebug(concretePattern.src, concretePattern.astNode, 4);
             var result = matcher.Match(genericPattern.astNode, concretePattern.astNode);
             /*Console.Out.WriteLine("  " + (result ? "MATCHED!" : "FAILED"));
             foreach (var pair in subst.nameToASTNodeMap)
@@ -116,28 +118,21 @@ namespace Trapl.Semantics
                     for (int i = genericTypeChildIndex; i < otherNode.ChildNumber(); i++)
                     {
                         node.AddChild(otherNode.Child(i));
-                        if (i == genericTypeChildIndex)
-                            node.SetLastChildSpan();
-                        else
-                            node.AddLastChildSpan();
                     }
 
-                    this.subst.Add(genericName, node);
+                    var overwrittenExcerpt = "";
+                    foreach (var child in node.children)
+                        overwrittenExcerpt += child.GetExcerpt(concretePattern.src);
+                    node.OverwriteExcerpt(overwrittenExcerpt);
+
+                    this.subst.Add(genericName, concretePattern.src, node);
                     return true;
                 }
 
                 if (thisNode.ChildNumber() != otherNode.ChildNumber())
                     return false;
 
-                if (otherNode.Child(genericTypeChildIndex).kind != Grammar.ASTNodeKind.TypeName)
-                {
-                    var typeNode = new Grammar.ASTNode(Grammar.ASTNodeKind.TypeName);
-                    typeNode.AddChild(otherNode.Child(genericTypeChildIndex));
-                    typeNode.SetLastChildSpan();
-                    this.subst.Add(genericName, typeNode);
-                }
-                else
-                    this.subst.Add(genericName, otherNode.Child(genericTypeChildIndex));
+                this.subst.Add(genericName, concretePattern.src, otherNode.Child(genericTypeChildIndex));
 
                 // Or else, match up to the inner pattern, and match recursively into it.
                 for (int i = genericTypeChildIndex + 1; i < thisNode.ChildNumber(); i++)
