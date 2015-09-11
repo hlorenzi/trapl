@@ -1,26 +1,20 @@
 Container::<gen T>: struct
 {
-	data: T
+	data: gen T
 }
 
 
-List::<gen T::<gen U>>: struct
+List::<gen T::<gen U>, gen V>: struct
 {
-	data: T::<U>
-}
-
-
-Recursive::<gen T>: struct
-{
-	x: Recursive::<T>
+	data: gen T::<gen U>,
+	data: gen V
 }
 
 
 Tests: struct
 {
-	a: Int32,
-	b: Int64,
-	c: &Int32,
-	d: Recursive::<Int32>,
-	e: List::<List::<Container::<Int32>>>
+	a: Container::<Int32>,
+	b: Container::<Container::<Int32>>,
+	c: List::<Container::<&&&Int32>, &&&Int64>,
+	d: List::<&Container::<&&&Int32>, &&&Int64>,
 }

@@ -1,74 +1,103 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Trapl.Diagnostics;
+
 
 namespace Trapl.Semantics
 {
     public class ASTPatternSubstitution
     {
-        public static Grammar.ASTNode CloneAndSubstitute(Interface.SourceCode src, Grammar.ASTNode node, DeclPatternSubstitution subst)
+        public static Grammar.ASTNode CloneAndSubstitute(Interface.Session session, Interface.SourceCode src, Grammar.ASTNode node, DeclPatternSubstitution subst)
         {
-            return CloneAndSubstituteRecursive(src, node, subst);
+            return Clone(session, src, node, subst);
         }
 
 
-        private static Grammar.ASTNode CloneAndSubstituteRecursive(Interface.SourceCode src, Grammar.ASTNode node, DeclPatternSubstitution subst)
+        private static Grammar.ASTNode Clone(Interface.Session session, Interface.SourceCode src, Grammar.ASTNode node, DeclPatternSubstitution subst)
         {
             var result = node.CloneWithoutChildren();
+            if (result.kind == Grammar.ASTNodeKind.TypeName)
+            {
+                // Check whether this node's generic identifier has a substitute.
+                if (node.ChildIs(0, Grammar.ASTNodeKind.GenericIdentifier))
+                {
+                    var genericIdent = node.Child(0).GetExcerpt(src);
+                    if (subst.nameToASTNodeMap.ContainsKey(genericIdent))
+                    {
+                        // Check if the node's kind corresponds with the substitute's kind.
+                        var substNode = subst.nameToASTNodeMap[genericIdent][0];
+                        if (substNode.astNode.kind == Grammar.ASTNodeKind.TypeName)
+                        {
+                            // Then clone from substitute node!
+                            result = CloneWithExcerpt(session, src, substNode.astNode, subst, node.Span());
+                            result.SetSpan(node.Span());
+
+                            for (int i = 1; i < node.ChildNumber(); i++)
+                            {
+                                result.AddChild(CloneWithExcerpt(session, src, node.Child(i), subst, node.Span()));
+                            }
+
+                            return result;
+                        }
+                    }
+                    else
+                    {
+                        session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
+                            "unresolved generic identifier", src, node.Child(0).Span());
+                        throw new Semantics.CheckException();
+                    }
+                }
+            }
 
             foreach (var child in node.EnumerateChildren())
             {
-                // Find whether this node's excerpt matches a generic name.
-                var ident = child.GetExcerpt(src);
-                if (subst.nameToASTNodeMap.ContainsKey(ident))
-                {
-                    // Check if the node's kind corresponds with the substitute's kind.
-                    var substNode = subst.nameToASTNodeMap[ident][0];
-                    if (substNode.astNode.kind == child.kind)
-                    {
-                        // Then clone children from substitute node!
-                        result.AddChild(CloneSubstituteRecursive(src, child, substNode.astNode));
-                        continue;
-                    }
-                }
-
-                // Or else, just clone the children as they are.
-                var newNode = CloneAndSubstituteRecursive(src, child, subst);
-                result.AddChild(newNode);
+                result.AddChild(Clone(session, src, child, subst));
             }
 
             return result;
         }
 
 
-        private static Grammar.ASTNode CloneSubstituteRecursive(Interface.SourceCode src, Grammar.ASTNode node, Grammar.ASTNode substituteNode)
+        private static Grammar.ASTNode CloneWithExcerpt(Interface.Session session, Interface.SourceCode src, Grammar.ASTNode node, DeclPatternSubstitution subst, Diagnostics.Span substSpan)
         {
             var result = node.CloneWithoutChildren();
-            result.OverwriteExcerpt(substituteNode.GetExcerpt(src));
+            result.OverwriteExcerpt(node.GetExcerpt(src));
+            result.SetSpan(substSpan);
 
-            var curIndex = 0;
-            while (curIndex < node.ChildNumber())
+            if (result.kind == Grammar.ASTNodeKind.TypeName)
             {
-                var child = node.Child(curIndex);
+                // Check whether this node's generic identifier has a substitute.
+                if (node.ChildIs(0, Grammar.ASTNodeKind.GenericIdentifier))
+                {
+                    var genericIdent = node.Child(0).GetExcerpt(src);
+                    if (subst.nameToASTNodeMap.ContainsKey(genericIdent))
+                    {
+                        // Check if the node's kind corresponds with the substitute's kind.
+                        var substNode = subst.nameToASTNodeMap[genericIdent][0];
+                        if (substNode.astNode.kind == Grammar.ASTNodeKind.TypeName)
+                        {
+                            // Then clone from substitute node!
+                            result = CloneWithExcerpt(session, src, substNode.astNode, subst, substSpan);
+                            result.SetSpan(node.Span());
 
-                // Check whether the original node's kind matches the substitution's kind.
-                if (!substituteNode.ChildIs(curIndex, child.kind))
-                    break;
+                            for (int i = 1; i < node.ChildNumber(); i++)
+                            {
+                                result.AddChild(CloneWithExcerpt(session, src, node.Child(i), subst, substSpan));
+                            }
 
-                var newNode = CloneSubstituteRecursive(src, child, substituteNode.Child(curIndex));
-                result.AddChild(newNode);
-
-                curIndex++;
+                            return result;
+                        }
+                    }
+                    else
+                    {
+                        session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
+                            "unresolved generic identifier", src, node.Child(0).Span());
+                        throw new Semantics.CheckException();
+                    }
+                }
             }
 
-            while (curIndex < substituteNode.ChildNumber())
+            foreach (var child in node.EnumerateChildren())
             {
-                var newNode = CloneSubstituteRecursive(src, substituteNode.Child(curIndex), substituteNode.Child(curIndex));
-                result.AddChild(newNode);
-
-                curIndex++;
+                result.AddChild(CloneWithExcerpt(session, src, child, subst, substSpan));
             }
 
             return result;

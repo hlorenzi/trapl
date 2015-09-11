@@ -16,8 +16,8 @@ namespace Trapl.Interface
             var tokenCollection = Grammar.Tokenizer.Tokenize(session, src);
             var ast = Grammar.ASTParser.Parse(session, tokenCollection, src);
 
-            //foreach (var node in ast.topDecls)
-            //    Grammar.AST.PrintDebug(src, node, 0);
+            foreach (var node in ast.topDecls)
+                Grammar.AST.PrintDebug(src, node, 0);
 
             Semantics.CheckTopDecl.Check(session, ast, src);
 

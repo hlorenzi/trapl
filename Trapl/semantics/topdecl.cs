@@ -25,8 +25,14 @@ namespace Trapl.Semantics
 
         public void Resolve(Interface.Session session)
         {
+            Interface.Debug.BeginSection("TOPDECL RESOLVE '" + qualifiedName + "::" + pattern.GetString(session) + "' " + patternSubst.GetString());
+
             if (this.resolved || this.generic)
+            {
+                Interface.Debug.Note(this.resolved ? "already resolved" : "is generic");
+                Interface.Debug.EndSection();
                 return;
+            }
 
             if (this.defASTNode.kind == Grammar.ASTNodeKind.StructDecl)
             {
@@ -44,6 +50,8 @@ namespace Trapl.Semantics
             }
             else
                 throw new InternalException("unexpected def node");
+
+            Interface.Debug.EndSection();
         }
 
 
@@ -55,7 +63,9 @@ namespace Trapl.Semantics
             newDecl.resolved = false;
             newDecl.generic = false;
             newDecl.synthesized = true;
-            newDecl.defASTNode = ASTPatternSubstitution.CloneAndSubstitute(newDecl.source, newDecl.defASTNode, subst);
+            newDecl.defASTNode = ASTPatternSubstitution.CloneAndSubstitute(session, newDecl.source, newDecl.defASTNode, subst);
+            //newDecl.patternASTNode = ASTPatternSubstitution.CloneAndSubstitute(session, newDecl.source, newDecl.patternASTNode, subst);
+            //newDecl.pattern = new DeclPattern(newDecl.source, newDecl.patternASTNode);
             return newDecl;
         }
     }

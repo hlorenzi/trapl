@@ -9,23 +9,31 @@ namespace Trapl.Semantics
     {
         public static Type Resolve(Interface.Session session, DeclPatternSubstitution subst, Interface.SourceCode src, Grammar.ASTNode node)
         {
+            Interface.Debug.BeginSection("TYPE RESOLVE '" + node.GetExcerpt(src) + "'");
+            Interface.Debug.PrintAST(src, node);
+
             if (node.kind != Grammar.ASTNodeKind.TypeName)
                 throw new InternalException("node is not a TypeName");
 
-            // Check if the type has an indirection. (ex.: '&Int32')
-            if (node.ChildIs(0, Grammar.ASTNodeKind.Operator))
+            // Index to iterate through the node's children.
+            var curChild = 0;
+
+            // Read the indirection level of the type. (ex.: '&&Int32' has 2 levels)
+            var indirectionLevels = 0;
+            while (node.ChildIs(curChild, Grammar.ASTNodeKind.Operator))
             {
-                // Wrap the inner Type into a pointer type.
-                return new TypePointer(TypeResolution.Resolve(session, subst, src, node.Child(1)));
+                indirectionLevels++;
+                curChild++;
             }
 
             // Check that the next node is a name.
-            if (node.Child(0).kind != Grammar.ASTNodeKind.Identifier)
-                throw new InternalException("missing name node");
+            if (node.Child(curChild).kind != Grammar.ASTNodeKind.Identifier)
+                throw new InternalException("missing Identifier node");
 
-            // Read the name. (ex.: '&&Data::List::<Int32>' will read 'Data::List')
-            var nameASTNode = node.Child(0);
+            // Read the name. (ex.: '&&List::<Int32>' will read 'List')
+            var nameASTNode = node.Child(curChild);
             var name = nameASTNode.GetExcerpt(src);
+            curChild++;
 
             // Find the TopDecls that match the name.
             var candidateTopDecls = session.topDecls.FindAll(decl => decl.qualifiedName == name);
@@ -40,11 +48,12 @@ namespace Trapl.Semantics
             var genPatternASTNode = new Grammar.ASTNode(Grammar.ASTNodeKind.GenericPattern, nameASTNode.Span());
             var genPattern = new DeclPattern(src, genPatternASTNode);
 
-            if (node.ChildIs(1, Grammar.ASTNodeKind.GenericPattern) ||
-                node.ChildIs(1, Grammar.ASTNodeKind.VariadicGenericPattern))
+            if (node.ChildIs(curChild, Grammar.ASTNodeKind.GenericPattern) ||
+                node.ChildIs(curChild, Grammar.ASTNodeKind.VariadicGenericPattern))
             {
-                genPatternASTNode = node.Child(1);
+                genPatternASTNode = node.Child(curChild);
                 genPattern.SetPattern(genPatternASTNode);
+                curChild++;
             }
 
             // Refine candidate TopDecls further by compatibility with the generic pattern.
@@ -57,23 +66,25 @@ namespace Trapl.Semantics
                     MessageCaret.Primary(src, genPatternASTNode.Span()));
                 throw new Semantics.CheckException();
             }
-            else if (candidateTopDecls.Count > 1)
+            /*else if (candidateTopDecls.Count > 1)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
                     "pattern matches more than one declaration",
                     MessageCaret.Primary(src, nameASTNode.Span()),
                     MessageCaret.Primary(src, genPatternASTNode.Span()));
                 throw new Semantics.CheckException();
-            }
+            }*/
 
             // Ask the matching TopDecl to parse and resolve its definition, if not yet done.
             var matchingTopDecl = candidateTopDecls[0];
             var patternSubst = matchingTopDecl.pattern.GetSubstitution(genPattern);
             if (matchingTopDecl.generic)
             {
+                Interface.Debug.BeginSection("PERFORM SUBSTITUTION");
+                patternSubst.PrintDebug();
                 matchingTopDecl = matchingTopDecl.CloneAndSubstitute(session, patternSubst);
                 session.topDecls.Add(matchingTopDecl);
-                matchingTopDecl.defASTNode.PrintDebugRecursive(matchingTopDecl.source, 1);
+                Interface.Debug.EndSection();
             }
 
             session.diagn.EnterSubstitutionContext(patternSubst);
@@ -88,8 +99,16 @@ namespace Trapl.Semantics
                 throw new Semantics.CheckException();
             }
 
+            Interface.Debug.EndSection();
+
             // Build a Type with the matching TopDecl's struct.
-            return new TypeStruct((DefStruct)matchingTopDecl.def);
+            var resolvedType = (Type)new TypeStruct((DefStruct)matchingTopDecl.def);
+
+            // Wrap the type into as many pointer types as needed.
+            for (int i = 0; i < indirectionLevels; i++)
+                resolvedType = new TypePointer(resolvedType);
+
+            return resolvedType;
         }
 
 

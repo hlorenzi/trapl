@@ -17,7 +17,7 @@ namespace Trapl.Grammar
 
         public static void PrintDebug(Interface.SourceCode src, ASTNode node, int indentLevel)
         {
-            node.PrintDebugRecursive(src, indentLevel);
+            node.PrintDebugRecursive(src, indentLevel, indentLevel);
         }
     }
 
@@ -28,8 +28,9 @@ namespace Trapl.Grammar
         FunctDecl, FunctArgDecl, FunctReturnDecl,
         StructDecl, StructMemberDecl,
         TraitDecl, TraitMemberDecl,
-        Identifier, Name, NumberLiteral, TypeName,
-        GenericPattern, VariadicGenericPattern, GenericType, 
+        Identifier, Name, NumberLiteral,
+        TypeName, GenericIdentifier,
+        GenericPattern, VariadicGenericPattern,
         Block,
         BinaryOp, UnaryOp, Operator, Call,
         ControlLet, ControlIf, ControlWhile, ControlReturn,
@@ -194,10 +195,14 @@ namespace Trapl.Grammar
         }
 
 
-        public void PrintDebugRecursive(Interface.SourceCode src, int indentLevel)
+        public void PrintDebugRecursive(Interface.SourceCode src, int indentLevel, int firstIndentLevel)
         {
+            string indentation =
+                new string(' ', firstIndentLevel * 2) +
+                (firstIndentLevel >= indentLevel ? "" : "| " + new string(' ', (indentLevel - firstIndentLevel) * 2));
+
             string firstColumn =
-                new string(' ', indentLevel * 2) +
+                indentation +
                 System.Enum.GetName(typeof(ASTNodeKind), this.kind);
 
             string excerpt = this.GetExcerptWithComments(src);
@@ -210,7 +215,7 @@ namespace Trapl.Grammar
             Console.Out.Write(": ");
             Console.Out.WriteLine(secondColumn);
             foreach (var child in this.EnumerateChildren())
-                child.PrintDebugRecursive(src, indentLevel + 1);
+                child.PrintDebugRecursive(src, indentLevel + 1, firstIndentLevel);
         }
     }
 }

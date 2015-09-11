@@ -324,43 +324,31 @@ namespace Trapl.Grammar
             var node = new ASTNode(ASTNodeKind.TypeName);
             node.SetSpan(this.Current().span);
 
-            if (this.CurrentIs(TokenKind.Ampersand))
+            while (this.CurrentIs(TokenKind.Ampersand))
             {
                 node.AddChild(new ASTNode(ASTNodeKind.Operator, this.Advance().span));
                 node.AddLastChildSpan();
-                node.AddChild(this.ParseType());
-                node.AddLastChildSpan();
-                return node;
             }
 
             if (this.CurrentIs(TokenKind.KeywordGen))
             {
                 this.Advance();
-                var genNameToken = this.Match(TokenKind.Identifier, MessageCode.Expected, "expected generic type name");
-
-                var genericASTNode = new ASTNode(ASTNodeKind.GenericType, genNameToken.span);
-                node.AddChild(genericASTNode);
+                node.AddChild(new ASTNode(ASTNodeKind.GenericIdentifier,
+                    this.Match(TokenKind.Identifier, MessageCode.Expected, "expected generic name").span));
                 node.AddLastChildSpan();
-
-                if (this.CurrentIs(TokenKind.DoubleColon))
-                {
-                    this.Advance();
-                    node.AddChild(this.ParseGenericPattern());
-                    node.AddLastChildSpan();
-                }
             }
             else
             {
                 node.AddChild(new ASTNode(ASTNodeKind.Identifier,
-                    this.Match(TokenKind.Identifier, MessageCode.Expected, "expected type").span));
+                    this.Match(TokenKind.Identifier, MessageCode.Expected, "expected type name").span));
                 node.AddLastChildSpan();
+            }
 
-                if (this.CurrentIs(TokenKind.DoubleColon))
-                {
-                    this.Advance();
-                    node.AddChild(this.ParseGenericPattern());
-                    node.AddLastChildSpan();
-                }
+            if (this.CurrentIs(TokenKind.DoubleColon))
+            {
+                this.Advance();
+                node.AddChild(this.ParseGenericPattern());
+                node.AddLastChildSpan();
             }
 
             return node;

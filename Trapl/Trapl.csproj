@@ -48,6 +48,7 @@
     <Compile Include="diagnostics\span.cs" />
     <Compile Include="grammar\token.cs" />
     <Compile Include="grammar\tokenizer.cs" />
+    <Compile Include="interface\debug.cs" />
     <Compile Include="main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="old\def_funct.cs" />

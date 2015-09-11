@@ -46,7 +46,7 @@ namespace Trapl.Semantics
             var result = false;
             foreach (var child in node.EnumerateChildren())
             {
-                if (child.kind == Grammar.ASTNodeKind.GenericType)
+                if (child.kind == Grammar.ASTNodeKind.GenericIdentifier)
                     return true;
                 else
                     result = (result || IsGenericRecursive(child));
@@ -135,6 +135,25 @@ namespace Trapl.Semantics
                     
                 }
                 return result + "]";
+            }
+        }
+
+
+        public void PrintDebug()
+        {
+            if (this.nameToASTNodeMap.Count > 0)
+            {
+                foreach (var pair in this.nameToASTNodeMap)
+                {
+                    Interface.Debug.BeginSection("GENERIC '" + pair.Key + "'");
+                    for (int i = 0; i < pair.Value.Count; i++)
+                    {
+                        Interface.Debug.BeginSection("MATCH #" + i);
+                        Interface.Debug.PrintAST(pair.Value[i].source, pair.Value[i].astNode);
+                        Interface.Debug.EndSection();
+                    }
+                    Interface.Debug.EndSection();
+                }
             }
         }
     }

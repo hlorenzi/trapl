@@ -36,21 +36,31 @@ namespace Trapl.Semantics
 
         public void Resolve(Interface.Session session, TopDecl topDecl, DeclPatternSubstitution subst, Interface.SourceCode src, Grammar.ASTNode defNode)
         {
+            Interface.Debug.BeginSection("TOPDECL_STRUCT RESOLVE");
+            Interface.Debug.PrintAST(src, defNode);
+
             foreach (var memberNode in defNode.EnumerateChildren())
             {
                 if (memberNode.kind != Grammar.ASTNodeKind.StructMemberDecl)
                     throw new InternalException("node is not a StructMemberDecl");
 
+                var memberName = memberNode.Child(0).GetExcerpt(src);
+                Interface.Debug.BeginSection("MEMBER '" + memberName + "'");
+
                 try
                 {
                     var memberDef = new DefStruct.Member();
-                    memberDef.name = memberNode.Child(0).GetExcerpt(src);
+                    memberDef.name = memberName;
                     memberDef.declSpan = memberNode.Span();
                     memberDef.type = TypeResolution.Resolve(session, subst, src, memberNode.Child(1));
                     members.Add(memberDef);
                 }
                 catch (Semantics.CheckException) { }
+
+                Interface.Debug.EndSection();
             }
+
+            Interface.Debug.EndSection();
         }
 
 
