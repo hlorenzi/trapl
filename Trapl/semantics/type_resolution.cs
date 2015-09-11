@@ -58,6 +58,12 @@ namespace Trapl.Semantics
 
             // Refine candidate TopDecls further by compatibility with the generic pattern.
             candidateTopDecls = candidateTopDecls.FindAll(decl => (decl.pattern.GetSubstitution(genPattern) != null));
+
+            // Sort candidates by increasing number of generic parameters,
+            // so that more concrete TopDecls appear first.
+            candidateTopDecls.Sort((a, b) => a.pattern.GetGenericParameterNumber() - b.pattern.GetGenericParameterNumber());
+
+            // Check that at least one TopDecl matched.
             if (candidateTopDecls.Count == 0)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
@@ -66,14 +72,17 @@ namespace Trapl.Semantics
                     MessageCaret.Primary(src, genPatternASTNode.Span()));
                 throw new Semantics.CheckException();
             }
-            /*else if (candidateTopDecls.Count > 1)
+
+            // Check that there is no ambiguity for the best matched TopDecl.
+            if (candidateTopDecls.Count > 1 &&
+                candidateTopDecls[0].pattern.GetGenericParameterNumber() == candidateTopDecls[1].pattern.GetGenericParameterNumber())
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
                     "pattern matches more than one declaration",
                     MessageCaret.Primary(src, nameASTNode.Span()),
                     MessageCaret.Primary(src, genPatternASTNode.Span()));
                 throw new Semantics.CheckException();
-            }*/
+            }
 
             // Ask the matching TopDecl to parse and resolve its definition, if not yet done.
             var matchingTopDecl = candidateTopDecls[0];
@@ -125,8 +134,7 @@ namespace Trapl.Semantics
                     if (((TypeStruct)type).structDef == topDecl.def)
                     {
                         return topDecl.qualifiedName + "::" +
-                            topDecl.pattern.GetString(session) + " " +
-                            topDecl.patternSubst.GetString();
+                            topDecl.pattern.GetString(session);
                     }
                 }
             }

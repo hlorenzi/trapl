@@ -152,7 +152,8 @@ namespace Trapl.Semantics
                 }
 
 
-                else if (thisNode.kind == otherNode.kind)
+                else if (thisNode.kind == otherNode.kind &&
+                    thisNode.GetExcerpt(this.genericPattern.src) == otherNode.GetExcerpt(this.concretePattern.src))
                 {
                     if (thisNode.ChildNumber() != otherNode.ChildNumber())
                         return false;

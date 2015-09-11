@@ -64,8 +64,11 @@ namespace Trapl.Semantics
             newDecl.generic = false;
             newDecl.synthesized = true;
             newDecl.defASTNode = ASTPatternSubstitution.CloneAndSubstitute(session, newDecl.source, newDecl.defASTNode, subst);
-            //newDecl.patternASTNode = ASTPatternSubstitution.CloneAndSubstitute(session, newDecl.source, newDecl.patternASTNode, subst);
-            //newDecl.pattern = new DeclPattern(newDecl.source, newDecl.patternASTNode);
+            newDecl.patternASTNode = ASTPatternSubstitution.CloneAndSubstitute(session, newDecl.source, newDecl.patternASTNode, subst);
+            newDecl.pattern = new DeclPattern(newDecl.source, newDecl.patternASTNode);
+            Interface.Debug.BeginSection("SUBSTITUTED PATTERN");
+            Interface.Debug.PrintAST(newDecl.source, newDecl.patternASTNode);
+            Interface.Debug.EndSection();
             return newDecl;
         }
     }

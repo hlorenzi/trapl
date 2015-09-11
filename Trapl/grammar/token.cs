@@ -7,6 +7,7 @@ namespace Trapl.Grammar
     public enum TokenKind
     {
         Error,
+        DoubleHash,
         Identifier, Number,
         KeywordFunct, KeywordStruct, KeywordTrait, KeywordGen,
         KeywordLet, KeywordIf, KeywordElse, KeywordWhile, KeywordReturn,

@@ -19,7 +19,8 @@ namespace Trapl.Interface
             foreach (var node in ast.topDecls)
                 Grammar.AST.PrintDebug(src, node, 0);
 
-            Semantics.CheckTopDecl.Check(session, ast, src);
+            if (session.diagn.HasNoError())
+                Semantics.CheckTopDecl.Check(session, ast, src);
 
             if (session.diagn.HasNoError())
             {
@@ -44,11 +45,12 @@ namespace Trapl.Interface
         {
             foreach (var topDecl in this.topDecls)
             {
+                Console.ForegroundColor = ConsoleColor.White;
                 Console.Out.WriteLine(
-                    "TOPDECL " +
+                    (topDecl.synthesized ? "SYNTHESIZED " : "TOPDECL ") +
                     topDecl.qualifiedName + "::" +
-                    topDecl.pattern.GetString(this) + " " +
-                    topDecl.patternSubst.GetString());
+                    topDecl.pattern.GetString(this));
+                Console.ResetColor();
 
                 if (topDecl.generic)
                     Console.Out.WriteLine("  generic, unresolved");

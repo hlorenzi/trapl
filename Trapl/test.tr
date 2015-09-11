@@ -1,20 +1,26 @@
+
 Container::<gen T>: struct
 {
-	data: gen T
+	hahaha: gen T
 }
 
 
-List::<gen T::<gen U>, gen V>: struct
+List::<gen T::<gen U>>: struct
 {
-	data: gen T::<gen U>,
-	data: gen V
+	data: gen T::<gen U>
 }
 
 
 Tests: struct
 {
 	a: Container::<Int32>,
-	b: Container::<Container::<Int32>>,
-	c: List::<Container::<&&&Int32>, &&&Int64>,
-	d: List::<&Container::<&&&Int32>, &&&Int64>,
+	a: Container::<Int32>,
+	a: Container::<Container::<Int32>>,
+
+	## These are still unable to reuse a previously resolved struct,
+	## which leaves duplicates all over
+	b: List::<Container::<Int32>>,
+	b: List::<Container::<Int32>>,
+	b: List::<Container::<Int64>>,
+	b: List::<Container::<Int64>>,
 }

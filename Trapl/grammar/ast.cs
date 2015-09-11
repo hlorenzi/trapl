@@ -199,7 +199,7 @@ namespace Trapl.Grammar
         {
             string indentation =
                 new string(' ', firstIndentLevel * 2) +
-                (firstIndentLevel >= indentLevel ? "" : "| " + new string(' ', (indentLevel - firstIndentLevel) * 2));
+                (firstIndentLevel >= indentLevel ? "" : "| " + new string(' ', (indentLevel - firstIndentLevel - 1) * 2));
 
             string firstColumn =
                 indentation +

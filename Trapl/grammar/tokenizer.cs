@@ -33,6 +33,14 @@ namespace Trapl.Grammar
                 if (match.kind == TokenKind.Error)
                     session.diagn.Add(MessageKind.Error, MessageCode.UnexpectedChar, "unexpected character", src, span);
 
+                // Skip line comments.
+                if (match.kind == TokenKind.DoubleHash)
+                {
+                    while (index < src.Length() && src[index] != '\n')
+                        index++;
+                    continue;
+                }
+
                 output.tokens.Add(new Token(match.kind, span));
 
                 index += match.representation.Length;
@@ -90,6 +98,7 @@ namespace Trapl.Grammar
                 new TokenMatch("|", TokenKind.VerticalBar),
                 new TokenMatch("^", TokenKind.Circumflex),
                 new TokenMatch("@", TokenKind.At),
+                new TokenMatch("##", TokenKind.DoubleHash),
                 new TokenMatch("funct", TokenKind.KeywordFunct),
                 new TokenMatch("struct", TokenKind.KeywordStruct),
                 new TokenMatch("trait", TokenKind.KeywordTrait),

@@ -60,7 +60,48 @@ namespace Trapl.Semantics
             if (this.astNode.ChildNumber() == 0)
                 return "<>";
             else
-                return this.src.GetExcerpt(this.astNode.Span());
+                return GetStringRecursive(session, this.astNode);
+        }
+
+
+        private string GetStringRecursive(Interface.Session session, Grammar.ASTNode node)
+        {
+            if (node.kind == Grammar.ASTNodeKind.GenericPattern)
+            {
+                var result = "<";
+                for (int i = 0; i < node.ChildNumber(); i++)
+                {
+                    result += GetStringRecursive(session, node.Child(i));
+                    if (i < node.ChildNumber() - 1)
+                        result += ", ";
+                }
+                return result + ">";
+            }
+            else
+            {
+                var result = node.GetExcerpt(this.src);
+                return result;
+            }
+        }
+
+
+        public int GetGenericParameterNumber()
+        {
+            return GetGenericParameterNumberRecursive(this.astNode);
+        }
+
+
+        private int GetGenericParameterNumberRecursive(Grammar.ASTNode node)
+        {
+            var result = 0;
+            if (node.kind == Grammar.ASTNodeKind.GenericIdentifier)
+                result += 1;
+
+            foreach (var child in node.EnumerateChildren())
+            {
+                result += GetGenericParameterNumberRecursive(child);
+            }
+            return result;
         }
 
 
