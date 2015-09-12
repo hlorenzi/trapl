@@ -13,8 +13,8 @@ namespace Trapl.Semantics
 
         public DeclPattern(Interface.SourceCode src, Grammar.ASTNode node)
         {
-            if (node.kind != Grammar.ASTNodeKind.GenericPattern &&
-                node.kind != Grammar.ASTNodeKind.VariadicGenericPattern)
+            if (node.kind != Grammar.ASTNodeKind.ParameterPattern &&
+                node.kind != Grammar.ASTNodeKind.VariadicParameterPattern)
                 throw new InternalException("ASTNode is not a GenericPattern");
 
             this.src = src;
@@ -24,8 +24,8 @@ namespace Trapl.Semantics
 
         public void SetPattern(Grammar.ASTNode node)
         {
-            if (node.kind != Grammar.ASTNodeKind.GenericPattern &&
-                node.kind != Grammar.ASTNodeKind.VariadicGenericPattern)
+            if (node.kind != Grammar.ASTNodeKind.ParameterPattern &&
+                node.kind != Grammar.ASTNodeKind.VariadicParameterPattern)
                 throw new InternalException("ASTNode is not a GenericPattern");
 
             this.astNode = node;
@@ -66,7 +66,7 @@ namespace Trapl.Semantics
 
         private string GetStringRecursive(Interface.Session session, Grammar.ASTNode node)
         {
-            if (node.kind == Grammar.ASTNodeKind.GenericPattern)
+            if (node.kind == Grammar.ASTNodeKind.ParameterPattern)
             {
                 var result = "<";
                 for (int i = 0; i < node.ChildNumber(); i++)
@@ -79,7 +79,7 @@ namespace Trapl.Semantics
             }
             else
             {
-                var result = node.GetExcerpt(this.src);
+                var result = node.GetExcerpt();
                 return result;
             }
         }
@@ -169,32 +169,13 @@ namespace Trapl.Semantics
                     result += pair.Key + " = ";
                     for (int i = 0; i < pair.Value.Count; i++)
                     {
-                        result += "'" + pair.Value[i].astNode.GetExcerpt(pair.Value[i].source) + "'";
+                        result += "'" + pair.Value[i].astNode.GetExcerpt() + "'";
                         if (i < pair.Value.Count - 1)
                             result += ", ";
                     }
                     
                 }
                 return result + "]";
-            }
-        }
-
-
-        public void PrintDebug()
-        {
-            if (this.nameToASTNodeMap.Count > 0)
-            {
-                foreach (var pair in this.nameToASTNodeMap)
-                {
-                    Interface.Debug.BeginSection("GENERIC '" + pair.Key + "'");
-                    for (int i = 0; i < pair.Value.Count; i++)
-                    {
-                        Interface.Debug.BeginSection("MATCH #" + i);
-                        Interface.Debug.PrintAST(pair.Value[i].source, pair.Value[i].astNode);
-                        Interface.Debug.EndSection();
-                    }
-                    Interface.Debug.EndSection();
-                }
             }
         }
     }

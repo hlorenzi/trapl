@@ -15,9 +15,9 @@ namespace Trapl.Grammar
         }
 
 
-        public static void PrintDebug(Interface.SourceCode src, ASTNode node, int indentLevel)
+        public static void PrintDebug(ASTNode node, int indentLevel)
         {
-            node.PrintDebugRecursive(src, indentLevel, indentLevel);
+            node.PrintDebugRecursive(indentLevel, indentLevel);
         }
     }
 
@@ -30,7 +30,7 @@ namespace Trapl.Grammar
         TraitDecl, TraitMemberDecl,
         Identifier, Name, NumberLiteral,
         TypeName, GenericIdentifier,
-        GenericPattern, VariadicGenericPattern,
+        ParameterPattern, VariadicParameterPattern,
         Block,
         BinaryOp, UnaryOp, Operator, Call,
         ControlLet, ControlIf, ControlWhile, ControlReturn,
@@ -43,7 +43,9 @@ namespace Trapl.Grammar
         private Diagnostics.Span span;
         private Diagnostics.Span spanWithDelimiters;
         public List<ASTNode> children = new List<ASTNode>();
-        public string overwrittenExcerpt = null;
+
+        private bool substituted;
+        private Diagnostics.Span substitutedSpan;
 
 
         public ASTNode(ASTNodeKind kind)
@@ -65,7 +67,7 @@ namespace Trapl.Grammar
             var newNode = new ASTNode(this.kind);
             newNode.span = this.span;
             newNode.spanWithDelimiters = this.spanWithDelimiters;
-            newNode.overwrittenExcerpt = this.overwrittenExcerpt;
+            newNode.substitutedSpan = this.substitutedSpan;
             newNode.children = new List<ASTNode>();
             return newNode;
         }
@@ -76,7 +78,7 @@ namespace Trapl.Grammar
             var newNode = new ASTNode(this.kind);
             newNode.span = this.span;
             newNode.spanWithDelimiters = this.spanWithDelimiters;
-            newNode.overwrittenExcerpt = this.overwrittenExcerpt;
+            newNode.substitutedSpan = this.substitutedSpan;
             newNode.children = new List<ASTNode>();
             foreach (var child in this.children)
                 newNode.children.Add(child.CloneWithChildren());
@@ -84,35 +86,34 @@ namespace Trapl.Grammar
         }
 
 
-        public string GetExcerpt(Interface.SourceCode src)
+        public string GetExcerpt()
         {
-            if (src == null)
-                return "<unknown source>";
-            else
-                return this.overwrittenExcerpt ?? src.GetExcerpt(this.span);
+            return this.substituted ? this.substitutedSpan.GetExcerpt() : this.span.GetExcerpt();
         }
 
 
-        public string GetExcerptWithComments(Interface.SourceCode src)
+        public string GetExcerptWithComments()
         {
-            if (src == null)
-                return "<unknown source>";
-            else if (this.overwrittenExcerpt != null)
-                return "***" + this.overwrittenExcerpt + "***";
+            if (this.substituted)
+                return "***" + this.substitutedSpan.GetExcerpt() + "***";
             else
-                return src.GetExcerpt(this.span);
+                return this.span.GetExcerpt();
         }
 
 
-        public void OverwriteExcerpt(string excerpt)
+        public void Substitute(Diagnostics.Span span)
         {
-            this.overwrittenExcerpt = excerpt;
+            if (this.substituted)
+                throw new InvalidOperationException("ASTNode already substituted");
+
+            this.substituted = true;
+            this.substitutedSpan = span;
         }
 
 
         public Diagnostics.Span Span()
         {
-            return this.span;
+            return (this.substituted ? this.substitutedSpan : this.span);
         }
 
 
@@ -195,7 +196,7 @@ namespace Trapl.Grammar
         }
 
 
-        public void PrintDebugRecursive(Interface.SourceCode src, int indentLevel, int firstIndentLevel)
+        public void PrintDebugRecursive(int indentLevel, int firstIndentLevel)
         {
             string indentation =
                 new string(' ', firstIndentLevel * 2) +
@@ -205,7 +206,7 @@ namespace Trapl.Grammar
                 indentation +
                 System.Enum.GetName(typeof(ASTNodeKind), this.kind);
 
-            string excerpt = this.GetExcerptWithComments(src);
+            string excerpt = this.GetExcerptWithComments();
             string secondColumn =
                 new string(' ', indentLevel * 2) +
                 excerpt.Substring(0, Math.Min(excerpt.Length, 20)).Replace("\n", " ").Replace("\r", "").Replace("\t", " ") +
@@ -215,7 +216,24 @@ namespace Trapl.Grammar
             Console.Out.Write(": ");
             Console.Out.WriteLine(secondColumn);
             foreach (var child in this.EnumerateChildren())
-                child.PrintDebugRecursive(src, indentLevel + 1, firstIndentLevel);
+                child.PrintDebugRecursive(indentLevel + 1, firstIndentLevel);
+        }
+
+
+        public override string ToString()
+        {
+            var result = "{";
+            result +=
+                System.Enum.GetName(typeof(ASTNodeKind), this.kind) + " " +
+                "'" + this.GetExcerptWithComments() + "'";
+
+            if (this.children.Count > 0)
+                result += " ";
+
+            for (int i = 0; i < this.children.Count; i++)
+                result += this.children[i].ToString();
+
+            return result + "}";
         }
     }
 }

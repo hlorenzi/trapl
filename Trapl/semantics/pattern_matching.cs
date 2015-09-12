@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace Trapl.Semantics
 {
@@ -11,23 +8,9 @@ namespace Trapl.Semantics
         public static bool Match(DeclPatternSubstitution subst, DeclPattern genericPattern, DeclPattern concretePattern)
         {
             var matcher = new ASTPatternMatcher(subst, genericPattern, concretePattern);
-            Console.Out.WriteLine("Pattern matching start");
-            Grammar.AST.PrintDebug(genericPattern.src, genericPattern.astNode, 4);
-            Grammar.AST.PrintDebug(concretePattern.src, concretePattern.astNode, 4);
+
             var hadInnerGeneric = false;
-            var result = matcher.Match(genericPattern.astNode, concretePattern.astNode, ref hadInnerGeneric);
-            Console.Out.WriteLine("  " + (result ? "MATCHED!" : "FAILED"));
-            foreach (var pair in subst.nameToASTNodeMap)
-            {
-                Console.Out.WriteLine("  == '" + pair.Key + "'");
-                foreach (var match in pair.Value)
-                {
-                    Console.Out.WriteLine("  ==== MATCH");
-                    Grammar.AST.PrintDebug(concretePattern.src, match.astNode, 4);
-                }
-            }
-            Console.Out.WriteLine();
-            return result;
+            return matcher.Match(genericPattern.astNode, concretePattern.astNode, ref hadInnerGeneric);
         }
 
 
@@ -46,9 +29,9 @@ namespace Trapl.Semantics
 
         private bool Match(Grammar.ASTNode thisNode, Grammar.ASTNode otherNode, ref bool innerGeneric)
         {
-            if (thisNode.kind == Grammar.ASTNodeKind.GenericPattern)
+            if (thisNode.kind == Grammar.ASTNodeKind.ParameterPattern)
             {
-                if (otherNode.kind != Grammar.ASTNodeKind.GenericPattern)
+                if (otherNode.kind != Grammar.ASTNodeKind.ParameterPattern)
                     return false;
 
                 if (thisNode.ChildNumber() != otherNode.ChildNumber())
@@ -66,9 +49,9 @@ namespace Trapl.Semantics
             }
 
 
-            else if (thisNode.kind == Grammar.ASTNodeKind.VariadicGenericPattern)
+            else if (thisNode.kind == Grammar.ASTNodeKind.VariadicParameterPattern)
             {
-                if (otherNode.kind != Grammar.ASTNodeKind.GenericPattern)
+                if (otherNode.kind != Grammar.ASTNodeKind.ParameterPattern)
                     return false;
 
                 if (otherNode.ChildNumber() < thisNode.ChildNumber() - 1)
@@ -95,7 +78,7 @@ namespace Trapl.Semantics
                     genericChildIndex >= 0)
                 {
                     // Read the generic name, and find the concrete name index.
-                    var genericName = thisNode.Child(genericChildIndex).GetExcerpt(genericPattern.src);
+                    var genericName = thisNode.Child(genericChildIndex).GetExcerpt();
                     var concreteChildIndex = otherNode.children.FindIndex(c => c.kind == Grammar.ASTNodeKind.Identifier);
 
                     if (concreteChildIndex < genericChildIndex)
@@ -109,42 +92,35 @@ namespace Trapl.Semantics
                             return false;
                     }
 
-                    // If the generic name is the last sibling, there is no pattern after it,
-                    // so clone everything after the matching prefix.
-                    if (genericChildIndex == thisNode.ChildNumber() - 1)
+                    // Clone the other node up to and including the concrete name.
+                    var matchedNode = otherNode.CloneWithoutChildren();
+                    for (int i = genericChildIndex; i <= concreteChildIndex; i++)
                     {
-                        var typeNodeWithPattern = otherNode.CloneWithoutChildren();
-                        var excerpt = "";
-                        for (int i = genericChildIndex; i < otherNode.ChildNumber(); i++)
+                        matchedNode.AddChild(otherNode.Child(i).CloneWithChildren());
+                    }
+
+                    // Then check if the pattern in both nodes match.
+                    if (thisNode.ChildNumber() - genericChildIndex != otherNode.ChildNumber() - concreteChildIndex)
+                        return false;
+
+                    // If the generic name's pattern is empty, match everything else.
+                    if (thisNode.ChildIs(genericChildIndex + 1, Grammar.ASTNodeKind.ParameterPattern) &&
+                        thisNode.Child(genericChildIndex + 1).ChildNumber() == 0)
+                    {
+                        for (int i = concreteChildIndex + 1; i < otherNode.ChildNumber(); i++)
                         {
-                            typeNodeWithPattern.AddChild(otherNode.Child(i).CloneWithChildren());
-                            excerpt += otherNode.Child(i).GetExcerpt(this.concretePattern.src);
+                            matchedNode.AddChild(otherNode.Child(i).CloneWithChildren());
                         }
-                        typeNodeWithPattern.OverwriteExcerpt(excerpt);
-                        this.subst.Add(genericName, concretePattern.src, typeNodeWithPattern);
+                        this.subst.Add(genericName, concretePattern.src, matchedNode);
                     }
                     else
                     {
-                        // Else, clone the other node up to and including the concrete name.
-                        var typeNodeWithoutPattern = otherNode.CloneWithoutChildren();
-                        var excerpt = "";
-                        for (int i = genericChildIndex; i <= concreteChildIndex; i++)
-                        {
-                            typeNodeWithoutPattern.AddChild(otherNode.Child(i).CloneWithChildren());
-                            excerpt += otherNode.Child(i).GetExcerpt(this.concretePattern.src);
-                        }
-                        typeNodeWithoutPattern.OverwriteExcerpt(excerpt);
-                        this.subst.Add(genericName, concretePattern.src, typeNodeWithoutPattern);
-
-                        // Then check if the pattern in both nodes match.
-                        if (thisNode.ChildNumber() - genericChildIndex != otherNode.ChildNumber() - concreteChildIndex)
-                            return false;
-
                         for (int i = 1; i < thisNode.ChildNumber() - genericChildIndex; i++)
                         {
                             if (!this.Match(thisNode.Child(i + genericChildIndex), otherNode.Child(i + concreteChildIndex), ref hadInnerGeneric))
                                 return false;
                         }
+                        this.subst.Add(genericName, concretePattern.src, matchedNode);
                     }
 
                     innerGeneric = true;
@@ -153,7 +129,7 @@ namespace Trapl.Semantics
 
 
                 else if (thisNode.kind == otherNode.kind &&
-                    thisNode.GetExcerpt(this.genericPattern.src) == otherNode.GetExcerpt(this.concretePattern.src))
+                    thisNode.GetExcerpt() == otherNode.GetExcerpt())
                 {
                     if (thisNode.ChildNumber() != otherNode.ChildNumber())
                         return false;
@@ -171,8 +147,6 @@ namespace Trapl.Semantics
 
                 return false;
             }
-
-            return false;
         }
     }
 }

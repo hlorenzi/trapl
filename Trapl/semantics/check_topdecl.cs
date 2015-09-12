@@ -25,18 +25,18 @@ namespace Trapl.Semantics
             {
                 try
                 {
-                    EnsureKind(session, node, Grammar.ASTNodeKind.TopLevelDecl, source);
-                    EnsureKind(session, node.Child(0), Grammar.ASTNodeKind.Identifier, source);
-                    EnsureKind(session, node.Child(0).Child(0), Grammar.ASTNodeKind.Name, source);
+                    EnsureKind(session, node, Grammar.ASTNodeKind.TopLevelDecl);
+                    EnsureKind(session, node.Child(0), Grammar.ASTNodeKind.Identifier);
+                    EnsureKind(session, node.Child(0).Child(0), Grammar.ASTNodeKind.Name);
 
                     var qualifiedNameNode = node.Child(0).Child(0);
-                    var qualifiedName = source.GetExcerpt(qualifiedNameNode.Span());
+                    var qualifiedName = qualifiedNameNode.GetExcerpt();
 
-                    var genericPatternNode = new Grammar.ASTNode(Grammar.ASTNodeKind.GenericPattern);
+                    var genericPatternNode = new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern);
                     var genericPattern = new DeclPattern(source, genericPatternNode);
 
-                    if (node.Child(0).ChildIs(1, Grammar.ASTNodeKind.GenericPattern) ||
-                        node.Child(0).ChildIs(1, Grammar.ASTNodeKind.VariadicGenericPattern))
+                    if (node.Child(0).ChildIs(1, Grammar.ASTNodeKind.ParameterPattern) ||
+                        node.Child(0).ChildIs(1, Grammar.ASTNodeKind.VariadicParameterPattern))
                     {
                         genericPatternNode = node.Child(0).Child(1);
                         genericPattern.SetPattern(genericPatternNode);
@@ -55,7 +55,7 @@ namespace Trapl.Semantics
                     session.topDecls.Add(topDecl);
 
                     if (defNode.kind != Grammar.ASTNodeKind.StructDecl)
-                        throw ErrorAt(session, "Decl", defNode, source);
+                        throw ErrorAt(session, "Decl", defNode);
                 }
                 catch (CheckException) { }
             }
@@ -68,7 +68,7 @@ namespace Trapl.Semantics
             topDecl.source = null;
             topDecl.qualifiedName = name;
             topDecl.qualifiedNameASTNode = null;
-            topDecl.pattern = new DeclPattern(null, new Grammar.ASTNode(Grammar.ASTNodeKind.GenericPattern));
+            topDecl.pattern = new DeclPattern(null, new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern));
             topDecl.patternASTNode = null;
             topDecl.defASTNode = null;
             topDecl.def = new DefStruct();
@@ -77,16 +77,16 @@ namespace Trapl.Semantics
         }
 
 
-        private static void EnsureKind(Interface.Session session, Grammar.ASTNode node, Grammar.ASTNodeKind kind, Interface.SourceCode source)
+        private static void EnsureKind(Interface.Session session, Grammar.ASTNode node, Grammar.ASTNodeKind kind)
         {
             if (node.kind != kind)
-                throw ErrorAt(session, Enum.GetName(typeof(Grammar.ASTNodeKind), kind), node, source);
+                throw ErrorAt(session, Enum.GetName(typeof(Grammar.ASTNodeKind), kind), node);
         }
 
 
-        private static CheckException ErrorAt(Interface.Session session, string msg, Grammar.ASTNode node, Interface.SourceCode source)
+        private static CheckException ErrorAt(Interface.Session session, string msg, Grammar.ASTNode node)
         {
-            session.diagn.Add(MessageKind.Error, MessageCode.Internal, "expecting '" + msg + "' node", source, node.Span());
+            session.diagn.Add(MessageKind.Error, MessageCode.Internal, "expecting '" + msg + "' node", node.Span());
             return new CheckException();
         }
     }

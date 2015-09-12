@@ -9,9 +9,6 @@ namespace Trapl.Semantics
     {
         public static Type Resolve(Interface.Session session, DeclPatternSubstitution subst, Interface.SourceCode src, Grammar.ASTNode node)
         {
-            Interface.Debug.BeginSection("TYPE RESOLVE '" + node.GetExcerpt(src) + "'");
-            Interface.Debug.PrintAST(src, node);
-
             if (node.kind != Grammar.ASTNodeKind.TypeName)
                 throw new InternalException("node is not a TypeName");
 
@@ -32,7 +29,7 @@ namespace Trapl.Semantics
 
             // Read the name. (ex.: '&&List::<Int32>' will read 'List')
             var nameASTNode = node.Child(curChild);
-            var name = nameASTNode.GetExcerpt(src);
+            var name = nameASTNode.GetExcerpt();
             curChild++;
 
             // Find the TopDecls that match the name.
@@ -40,16 +37,16 @@ namespace Trapl.Semantics
             if (candidateTopDecls.Count == 0)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
-                    "unknown type", src, nameASTNode.Span());
+                    "unknown type '" + nameASTNode.GetExcerpt() + "'", nameASTNode.Span());
                 throw new Semantics.CheckException();
             }
 
             // Read the generic pattern. (ex.: 'List::<Int32>' will read '<Int32>')
-            var genPatternASTNode = new Grammar.ASTNode(Grammar.ASTNodeKind.GenericPattern, nameASTNode.Span());
+            var genPatternASTNode = new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern, nameASTNode.Span());
             var genPattern = new DeclPattern(src, genPatternASTNode);
 
-            if (node.ChildIs(curChild, Grammar.ASTNodeKind.GenericPattern) ||
-                node.ChildIs(curChild, Grammar.ASTNodeKind.VariadicGenericPattern))
+            if (node.ChildIs(curChild, Grammar.ASTNodeKind.ParameterPattern) ||
+                node.ChildIs(curChild, Grammar.ASTNodeKind.VariadicParameterPattern))
             {
                 genPatternASTNode = node.Child(curChild);
                 genPattern.SetPattern(genPatternASTNode);
@@ -68,8 +65,8 @@ namespace Trapl.Semantics
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
                     "pattern does not match any declarations",
-                    MessageCaret.Primary(src, nameASTNode.Span()),
-                    MessageCaret.Primary(src, genPatternASTNode.Span()));
+                    MessageCaret.Primary(nameASTNode.Span()),
+                    MessageCaret.Primary(genPatternASTNode.Span()));
                 throw new Semantics.CheckException();
             }
 
@@ -79,8 +76,8 @@ namespace Trapl.Semantics
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
                     "pattern matches more than one declaration",
-                    MessageCaret.Primary(src, nameASTNode.Span()),
-                    MessageCaret.Primary(src, genPatternASTNode.Span()));
+                    MessageCaret.Primary(nameASTNode.Span()),
+                    MessageCaret.Primary(genPatternASTNode.Span()));
                 throw new Semantics.CheckException();
             }
 
@@ -89,11 +86,8 @@ namespace Trapl.Semantics
             var patternSubst = matchingTopDecl.pattern.GetSubstitution(genPattern);
             if (matchingTopDecl.generic)
             {
-                Interface.Debug.BeginSection("PERFORM SUBSTITUTION");
-                patternSubst.PrintDebug();
                 matchingTopDecl = matchingTopDecl.CloneAndSubstitute(session, patternSubst);
                 session.topDecls.Add(matchingTopDecl);
-                Interface.Debug.EndSection();
             }
 
             session.diagn.EnterSubstitutionContext(patternSubst);
@@ -104,11 +98,9 @@ namespace Trapl.Semantics
             if (!(matchingTopDecl.def is DefStruct))
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
-                    "name does not define a struct", src, nameASTNode.Span());
+                    "name does not define a struct", nameASTNode.Span());
                 throw new Semantics.CheckException();
             }
-
-            Interface.Debug.EndSection();
 
             // Build a Type with the matching TopDecl's struct.
             var resolvedType = (Type)new TypeStruct((DefStruct)matchingTopDecl.def);

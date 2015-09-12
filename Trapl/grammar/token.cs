@@ -45,7 +45,7 @@ namespace Trapl.Grammar
             get
             {
                 if (index < 0)
-                    return new Token(TokenKind.Error, new Diagnostics.Span());
+                    throw new IndexOutOfRangeException("index was negative");
 
                 if (index >= tokens.Count)
                     return tokenAfterEnd;
@@ -66,7 +66,7 @@ namespace Trapl.Grammar
                 Console.Out.Write(
                     System.Enum.GetName(typeof(TokenKind), token.kind).PadRight(14));
                 Console.Out.Write(" ");
-                Console.Out.Write(src.GetExcerpt(token.span));
+                Console.Out.Write(token.span.GetExcerpt());
                 Console.Out.WriteLine();
             }
         }

@@ -8,16 +8,22 @@ namespace Trapl.Interface
 {
     public class Session
     {
+        public Session()
+        {
+            this.diagn = new Diagnostics.Collection();
+        }
+
+
         public static void Compile(SourceCode src)
         {
             var session = new Session();
             session.diagn = new Diagnostics.Collection();
 
             var tokenCollection = Grammar.Tokenizer.Tokenize(session, src);
-            var ast = Grammar.ASTParser.Parse(session, tokenCollection, src);
+            var ast = Grammar.ASTParser.Parse(session, tokenCollection);
 
-            foreach (var node in ast.topDecls)
-                Grammar.AST.PrintDebug(src, node, 0);
+            //foreach (var node in ast.topDecls)
+            //    Grammar.AST.PrintDebug(node, 0);
 
             if (session.diagn.HasNoError())
                 Semantics.CheckTopDecl.Check(session, ast, src);
@@ -45,9 +51,12 @@ namespace Trapl.Interface
         {
             foreach (var topDecl in this.topDecls)
             {
-                Console.ForegroundColor = ConsoleColor.White;
+                Console.ForegroundColor = 
+                    (topDecl.synthesized ? ConsoleColor.Cyan :
+                    (topDecl.generic ? ConsoleColor.Yellow : ConsoleColor.White));
                 Console.Out.WriteLine(
-                    (topDecl.synthesized ? "SYNTHESIZED " : "TOPDECL ") +
+                    (topDecl.synthesized ? "SYNTHESIZED TOPDECL " :
+                    (topDecl.generic ? "GENERIC TOPDECL " : "TOPDECL ")) +
                     topDecl.qualifiedName + "::" +
                     topDecl.pattern.GetString(this));
                 Console.ResetColor();

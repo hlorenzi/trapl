@@ -28,10 +28,10 @@ namespace Trapl.Grammar
                     TryMatchVaryingToken(src, index) ??
                     new TokenMatch(new string(src[index], 1), TokenKind.Error);
 
-                var span = new Span(index, index + match.representation.Length);
+                var span = new Span(src, index, index + match.representation.Length);
 
                 if (match.kind == TokenKind.Error)
-                    session.diagn.Add(MessageKind.Error, MessageCode.UnexpectedChar, "unexpected character", src, span);
+                    session.diagn.Add(MessageKind.Error, MessageCode.UnexpectedChar, "unexpected character", span);
 
                 // Skip line comments.
                 if (match.kind == TokenKind.DoubleHash)
@@ -47,7 +47,7 @@ namespace Trapl.Grammar
             }
 
             output.tokenAfterEnd =
-                new Token(TokenKind.Error, new Diagnostics.Span(index, index));
+                new Token(TokenKind.Error, new Diagnostics.Span(src, index, index));
 
             return output;
         }

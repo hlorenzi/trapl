@@ -7,14 +7,36 @@ namespace Trapl.Grammar
 {
     public class ASTParser
     {
-        public static AST Parse(Interface.Session session, TokenCollection tokenColl, Interface.SourceCode source)
+        public static AST Parse(Interface.Session session, TokenCollection tokenColl)
         {
-            var parser = new ASTParser(session, tokenColl, source);
+            var parser = new ASTParser(session, tokenColl);
 
             try { parser.ParseTopLevel(); }
             catch (ParserException) { }
 
             return parser.ast;
+        }
+
+        public static ASTNode ParsePattern(Interface.Session session, TokenCollection tokenColl)
+        {
+            var parser = new ASTParser(session, tokenColl);
+            ASTNode result = null;
+
+            try { result = parser.ParseParameterPattern(); }
+            catch (ParserException) { }
+
+            return result;
+        }
+
+        public static ASTNode ParseType(Interface.Session session, TokenCollection tokenColl)
+        {
+            var parser = new ASTParser(session, tokenColl);
+            ASTNode result = null;
+
+            try { result = parser.ParseType(); }
+            catch (ParserException) { }
+
+            return result;
         }
 
 
@@ -26,16 +48,14 @@ namespace Trapl.Grammar
 
         private int readhead;
         private TokenCollection tokenColl;
-        private Interface.SourceCode source;
         private AST ast;
         private Interface.Session session;
 
 
-        private ASTParser(Interface.Session session, TokenCollection tokenColl, Interface.SourceCode source)
+        private ASTParser(Interface.Session session, TokenCollection tokenColl)
         {
             this.readhead = 0;
             this.tokenColl = tokenColl;
-            this.source = source;
             this.ast = new AST();
             this.session = session;
         }
@@ -110,21 +130,21 @@ namespace Trapl.Grammar
 
         private ParserException FatalBefore(MessageCode errCode, string errText)
         {
-            this.session.diagn.Add(MessageKind.Error, errCode, errText, this.source, this.Current().span.JustBefore());
+            this.session.diagn.Add(MessageKind.Error, errCode, errText, this.Current().span.JustBefore());
             return new ParserException();
         }
 
 
         private ParserException FatalCurrent(MessageCode errCode, string errText)
         {
-            this.session.diagn.Add(MessageKind.Error, errCode, errText, this.source, this.Current().span);
+            this.session.diagn.Add(MessageKind.Error, errCode, errText, this.Current().span);
             return new ParserException();
         }
 
 
         private ParserException FatalAfterPrevious(MessageCode errCode, string errText)
         {
-            this.session.diagn.Add(MessageKind.Error, errCode, errText, this.source, this.Previous().span.JustAfter());
+            this.session.diagn.Add(MessageKind.Error, errCode, errText, this.Previous().span.JustAfter());
             return new ParserException();
         }
 
@@ -143,7 +163,7 @@ namespace Trapl.Grammar
                 {
                     var node = new ASTNode(ASTNodeKind.TopLevelDecl);
                     node.SetSpan(this.Current().span);
-                    node.AddChild(this.ParseNameWithGenericPattern(MessageCode.Expected, "expected declaration name"));
+                    node.AddChild(this.ParseNameWithParameterPattern(MessageCode.Expected, "expected declaration name"));
                     this.Match(TokenKind.Colon, MessageCode.Expected, "expected ':'");
                     if (this.CurrentIs(TokenKind.KeywordFunct))
                         node.AddChild(this.ParseFunctDecl(true));
@@ -275,7 +295,7 @@ namespace Trapl.Grammar
         }
 
 
-        private ASTNode ParseNameWithGenericPattern(MessageCode errCode, string errText)
+        private ASTNode ParseNameWithParameterPattern(MessageCode errCode, string errText)
         {
             var node = new ASTNode(ASTNodeKind.Identifier);
             node.SetSpan(this.Current().span);
@@ -286,17 +306,21 @@ namespace Trapl.Grammar
             if (this.CurrentIs(TokenKind.DoubleColon))
             {
                 this.Advance();
-                node.AddChild(this.ParseGenericPattern());
+                node.AddChild(this.ParseParameterPattern());
                 node.AddLastChildSpan();
+            }
+            else
+            {
+                node.AddChild(new ASTNode(ASTNodeKind.ParameterPattern, node.Span().JustAfter()));
             }
 
             return node;
         }
 
 
-        private ASTNode ParseGenericPattern()
+        public ASTNode ParseParameterPattern()
         {
-            var node = new ASTNode(ASTNodeKind.GenericPattern);
+            var node = new ASTNode(ASTNodeKind.ParameterPattern);
             node.SetSpan(this.Current().span);
             this.Match(TokenKind.LessThan, MessageCode.Expected, "expected '<'");
             while (this.CurrentIsNot(TokenKind.GreaterThan))
@@ -306,7 +330,7 @@ namespace Trapl.Grammar
                 if (this.CurrentIs(TokenKind.TriplePeriod))
                 {
                     this.Advance();
-                    node.kind = ASTNodeKind.VariadicGenericPattern;
+                    node.kind = ASTNodeKind.VariadicParameterPattern;
                     break;
                 }
                 else
@@ -347,8 +371,12 @@ namespace Trapl.Grammar
             if (this.CurrentIs(TokenKind.DoubleColon))
             {
                 this.Advance();
-                node.AddChild(this.ParseGenericPattern());
+                node.AddChild(this.ParseParameterPattern());
                 node.AddLastChildSpan();
+            }
+            else
+            {
+                node.AddChild(new ASTNode(ASTNodeKind.ParameterPattern, node.Span().JustAfter()));
             }
 
             return node;
@@ -606,7 +634,7 @@ namespace Trapl.Grammar
         private ASTNode ParseLeafExpression()
         {
             if (this.CurrentIs(TokenKind.Identifier))
-                return this.ParseNameWithGenericPattern(MessageCode.Internal, "expected identifier");
+                return this.ParseNameWithParameterPattern(MessageCode.Internal, "expected identifier");
             else if (this.CurrentIs(TokenKind.Number))
                 return this.ParseNumberLiteral();
             else if (this.CurrentIs(TokenKind.BraceOpen))

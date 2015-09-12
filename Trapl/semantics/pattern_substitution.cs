@@ -5,34 +5,50 @@ namespace Trapl.Semantics
 {
     public class ASTPatternSubstitution
     {
-        public static Grammar.ASTNode CloneAndSubstitute(Interface.Session session, Interface.SourceCode src, Grammar.ASTNode node, DeclPatternSubstitution subst)
+        public static Grammar.ASTNode CloneAndSubstitute(Interface.Session session, Grammar.ASTNode node, DeclPatternSubstitution subst)
         {
-            return Clone(session, src, node, subst);
+            return Clone(session, node, subst);
         }
 
 
-        private static Grammar.ASTNode Clone(Interface.Session session, Interface.SourceCode src, Grammar.ASTNode node, DeclPatternSubstitution subst)
+        private static Grammar.ASTNode Clone(Interface.Session session, Grammar.ASTNode node, DeclPatternSubstitution subst)
         {
             var result = node.CloneWithoutChildren();
             if (result.kind == Grammar.ASTNodeKind.TypeName)
             {
-                // Check whether this node's generic identifier has a substitute.
-                if (node.ChildIs(0, Grammar.ASTNodeKind.GenericIdentifier))
+                // Check whether this node has a generic identifier.
+                var genericIdentifierIndex = node.children.FindIndex(n => n.kind == Grammar.ASTNodeKind.GenericIdentifier);
+                if (genericIdentifierIndex >= 0)
                 {
-                    var genericIdent = node.Child(0).GetExcerpt(src);
+                    // Check whether the generic identifier has a substitute.
+                    var genericIdent = node.Child(genericIdentifierIndex).GetExcerpt();
                     if (subst.nameToASTNodeMap.ContainsKey(genericIdent))
                     {
-                        // Check if the node's kind corresponds with the substitute's kind.
+                        // Check whether the substitute's kind is also a TypeName.
                         var substNode = subst.nameToASTNodeMap[genericIdent][0];
                         if (substNode.astNode.kind == Grammar.ASTNodeKind.TypeName)
                         {
                             // Then clone from substitute node!
-                            result = CloneWithExcerpt(session, src, substNode.astNode, subst, node.Span());
-                            result.SetSpan(node.Span());
+                            result = Clone(session, substNode.astNode, subst);
+                            var genericPatternIndex = node.children.FindIndex(n => n.kind == Grammar.ASTNodeKind.ParameterPattern);
+                            var substPatternIndex = result.children.FindIndex(n => n.kind == Grammar.ASTNodeKind.ParameterPattern);
 
-                            for (int i = 1; i < node.ChildNumber(); i++)
+                            if (substPatternIndex >= 0 && result.Child(substPatternIndex).ChildNumber() != 0 &&
+                                node.Child(genericPatternIndex).ChildNumber() != 0)
                             {
-                                result.AddChild(CloneWithExcerpt(session, src, node.Child(i), subst, node.Span()));
+                                session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
+                                    "substituted type already has a pattern", node.Child(genericPatternIndex).Span());
+                                throw new Semantics.CheckException();
+                            }
+
+                            if (substPatternIndex < 0)
+                            {
+                                result.children.Add(Clone(session, node.Child(genericPatternIndex), subst));
+                            }
+                            else if (result.Child(substPatternIndex).ChildNumber() == 0)
+                            {
+                                result.children.RemoveAt(substPatternIndex);
+                                result.children.Insert(substPatternIndex, Clone(session, node.Child(genericPatternIndex), subst));
                             }
 
                             return result;
@@ -41,7 +57,7 @@ namespace Trapl.Semantics
                     else
                     {
                         session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
-                            "unresolved generic identifier", src, node.Child(0).Span());
+                            "unresolved generic identifier", node.Child(0).Span());
                         throw new Semantics.CheckException();
                     }
                 }
@@ -49,55 +65,7 @@ namespace Trapl.Semantics
 
             foreach (var child in node.EnumerateChildren())
             {
-                result.AddChild(Clone(session, src, child, subst));
-            }
-
-            return result;
-        }
-
-
-        private static Grammar.ASTNode CloneWithExcerpt(Interface.Session session, Interface.SourceCode src, Grammar.ASTNode node, DeclPatternSubstitution subst, Diagnostics.Span substSpan)
-        {
-            var result = node.CloneWithoutChildren();
-            result.OverwriteExcerpt(node.GetExcerpt(src));
-            result.SetSpan(substSpan);
-
-            if (result.kind == Grammar.ASTNodeKind.TypeName)
-            {
-                // Check whether this node's generic identifier has a substitute.
-                if (node.ChildIs(0, Grammar.ASTNodeKind.GenericIdentifier))
-                {
-                    var genericIdent = node.Child(0).GetExcerpt(src);
-                    if (subst.nameToASTNodeMap.ContainsKey(genericIdent))
-                    {
-                        // Check if the node's kind corresponds with the substitute's kind.
-                        var substNode = subst.nameToASTNodeMap[genericIdent][0];
-                        if (substNode.astNode.kind == Grammar.ASTNodeKind.TypeName)
-                        {
-                            // Then clone from substitute node!
-                            result = CloneWithExcerpt(session, src, substNode.astNode, subst, substSpan);
-                            result.SetSpan(node.Span());
-
-                            for (int i = 1; i < node.ChildNumber(); i++)
-                            {
-                                result.AddChild(CloneWithExcerpt(session, src, node.Child(i), subst, substSpan));
-                            }
-
-                            return result;
-                        }
-                    }
-                    else
-                    {
-                        session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
-                            "unresolved generic identifier", src, node.Child(0).Span());
-                        throw new Semantics.CheckException();
-                    }
-                }
-            }
-
-            foreach (var child in node.EnumerateChildren())
-            {
-                result.AddChild(CloneWithExcerpt(session, src, child, subst, substSpan));
+                result.AddChild(Clone(session, child, subst));
             }
 
             return result;

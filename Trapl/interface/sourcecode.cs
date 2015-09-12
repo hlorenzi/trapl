@@ -45,9 +45,9 @@ namespace Trapl.Interface
         }
 
 
-        public string GetExcerpt(Diagnostics.Span span)
+        public string GetExcerpt(int start, int end)
         {
-            return this.GetContentString().Substring(span.start, span.Length());
+            return this.GetContentString().Substring(start, end - start);
         }
 
 

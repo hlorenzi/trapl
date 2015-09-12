@@ -14,13 +14,12 @@ List::<gen T::<gen U>>: struct
 Tests: struct
 {
 	a: Container::<Int32>,
-	a: Container::<Int32>,
-	a: Container::<Container::<Int32>>,
+	b: Container::<Int32>,
+	c: Container::<Container::<Int32>>,
+	d: Container::<Container::<Int32>>,
 
-	## These are still unable to reuse a previously resolved struct,
-	## which leaves duplicates all over
-	b: List::<Container::<Int32>>,
-	b: List::<Container::<Int32>>,
-	b: List::<Container::<Int64>>,
-	b: List::<Container::<Int64>>,
+	e: List::<Container::<Int32>>,
+	f: List::<Container::<Int32>>,
+	g: List::<Container::<Int64>>,
+	h: List::<Container::<Int64>>,
 }

@@ -11,19 +11,17 @@ namespace Trapl.Diagnostics
 
 	public class MessageCaret
     {
-        public Interface.SourceCode source;
         public Diagnostics.Span span;
 
 
-        public static MessageCaret Primary(Interface.SourceCode source, Diagnostics.Span span)
+        public static MessageCaret Primary(Diagnostics.Span span)
         {
-            return new MessageCaret(source, span);
+            return new MessageCaret(span);
         }
 
 
-		private MessageCaret(Interface.SourceCode source, Diagnostics.Span span)
+		private MessageCaret(Diagnostics.Span span)
         {
-            this.source = source;
             this.span = span;
         }
     }
@@ -109,7 +107,7 @@ namespace Trapl.Diagnostics
             this.text = text;
             this.kind = kind;
             this.carets = carets;
-            this.source = this.carets[0].source;
+            this.source = this.carets[0].span.src;
             this.substitutionContext = null;
         }
 

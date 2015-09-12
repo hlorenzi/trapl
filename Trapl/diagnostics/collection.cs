@@ -24,9 +24,9 @@ namespace Trapl.Diagnostics
         }
 
 
-        public void Add(MessageKind kind, MessageCode code, string text, Interface.SourceCode source, Diagnostics.Span span)
+        public void Add(MessageKind kind, MessageCode code, string text, Diagnostics.Span span)
         {
-            var msg = Message.Make(code, text, kind, MessageCaret.Primary(source, span));
+            var msg = Message.Make(code, text, kind, MessageCaret.Primary(span));
             if (substitutionContext.Count > 0)
                 msg.substitutionContext = substitutionContext.Peek();
             this.messages.Add(msg);
