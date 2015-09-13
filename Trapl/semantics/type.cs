@@ -8,6 +8,8 @@ namespace Trapl.Semantics
         public bool addressable;
 
         public virtual bool IsSame(Type other) { return false; }
+
+        public virtual string GetString(Interface.Session session) { return "<error>"; }
     }
 
 
@@ -21,6 +23,11 @@ namespace Trapl.Semantics
             if (!(other is TypePointer)) return false;
             return (((TypePointer)other).pointeeType.IsSame(this.pointeeType));
         }
+
+        public override string GetString(Interface.Session session)
+        {
+            return "&" + pointeeType.GetString(session);
+        }
     }
 
 
@@ -33,6 +40,18 @@ namespace Trapl.Semantics
         {
             if (!(other is TypeStruct)) return false;
             return (((TypeStruct)other).structDef == this.structDef);
+        }
+        public override string GetString(Interface.Session session)
+        { 
+            foreach (var topDecl in session.topDecls)
+            {
+                if (structDef == topDecl.def)
+                {
+                    return topDecl.qualifiedName + "::" +
+                        ASTPatternUtil.GetString(topDecl.patternASTNode);
+                }
+            }
+            return "<unknown>";
         }
     }
 

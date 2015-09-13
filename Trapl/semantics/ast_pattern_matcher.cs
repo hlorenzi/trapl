@@ -3,31 +3,19 @@
 
 namespace Trapl.Semantics
 {
-    public class ASTPatternMatcher
+    public static class ASTPatternMatcher
     {
-        public static bool Match(DeclPatternSubstitution subst, DeclPattern genericPattern, DeclPattern concretePattern)
+        public static PatternReplacementCollection Match(Grammar.ASTNode genericPatternNode, Grammar.ASTNode concretePatternNode)
         {
-            var matcher = new ASTPatternMatcher(subst, genericPattern, concretePattern);
-
-            var hadInnerGeneric = false;
-            return matcher.Match(genericPattern.astNode, concretePattern.astNode, ref hadInnerGeneric);
+            var repl = new PatternReplacementCollection();
+            if (!Match(repl, genericPatternNode, concretePatternNode))
+                return null;
+            else
+                return repl;
         }
 
 
-        private DeclPatternSubstitution subst;
-        private DeclPattern genericPattern;
-        private DeclPattern concretePattern;
-
-
-        private ASTPatternMatcher(DeclPatternSubstitution subst, DeclPattern genericPattern, DeclPattern concretePattern)
-        {
-            this.subst = subst;
-            this.genericPattern = genericPattern;
-            this.concretePattern = concretePattern;
-        }
-
-
-        private bool Match(Grammar.ASTNode thisNode, Grammar.ASTNode otherNode, ref bool innerGeneric)
+        private static bool Match(PatternReplacementCollection subst, Grammar.ASTNode thisNode, Grammar.ASTNode otherNode)
         {
             if (thisNode.kind == Grammar.ASTNodeKind.ParameterPattern)
             {
@@ -37,14 +25,12 @@ namespace Trapl.Semantics
                 if (thisNode.ChildNumber() != otherNode.ChildNumber())
                     return false;
 
-                var hadInnerGeneric = false;
                 for (int i = 0; i < thisNode.ChildNumber(); i++)
                 {
-                    if (!this.Match(thisNode.Child(i), otherNode.Child(i), ref hadInnerGeneric))
+                    if (!Match(subst, thisNode.Child(i), otherNode.Child(i)))
                         return false;
                 }
 
-                innerGeneric = hadInnerGeneric;
                 return true;
             }
 
@@ -57,14 +43,12 @@ namespace Trapl.Semantics
                 if (otherNode.ChildNumber() < thisNode.ChildNumber() - 1)
                     return false;
 
-                var hadInnerGeneric = false;
                 for (int i = 0; i < otherNode.ChildNumber(); i++)
                 {
-                    if (!this.Match(thisNode.Child(Math.Min(i, thisNode.ChildNumber() - 1)), otherNode.Child(i), ref hadInnerGeneric))
+                    if (!Match(subst, thisNode.Child(Math.Min(i, thisNode.ChildNumber() - 1)), otherNode.Child(i)))
                         return false;
                 }
 
-                innerGeneric = hadInnerGeneric;
                 return true;
             }
 
@@ -85,10 +69,9 @@ namespace Trapl.Semantics
                         return false;
 
                     // Match everything that comes before any of the two names.
-                    var hadInnerGeneric = false;
                     for (int i = 0; i < genericChildIndex && i < concreteChildIndex; i++)
                     {
-                        if (!this.Match(thisNode.Child(i), otherNode.Child(i), ref hadInnerGeneric))
+                        if (!Match(subst, thisNode.Child(i), otherNode.Child(i)))
                             return false;
                     }
 
@@ -111,19 +94,18 @@ namespace Trapl.Semantics
                         {
                             matchedNode.AddChild(otherNode.Child(i).CloneWithChildren());
                         }
-                        this.subst.Add(genericName, concretePattern.src, matchedNode);
+                        subst.Add(genericName, matchedNode);
                     }
                     else
                     {
                         for (int i = 1; i < thisNode.ChildNumber() - genericChildIndex; i++)
                         {
-                            if (!this.Match(thisNode.Child(i + genericChildIndex), otherNode.Child(i + concreteChildIndex), ref hadInnerGeneric))
+                            if (!Match(subst, thisNode.Child(i + genericChildIndex), otherNode.Child(i + concreteChildIndex)))
                                 return false;
                         }
-                        this.subst.Add(genericName, concretePattern.src, matchedNode);
+                        subst.Add(genericName, matchedNode);
                     }
 
-                    innerGeneric = true;
                     return true;
                 }
 
@@ -134,14 +116,12 @@ namespace Trapl.Semantics
                     if (thisNode.ChildNumber() != otherNode.ChildNumber())
                         return false;
 
-                    var hadInnerGeneric = false;
                     for (int i = 0; i < thisNode.ChildNumber(); i++)
                     {
-                        if (!this.Match(thisNode.Child(i), otherNode.Child(i), ref hadInnerGeneric))
+                        if (!Match(subst, thisNode.Child(i), otherNode.Child(i)))
                             return false;
                     }
 
-                    innerGeneric = hadInnerGeneric;
                     return true;
                 }
 

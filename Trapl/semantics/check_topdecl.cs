@@ -32,14 +32,12 @@ namespace Trapl.Semantics
                     var qualifiedNameNode = node.Child(0).Child(0);
                     var qualifiedName = qualifiedNameNode.GetExcerpt();
 
-                    var genericPatternNode = new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern);
-                    var genericPattern = new DeclPattern(source, genericPatternNode);
+                    var patternNode = new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern);
 
                     if (node.Child(0).ChildIs(1, Grammar.ASTNodeKind.ParameterPattern) ||
                         node.Child(0).ChildIs(1, Grammar.ASTNodeKind.VariadicParameterPattern))
                     {
-                        genericPatternNode = node.Child(0).Child(1);
-                        genericPattern.SetPattern(genericPatternNode);
+                        patternNode = node.Child(0).Child(1);
                     }
 
                     var defNode = node.Child(1);
@@ -48,9 +46,8 @@ namespace Trapl.Semantics
                     topDecl.source = source;
                     topDecl.qualifiedName = qualifiedName;
                     topDecl.qualifiedNameASTNode = qualifiedNameNode;
-                    topDecl.pattern = genericPattern;
-                    topDecl.patternASTNode = genericPatternNode;
-                    topDecl.generic = genericPattern.IsGeneric();
+                    topDecl.patternASTNode = patternNode;
+                    topDecl.generic = ASTPatternUtil.IsGeneric(patternNode);
                     topDecl.defASTNode = defNode;
                     session.topDecls.Add(topDecl);
 
@@ -68,8 +65,7 @@ namespace Trapl.Semantics
             topDecl.source = null;
             topDecl.qualifiedName = name;
             topDecl.qualifiedNameASTNode = null;
-            topDecl.pattern = new DeclPattern(null, new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern));
-            topDecl.patternASTNode = null;
+            topDecl.patternASTNode = new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern);
             topDecl.defASTNode = null;
             topDecl.def = new DefStruct();
             topDecl.resolved = true;

@@ -85,8 +85,8 @@ namespace Trapl.Diagnostics
             Console.ForegroundColor = GetLightColor(this.kind);
             Console.Write(GetKindName(this.kind) + ": ");
             Console.Write(this.text);
-            if (this.substitutionContext != null)
-                Console.Write(" " + this.substitutionContext.GetString());
+            if (this.replacementContext != null)
+                Console.Write(" " + this.replacementContext.GetString());
             Console.WriteLine();
             PrintErrorWithHighlighting();
             Console.ResetColor();
@@ -98,7 +98,7 @@ namespace Trapl.Diagnostics
         private MessageKind kind;
         private MessageCaret[] carets;
         private Interface.SourceCode source; // FIXME! Workaround for the time being. Each caret should contain its source.
-        public Semantics.DeclPatternSubstitution substitutionContext;
+        public Semantics.PatternReplacementCollection replacementContext;
 
 
         private Message(MessageCode code, string text, MessageKind kind, params MessageCaret[] carets)
@@ -108,7 +108,7 @@ namespace Trapl.Diagnostics
             this.kind = kind;
             this.carets = carets;
             this.source = this.carets[0].span.src;
-            this.substitutionContext = null;
+            this.replacementContext = null;
         }
 
 
@@ -154,7 +154,7 @@ namespace Trapl.Diagnostics
         private string GetErrorPositionString()
         {
             string result = "";
-            if (this.carets.Length > 0)
+            if (this.carets.Length > 0 && this.source != null)
             {
                 result = this.source.GetFullName() + ":";
 
@@ -191,7 +191,7 @@ namespace Trapl.Diagnostics
 
         private void PrintErrorWithHighlighting()
         {
-            if (this.carets.Length == 0)
+            if (this.carets.Length == 0 || this.source == null)
                 return;
             
             // Find the very first and the very last lines

@@ -33,6 +33,9 @@ namespace TraplTest
 
             ShouldPass("<gen T>",                   "<A>");
             ShouldPass("<gen A>",                   "<A>");
+            ShouldPass("<gen T>",                   "<&A>");
+            ShouldPass("<gen T>",                   "<&&A>");
+            ShouldPass("<gen T>",                   "<&&&A>");
             ShouldPass("<gen T, gen U>",            "<A, A>");
             ShouldPass("<gen T, gen U>",            "<A, B>");
             ShouldPass("<gen T, gen U, gen V>",     "<A, A, A>");
@@ -43,6 +46,9 @@ namespace TraplTest
             ShouldPass("<gen T, gen U>",            "<A::<B>, C::<D::<E, F, G>, H>>");
             ShouldPass("<gen T, gen U, gen V>",     "<A::<B>, C::<D::<E>>, F::<G::<H::<I>, J, K>>>");
             ShouldPass("<gen T::<gen U>>",          "<A::<B>>");
+            ShouldPass("<gen T::<gen U>>",          "<A::<&B>>");
+            ShouldPass("<gen T::<gen U>>",          "<&A::<B>>");
+            ShouldPass("<gen T::<gen U>>",          "<&A::<&B>>");
             ShouldPass("<gen T::<gen U>>",          "<A::<B::<C, D, E>>>");
             ShouldPass("<gen T::<gen U>>",          "<A::<B::<C::<D>>>>");
             ShouldPass("<gen T::<gen U>, gen V>",   "<A::<B>, C>");
@@ -66,6 +72,12 @@ namespace TraplTest
             ShouldPass("<gen T, gen U, gen V...>", "<A, B, C>");
             ShouldPass("<gen T, gen U, gen V...>", "<A, B, C, D, E, F, G, H, I>");
 
+            ShouldPass("<gen T::<gen U>...>",    "<>");
+            ShouldPass("<gen T::<gen U>...>",    "<A::<B>>");
+            ShouldPass("<gen T::<gen U>...>",    "<A::<B>, C::<D>, E::<F>>");
+            ShouldPass("<gen T::<gen U...>>",    "<A>");
+            ShouldPass("<gen T::<gen U...>>",    "<A::<B>>");
+            ShouldPass("<gen T::<gen U...>>",    "<A::<B, C, D>>");
             ShouldPass("<gen T::<gen U...>...>", "<>");
             ShouldPass("<gen T::<gen U...>...>", "<A>");
             ShouldPass("<gen T::<gen U...>...>", "<A, B>");
@@ -74,6 +86,41 @@ namespace TraplTest
             ShouldPass("<gen T::<gen U...>...>", "<A::<B>, C::<D>>");
             ShouldPass("<gen T::<gen U...>...>", "<A::<B, C, D>, E::<F, G>>");
             ShouldPass("<gen T::<gen U...>...>", "<A::<B, C, D>, E::<F, G>, H::<I::<J, K>, L>>");
+
+            ShouldPass("<&gen T>",         "<&A>");
+            ShouldPass("<&gen T>",         "<&&A>");
+            ShouldPass("<&gen T>",         "<&A>");
+            ShouldPass("<&&gen T>",        "<&&A>");
+            ShouldPass("<&&gen T>",        "<&&&A>");
+            ShouldPass("<&&gen T>",        "<&&&&A>");
+            ShouldPass("<&gen T, gen U>",  "<&A, A>");
+            ShouldPass("<gen T, &gen U>",  "<A, &A>");
+            ShouldPass("<&gen T, &gen U>", "<&A, &A>");
+            ShouldPass("<&gen T, &gen U>", "<&&A, &A>");
+            ShouldPass("<&gen T, &gen U>", "<&A, &&A>");
+
+            ShouldPass("<&gen T...>", "<>");
+            ShouldPass("<&gen T...>", "<&A>");
+            ShouldPass("<&gen T...>", "<&A, &A>");
+            ShouldPass("<&gen T...>", "<&A, &&A>");
+            ShouldPass("<&gen T...>", "<&&A, &A>");
+            ShouldPass("<&gen T...>", "<&&&A, &&&A>");
+
+            ShouldPass("<&gen T::<gen U>...>",     "<>");
+            ShouldPass("<&gen T::<gen U>...>",     "<&A::<B>>");
+            ShouldPass("<&gen T::<gen U>...>",     "<&A::<B>, &&C::<D>, &&&E::<F>>");
+            ShouldPass("<&gen T::<&gen U>...>",    "<>");
+            ShouldPass("<&gen T::<&gen U>...>",    "<&A::<&B>>");
+            ShouldPass("<&gen T::<&gen U>...>",    "<&A::<&B>, &&C::<&&D>, &&&E::<&&&F>>");
+            ShouldPass("<&gen T::<gen U...>...>",  "<>");
+            ShouldPass("<&gen T::<gen U...>...>",  "<&A>");
+            ShouldPass("<&gen T::<gen U...>...>",  "<&A::<B>>");
+            ShouldPass("<&gen T::<gen U...>...>",  "<&A::<B, C>>");
+            ShouldPass("<&gen T::<gen U...>...>",  "<&A::<B, C>, &&D, &&&E::<F, G, H::<I>>>");
+            ShouldPass("<&gen T::<&gen U...>...>", "<>");
+            ShouldPass("<&gen T::<&gen U...>...>", "<&A::<&B>>");
+            ShouldPass("<&gen T::<&gen U...>...>", "<&A::<&B>, &&C, &&&E::<&&&F>>");
+
 
 
             ShouldFail("<>",       "<A>");
@@ -137,6 +184,37 @@ namespace TraplTest
             ShouldFail("<gen T, gen U...>",        "<>");
             ShouldFail("<gen T, gen U, gen V...>", "<>");
             ShouldFail("<gen T, gen U, gen V...>", "<A>");
+
+            ShouldFail("<&gen T>",         "<>");
+            ShouldFail("<&gen T>",         "<A>");
+            ShouldFail("<&&gen T>",        "<>");
+            ShouldFail("<&&gen T>",        "<A>");
+            ShouldFail("<&&gen T>",        "<&A>");
+            ShouldFail("<&gen T, gen U>",  "<A, A>");
+            ShouldFail("<gen T, &gen U>",  "<A, A>");
+            ShouldFail("<&gen T, &gen U>", "<A, &A>");
+            ShouldFail("<&gen T, &gen U>", "<&A, A>");
+
+            ShouldFail("<&gen T...>", "<A>");
+            ShouldFail("<&gen T...>", "<A, A>");
+            ShouldFail("<&gen T...>", "<A, &A>");
+            ShouldFail("<&gen T...>", "<&A, A>");
+
+            ShouldFail("<&gen T::<gen U>...>",     "<&A>");
+            ShouldFail("<&gen T::<gen U>...>",     "<A::<B>>");
+            ShouldFail("<&gen T::<gen U>...>",     "<&A::<B, C>>");
+            ShouldFail("<&gen T::<&gen U>...>",    "<A::<&B>>");
+            ShouldFail("<&gen T::<&gen U>...>",    "<&A::<B>>");
+            ShouldFail("<&gen T::<&gen U>...>",    "<&A::<&B, &C>>");
+            ShouldFail("<&gen T::<gen U...>...>",  "<A>");
+            ShouldFail("<&gen T::<gen U...>...>",  "<A::<B>>");
+            ShouldFail("<&gen T::<gen U...>...>",  "<&A, B>");
+            ShouldFail("<&gen T::<gen U...>...>",  "<&A::<B>, C::<D>>");
+            ShouldFail("<&gen T::<&gen U...>...>", "<A::<B>>");
+            ShouldFail("<&gen T::<&gen U...>...>", "<&A::<B>>");
+            ShouldFail("<&gen T::<&gen U...>...>", "<A::<&B>>");
+            ShouldFail("<&gen T::<&gen U...>...>", "<&A::<&B, C>>");
+            ShouldFail("<&gen T::<&gen U...>...>", "<&A::<B, &C>>");
         }
 
 
@@ -169,11 +247,7 @@ namespace TraplTest
             if (session.diagn.HasErrors())
                 Assert.Inconclusive();
 
-            var genericPattern = new Trapl.Semantics.DeclPattern(genericSrc, genericAST);
-            var concretePattern = new Trapl.Semantics.DeclPattern(concreteSrc, concreteAST);
-            var substitutionList = new Trapl.Semantics.DeclPatternSubstitution();
-
-            return Trapl.Semantics.ASTPatternMatcher.Match(substitutionList, genericPattern, concretePattern);
+            return (Trapl.Semantics.ASTPatternMatcher.Match(genericAST, concreteAST) != null);
         }
     }
 }

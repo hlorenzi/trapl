@@ -51,12 +51,13 @@
     <Compile Include="main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="old\def_funct.cs" />
-    <Compile Include="semantics\pattern_matching.cs" />
-    <Compile Include="semantics\pattern_substitution.cs" />
+    <Compile Include="semantics\ast_pattern_matcher.cs" />
+    <Compile Include="semantics\ast_pattern_replacer.cs" />
+    <Compile Include="semantics\ast_pattern_util.cs" />
     <Compile Include="semantics\topdecl_struct.cs" />
     <Compile Include="semantics\exception.cs" />
-    <Compile Include="semantics\type_resolution.cs" />
-    <Compile Include="semantics\pattern.cs" />
+    <Compile Include="semantics\ast_type_util.cs" />
+    <Compile Include="semantics\pattern_replacement_collection.cs" />
     <Compile Include="semantics\topdecl.cs" />
     <Compile Include="semantics\type.cs" />
     <Compile Include="old\Semantics.cs" />

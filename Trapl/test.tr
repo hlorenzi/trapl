@@ -1,13 +1,13 @@
 
 Container::<gen T>: struct
 {
-	hahaha: gen T
+	data: gen T
 }
 
 
 List::<gen T::<gen U>>: struct
 {
-	data: gen T::<gen U>
+	data: gen T
 }
 
 

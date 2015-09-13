@@ -58,7 +58,7 @@ namespace Trapl.Interface
                     (topDecl.synthesized ? "SYNTHESIZED TOPDECL " :
                     (topDecl.generic ? "GENERIC TOPDECL " : "TOPDECL ")) +
                     topDecl.qualifiedName + "::" +
-                    topDecl.pattern.GetString(this));
+                    Semantics.ASTPatternUtil.GetString(topDecl.patternASTNode));
                 Console.ResetColor();
 
                 if (topDecl.generic)

@@ -15,12 +15,46 @@ namespace TraplTest
 
             ShouldPass("<gen T>", "<A>",
                 "gen T", "A",
+                "&gen T", "&A",
+                "&&gen T", "&&A",
                 "gen T::<gen T>", "A::<A>",
+                "gen T::<&gen T>", "A::<&A>",
+                "&gen T::<gen T>", "&A::<A>",
+                "&gen T::<&gen T>", "&A::<&A>",
                 "gen T::<B>", "A::<B>",
-                "B::<gen T>", "B::<A>");
+                "gen T::<&B>", "A::<&B>",
+                "&gen T::<B>", "&A::<B>",
+                "&gen T::<&B>", "&A::<&B>",
+                "gen T::<B, C>", "A::<B, C>",
+                "gen T::<B::<C>>", "A::<B::<C>>",
+                "B::<gen T>", "B::<A>",
+                "B::<B::<gen T>>", "B::<B::<A>>",
+                "B::<C, gen T>", "B::<C, A>");
+
+            ShouldPass("<gen T>", "<&A>",
+                "gen T", "&A",
+                "&gen T", "&&A",
+                "gen T::<gen T>", "&A::<&A>");
+
+            ShouldPass("<&gen T>", "<&A>",
+                "gen T", "A",
+                "&gen T", "&A",
+                "gen T::<gen T>", "A::<A>");
+
+            ShouldPass("<&gen T>", "<&&A>",
+                "gen T", "&A",
+                "&gen T", "&&A",
+                "gen T::<gen T>", "&A::<&A>");
 
             ShouldPass("<gen T>", "<A::<B>>",
-                "gen T", "A::<B>");
+                "gen T", "A::<B>",
+                "C::<gen T>", "C::<A::<B>>",
+                "C::<D, gen T>", "C::<D, A::<B>>");
+
+            ShouldPass("<gen T>", "<A::<&B>>",
+                "gen T", "A::<&B>",
+                "C::<gen T>", "C::<A::<&B>>",
+                "C::<D, gen T>", "C::<D, A::<&B>>");
 
             ShouldPass("<gen T::<gen U>>", "<A::<B>>",
                 "gen T", "A",
@@ -33,7 +67,8 @@ namespace TraplTest
                 "gen T::<gen U::<gen U>>", "A::<B::<B>>",
                 "gen U::<gen U::<gen U>>", "B::<B::<B>>",
                 "gen U::<gen T::<gen U>>", "B::<A::<B>>",
-                "gen T::<gen U::<gen T>>", "A::<B::<A>>");
+                "gen T::<gen U::<gen T>>", "A::<B::<A>>",
+                "gen T::<gen U, gen T>", "A::<B, A>");
 
 
             ShouldFail("<>", "<>",
@@ -57,7 +92,20 @@ namespace TraplTest
                 "gen T::<B>", "A::<B>",
                 "gen T::<B>", "A::<B::<B>>",
                 "gen T::<gen T>", "A::<B>",
-                "gen T::<gen T>", "A::<A::<B>>");
+                "gen T::<gen T>", "A::<A::<B>>",
+                "C::<gen T>", "C",
+                "C::<gen T>", "C::<A>",
+                "C::<gen T>", "C::<A, B>",
+                "C::<D, gen T>", "C::<A::<B>>");
+
+            ShouldFail("<gen T>", "<&A>",
+                "gen T", "A");
+
+            ShouldFail("<&gen T>", "<&A>",
+                "gen T", "&A");
+
+            ShouldFail("<&gen T>", "<&&A>",
+                "gen T", "&&A");
 
             ShouldFail("<gen T::<gen U>>", "<A::<B>>",
                 "gen T", "B",
@@ -119,18 +167,15 @@ namespace TraplTest
             if (session.diagn.HasErrors())
                 Assert.Inconclusive();
 
-            var genericPattern = new Trapl.Semantics.DeclPattern(genericSrc, genericAST);
-            var concretePattern = new Trapl.Semantics.DeclPattern(concreteSrc, concreteAST);
-            var substitutionList = new Trapl.Semantics.DeclPatternSubstitution();
-        
-            if (!Trapl.Semantics.ASTPatternMatcher.Match(substitutionList, genericPattern, concretePattern))
+            var repl = Trapl.Semantics.ASTPatternMatcher.Match(genericAST, concreteAST);
+            if (repl == null)
                 Assert.Inconclusive();
 
             Trapl.Grammar.ASTNode substAST = null;
 
             try
             {
-                substAST = Trapl.Semantics.ASTPatternSubstitution.CloneAndSubstitute(session, toSubstAST, substitutionList);
+                substAST = Trapl.Semantics.ASTPatternReplacer.CloneReplaced(session, toSubstAST, repl);
             }
             catch (Trapl.Semantics.CheckException)
             {

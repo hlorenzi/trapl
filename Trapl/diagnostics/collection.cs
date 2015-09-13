@@ -6,20 +6,20 @@ namespace Trapl.Diagnostics
     public class Collection
     {
         private List<Message> messages;
-        private Stack<Semantics.DeclPatternSubstitution> substitutionContext;
+        private Stack<Semantics.PatternReplacementCollection> substitutionContext;
 
 
         public Collection()
         {
             this.messages = new List<Message>();
-            this.substitutionContext = new Stack<Semantics.DeclPatternSubstitution>();
+            this.substitutionContext = new Stack<Semantics.PatternReplacementCollection>();
         }
 
 
         public void Add(Message msg)
         {
             if (substitutionContext.Count > 0)
-                msg.substitutionContext = substitutionContext.Peek();
+                msg.replacementContext = substitutionContext.Peek();
             this.messages.Add(msg);
         }
 
@@ -28,7 +28,7 @@ namespace Trapl.Diagnostics
         {
             var msg = Message.Make(code, text, kind, MessageCaret.Primary(span));
             if (substitutionContext.Count > 0)
-                msg.substitutionContext = substitutionContext.Peek();
+                msg.replacementContext = substitutionContext.Peek();
             this.messages.Add(msg);
         }
 
@@ -37,14 +37,14 @@ namespace Trapl.Diagnostics
         {
             var msg = Message.Make(code, text, kind, carets);
             if (substitutionContext.Count > 0)
-                msg.substitutionContext = substitutionContext.Peek();
+                msg.replacementContext = substitutionContext.Peek();
             this.messages.Add(msg);
         }
 
 
-        public void EnterSubstitutionContext(Semantics.DeclPatternSubstitution subst)
+        public void EnterSubstitutionContext(Semantics.PatternReplacementCollection repl)
         {
-            this.substitutionContext.Push(subst);
+            this.substitutionContext.Push(repl);
         }
 
 

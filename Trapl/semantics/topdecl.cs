@@ -10,10 +10,9 @@ namespace Trapl.Semantics
         public string qualifiedName;
         public Grammar.ASTNode qualifiedNameASTNode;
 
-        public DeclPattern pattern;
         public Grammar.ASTNode patternASTNode;
 
-        public DeclPatternSubstitution patternSubst = new DeclPatternSubstitution();
+        public PatternReplacementCollection patternSubst = new PatternReplacementCollection();
 
         public Def def;
         public Grammar.ASTNode defASTNode;
@@ -47,7 +46,7 @@ namespace Trapl.Semantics
         }
 
 
-        public TopDecl CloneAndSubstitute(Interface.Session session, DeclPatternSubstitution subst)
+        public TopDecl CloneAndSubstitute(Interface.Session session, PatternReplacementCollection subst)
         {
             var newDecl = (TopDecl)this.MemberwiseClone();
             newDecl.patternSubst = subst;
@@ -55,9 +54,8 @@ namespace Trapl.Semantics
             newDecl.resolved = false;
             newDecl.generic = false;
             newDecl.synthesized = true;
-            newDecl.defASTNode = ASTPatternSubstitution.CloneAndSubstitute(session, newDecl.defASTNode, subst);
-            newDecl.patternASTNode = ASTPatternSubstitution.CloneAndSubstitute(session, newDecl.patternASTNode, subst);
-            newDecl.pattern = new DeclPattern(newDecl.source, newDecl.patternASTNode);
+            newDecl.defASTNode = ASTPatternReplacer.CloneReplaced(session, newDecl.defASTNode, subst);
+            newDecl.patternASTNode = ASTPatternReplacer.CloneReplaced(session, newDecl.patternASTNode, subst);
             return newDecl;
         }
     }

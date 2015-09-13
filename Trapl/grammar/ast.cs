@@ -44,8 +44,8 @@ namespace Trapl.Grammar
         private Diagnostics.Span spanWithDelimiters;
         public List<ASTNode> children = new List<ASTNode>();
 
-        private bool substituted;
-        private Diagnostics.Span substitutedSpan;
+        private bool hasOriginalSpan = false;
+        private Diagnostics.Span originalSpan;
 
 
         public ASTNode(ASTNodeKind kind)
@@ -67,7 +67,7 @@ namespace Trapl.Grammar
             var newNode = new ASTNode(this.kind);
             newNode.span = this.span;
             newNode.spanWithDelimiters = this.spanWithDelimiters;
-            newNode.substitutedSpan = this.substitutedSpan;
+            newNode.originalSpan = this.originalSpan;
             newNode.children = new List<ASTNode>();
             return newNode;
         }
@@ -78,7 +78,7 @@ namespace Trapl.Grammar
             var newNode = new ASTNode(this.kind);
             newNode.span = this.span;
             newNode.spanWithDelimiters = this.spanWithDelimiters;
-            newNode.substitutedSpan = this.substitutedSpan;
+            newNode.originalSpan = this.originalSpan;
             newNode.children = new List<ASTNode>();
             foreach (var child in this.children)
                 newNode.children.Add(child.CloneWithChildren());
@@ -88,32 +88,19 @@ namespace Trapl.Grammar
 
         public string GetExcerpt()
         {
-            return this.substituted ? this.substitutedSpan.GetExcerpt() : this.span.GetExcerpt();
+            return this.span.GetExcerpt();
         }
 
 
         public string GetExcerptWithComments()
         {
-            if (this.substituted)
-                return "***" + this.substitutedSpan.GetExcerpt() + "***";
-            else
-                return this.span.GetExcerpt();
-        }
-
-
-        public void Substitute(Diagnostics.Span span)
-        {
-            if (this.substituted)
-                throw new InvalidOperationException("ASTNode already substituted");
-
-            this.substituted = true;
-            this.substitutedSpan = span;
+            return this.span.GetExcerpt();
         }
 
 
         public Diagnostics.Span Span()
         {
-            return (this.substituted ? this.substitutedSpan : this.span);
+            return this.span;
         }
 
 
@@ -123,10 +110,23 @@ namespace Trapl.Grammar
         }
 
 
+        public Diagnostics.Span GetOriginalSpan()
+        {
+            return (this.hasOriginalSpan ? this.originalSpan : this.span);
+        }
+
+
         public void SetSpan(Diagnostics.Span span)
         {
             this.span = span;
             this.spanWithDelimiters = span;
+        }
+
+
+        public void SetOriginalSpan(Diagnostics.Span span)
+        {
+            this.hasOriginalSpan = true;
+            this.originalSpan = span;
         }
 
 

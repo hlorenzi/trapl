@@ -5,9 +5,9 @@ using System;
 
 namespace Trapl.Semantics
 {
-    public class TypeResolution
+    public class ASTTypeUtil
     {
-        public static Type Resolve(Interface.Session session, DeclPatternSubstitution subst, Interface.SourceCode src, Grammar.ASTNode node)
+        public static Type Resolve(Interface.Session session, PatternReplacementCollection repl, Interface.SourceCode src, Grammar.ASTNode node)
         {
             if (node.kind != Grammar.ASTNodeKind.TypeName)
                 throw new InternalException("node is not a TypeName");
@@ -37,60 +37,58 @@ namespace Trapl.Semantics
             if (candidateTopDecls.Count == 0)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
-                    "unknown type '" + nameASTNode.GetExcerpt() + "'", nameASTNode.Span());
+                    "unknown type '" + name + "'", nameASTNode.GetOriginalSpan());
                 throw new Semantics.CheckException();
             }
 
-            // Read the generic pattern. (ex.: 'List::<Int32>' will read '<Int32>')
-            var genPatternASTNode = new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern, nameASTNode.Span());
-            var genPattern = new DeclPattern(src, genPatternASTNode);
+            // Read the pattern. (ex.: 'List::<Int32>' will read '<Int32>')
+            var patternASTNode = new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern, nameASTNode.Span());
 
             if (node.ChildIs(curChild, Grammar.ASTNodeKind.ParameterPattern) ||
                 node.ChildIs(curChild, Grammar.ASTNodeKind.VariadicParameterPattern))
             {
-                genPatternASTNode = node.Child(curChild);
-                genPattern.SetPattern(genPatternASTNode);
+                patternASTNode = node.Child(curChild);
                 curChild++;
             }
 
-            // Refine candidate TopDecls further by compatibility with the generic pattern.
-            candidateTopDecls = candidateTopDecls.FindAll(decl => (decl.pattern.GetSubstitution(genPattern) != null));
+            // Refine candidate TopDecls further by compatibility with the pattern.
+            candidateTopDecls = candidateTopDecls.FindAll(decl => (ASTPatternMatcher.Match(decl.patternASTNode, patternASTNode) != null));
 
-            // Sort candidates by increasing number of generic parameters,
+            // Sort candidates by increasing number of generic identifiers,
             // so that more concrete TopDecls appear first.
-            candidateTopDecls.Sort((a, b) => a.pattern.GetGenericParameterNumber() - b.pattern.GetGenericParameterNumber());
+            candidateTopDecls.Sort((a, b) => ASTPatternUtil.GetGenericParameterNumber(a.patternASTNode) - ASTPatternUtil.GetGenericParameterNumber(b.patternASTNode));
 
             // Check that at least one TopDecl matched.
             if (candidateTopDecls.Count == 0)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
-                    "pattern does not match any declarations",
-                    MessageCaret.Primary(nameASTNode.Span()),
-                    MessageCaret.Primary(genPatternASTNode.Span()));
+                    "no '" + name + "' declaration accepts the pattern '" + ASTPatternUtil.GetString(patternASTNode) + "'",
+                    MessageCaret.Primary(nameASTNode.GetOriginalSpan()),
+                    MessageCaret.Primary(patternASTNode.GetOriginalSpan()));
                 throw new Semantics.CheckException();
             }
 
             // Check that there is no ambiguity for the best matched TopDecl.
             if (candidateTopDecls.Count > 1 &&
-                candidateTopDecls[0].pattern.GetGenericParameterNumber() == candidateTopDecls[1].pattern.GetGenericParameterNumber())
+                ASTPatternUtil.GetGenericParameterNumber(candidateTopDecls[0].patternASTNode) == ASTPatternUtil.GetGenericParameterNumber(candidateTopDecls[1].patternASTNode))
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
-                    "pattern matches more than one declaration",
-                    MessageCaret.Primary(nameASTNode.Span()),
-                    MessageCaret.Primary(genPatternASTNode.Span()));
+                    "more than one '" + name + "' declaration accepts this pattern '" + ASTPatternUtil.GetString(patternASTNode) + "'",
+                    MessageCaret.Primary(nameASTNode.GetOriginalSpan()),
+                    MessageCaret.Primary(patternASTNode.GetOriginalSpan()));
                 throw new Semantics.CheckException();
             }
 
             // Ask the matching TopDecl to parse and resolve its definition, if not yet done.
             var matchingTopDecl = candidateTopDecls[0];
-            var patternSubst = matchingTopDecl.pattern.GetSubstitution(genPattern);
+            var innerRepl = ASTPatternMatcher.Match(matchingTopDecl.patternASTNode, patternASTNode);
             if (matchingTopDecl.generic)
             {
-                matchingTopDecl = matchingTopDecl.CloneAndSubstitute(session, patternSubst);
+                matchingTopDecl = matchingTopDecl.CloneAndSubstitute(session, innerRepl);
                 session.topDecls.Add(matchingTopDecl);
             }
 
-            session.diagn.EnterSubstitutionContext(patternSubst);
+            session.diagn.EnterSubstitutionContext(innerRepl);
             matchingTopDecl.Resolve(session);
             session.diagn.ExitSubstitutionContext();
 
@@ -98,7 +96,7 @@ namespace Trapl.Semantics
             if (!(matchingTopDecl.def is DefStruct))
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
-                    "name does not define a struct", nameASTNode.Span());
+                    "'" + name + "' is not a struct", nameASTNode.GetOriginalSpan());
                 throw new Semantics.CheckException();
             }
 
@@ -113,25 +111,27 @@ namespace Trapl.Semantics
         }
 
 
-        public static string GetName(Interface.Session session, Type type)
+        public static string GetString(Grammar.ASTNode typeNode)
         {
-            if (type is TypePointer)
+            var result = "";
+
+            foreach (var child in typeNode.EnumerateChildren())
             {
-                return "&" + GetName(session, ((TypePointer)type).pointeeType);
-            }
-            else if (type is TypeStruct)
-            {
-                foreach (var topDecl in session.topDecls)
+                if (child.kind == Grammar.ASTNodeKind.Operator ||
+                    child.kind == Grammar.ASTNodeKind.Identifier)
+                    result += child.GetExcerpt();
+                else if (child.kind == Grammar.ASTNodeKind.GenericIdentifier)
+                    result += "gen " + child.GetExcerpt();
+                else if (child.kind == Grammar.ASTNodeKind.ParameterPattern)
                 {
-                    if (((TypeStruct)type).structDef == topDecl.def)
-                    {
-                        return topDecl.qualifiedName + "::" +
-                            topDecl.pattern.GetString(session);
-                    }
+                    if (!ASTPatternUtil.IsEmpty(child))
+                        result += "::" + ASTPatternUtil.GetString(child);
                 }
+                else
+                    result += "?";
             }
 
-            return "<unknown>";
+            return result;
         }
     }
 }
