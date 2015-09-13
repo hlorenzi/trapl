@@ -7,7 +7,7 @@ namespace Trapl.Semantics
 {
     public class ASTTypeUtil
     {
-        public static Type Resolve(Interface.Session session, PatternReplacementCollection repl, Interface.SourceCode src, Grammar.ASTNode node)
+        public static Type Resolve(Interface.Session session, PatternReplacementCollection repl, Grammar.ASTNode node)
         {
             if (node.kind != Grammar.ASTNodeKind.TypeName)
                 throw new InternalException("node is not a TypeName");
@@ -81,16 +81,30 @@ namespace Trapl.Semantics
 
             // Ask the matching TopDecl to parse and resolve its definition, if not yet done.
             var matchingTopDecl = candidateTopDecls[0];
-            var innerRepl = ASTPatternMatcher.Match(matchingTopDecl.patternASTNode, patternASTNode);
-            if (matchingTopDecl.generic)
+            try
             {
-                matchingTopDecl = matchingTopDecl.CloneAndSubstitute(session, innerRepl);
-                session.topDecls.Add(matchingTopDecl);
-            }
+                var innerRepl = ASTPatternMatcher.Match(matchingTopDecl.patternASTNode, patternASTNode);
+                session.diagn.PushContext(new Diagnostics.MessageContextStruct(matchingTopDecl));
+                if (matchingTopDecl.generic)
+                {
+                    var synthTopDecl = matchingTopDecl.Clone();
 
-            session.diagn.EnterSubstitutionContext(innerRepl);
-            matchingTopDecl.Resolve(session);
-            session.diagn.ExitSubstitutionContext();
+                    session.diagn.PopContext();
+                    session.diagn.PushContext(new Diagnostics.MessageContextStruct(synthTopDecl));
+                    synthTopDecl.patternRepl = innerRepl;
+                    synthTopDecl.patternASTNode = ASTPatternReplacer.CloneReplaced(session, matchingTopDecl.patternASTNode, innerRepl);
+                    synthTopDecl.defASTNode = ASTPatternReplacer.CloneReplaced(session, matchingTopDecl.defASTNode, innerRepl);
+
+                    session.topDecls.Add(synthTopDecl);
+                    matchingTopDecl = synthTopDecl;
+                }
+
+                matchingTopDecl.Resolve(session);
+            }
+            finally
+            {
+                session.diagn.PopContext();
+            }
 
             // Check that what the matching TopDecl defines is a struct.
             if (!(matchingTopDecl.def is DefStruct))

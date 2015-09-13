@@ -45,7 +45,7 @@ namespace Trapl.Semantics
                                 node.Child(genericPatternIndex).ChildNumber() != 0)
                             {
                                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
-                                    "replaced type already has a pattern", node.Child(genericPatternIndex).Span());
+                                    "'gen " + genericIdent + "' replacement already has a pattern", node.Span());
                                 throw new Semantics.CheckException();
                             }
 
@@ -65,7 +65,7 @@ namespace Trapl.Semantics
                     else
                     {
                         session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
-                            "unresolved generic identifier", node.Child(0).Span());
+                            "'gen " + genericIdent + "' has no replacement", node.Child(0).Span());
                         throw new Semantics.CheckException();
                     }
                 }

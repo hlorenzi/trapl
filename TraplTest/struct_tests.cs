@@ -50,7 +50,7 @@ namespace TraplTest
 
             Trapl.Semantics.CheckTopDecl.Check(session, ast, src);
 
-            Assert.IsTrue(session.diagn.HasNoError());
+            Assert.IsTrue(session.diagn.ContainsNoError());
 
             var topDeclClones = new List<Trapl.Semantics.TopDecl>(session.topDecls);
             foreach (var topDecl in topDeclClones)
@@ -59,7 +59,7 @@ namespace TraplTest
                 catch (Trapl.Semantics.CheckException) { }
             }
 
-            return session.diagn.HasNoError();
+            return session.diagn.ContainsNoError();
         }
     }
 }

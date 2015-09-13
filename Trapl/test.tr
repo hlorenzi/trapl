@@ -7,7 +7,7 @@ Container::<gen T>: struct
 
 List::<gen T::<gen U>>: struct
 {
-	data: gen T
+	data: gen T::<gen U>
 }
 
 

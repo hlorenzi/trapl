@@ -5,14 +5,14 @@ namespace Trapl.Semantics
 {
     public class TopDecl
     {
-        public Interface.SourceCode source;
+        public Grammar.ASTNode declASTNode;
 
         public string qualifiedName;
         public Grammar.ASTNode qualifiedNameASTNode;
 
         public Grammar.ASTNode patternASTNode;
 
-        public PatternReplacementCollection patternSubst = new PatternReplacementCollection();
+        public PatternReplacementCollection patternRepl = new PatternReplacementCollection();
 
         public Def def;
         public Grammar.ASTNode defASTNode;
@@ -38,7 +38,7 @@ namespace Trapl.Semantics
 
                 var defStruct = new DefStruct();
                 this.def = defStruct;
-                defStruct.Resolve(session, this, this.patternSubst, this.source, this.defASTNode);
+                defStruct.Resolve(session, this, this.patternRepl, this.defASTNode);
                 this.resolved = true;
             }
             else
@@ -46,17 +46,23 @@ namespace Trapl.Semantics
         }
 
 
-        public TopDecl CloneAndSubstitute(Interface.Session session, PatternReplacementCollection subst)
+        public TopDecl Clone()
         {
             var newDecl = (TopDecl)this.MemberwiseClone();
-            newDecl.patternSubst = subst;
             newDecl.def = null;
             newDecl.resolved = false;
             newDecl.generic = false;
             newDecl.synthesized = true;
-            newDecl.defASTNode = ASTPatternReplacer.CloneReplaced(session, newDecl.defASTNode, subst);
-            newDecl.patternASTNode = ASTPatternReplacer.CloneReplaced(session, newDecl.patternASTNode, subst);
             return newDecl;
+        }
+
+
+        public string GetString()
+        {
+            return (this.qualifiedName + 
+                (Semantics.ASTPatternUtil.IsEmpty(this.patternASTNode) ?
+                "" :
+                "::" + Semantics.ASTPatternUtil.GetString(this.patternASTNode)));
         }
     }
 

@@ -34,7 +34,7 @@ namespace Trapl.Semantics
         }
 
 
-        public void Resolve(Interface.Session session, TopDecl topDecl, PatternReplacementCollection subst, Interface.SourceCode src, Grammar.ASTNode defNode)
+        public void Resolve(Interface.Session session, TopDecl topDecl, PatternReplacementCollection subst, Grammar.ASTNode defNode)
         {
             foreach (var memberNode in defNode.EnumerateChildren())
             {
@@ -48,7 +48,7 @@ namespace Trapl.Semantics
                     var memberDef = new DefStruct.Member();
                     memberDef.name = memberName;
                     memberDef.declSpan = memberNode.Span();
-                    memberDef.type = ASTTypeUtil.Resolve(session, subst, src, memberNode.Child(1));
+                    memberDef.type = ASTTypeUtil.Resolve(session, subst, memberNode.Child(1));
                     members.Add(memberDef);
                 }
                 catch (Semantics.CheckException) { }

@@ -25,10 +25,10 @@ namespace Trapl.Interface
             //foreach (var node in ast.topDecls)
             //    Grammar.AST.PrintDebug(node, 0);
 
-            if (session.diagn.HasNoError())
+            if (session.diagn.ContainsNoError())
                 Semantics.CheckTopDecl.Check(session, ast, src);
 
-            if (session.diagn.HasNoError())
+            if (session.diagn.ContainsNoError())
             {
                 var topDeclClones = new List<Semantics.TopDecl>(session.topDecls);
                 foreach (var topDecl in topDeclClones)
@@ -57,8 +57,7 @@ namespace Trapl.Interface
                 Console.Out.WriteLine(
                     (topDecl.synthesized ? "SYNTHESIZED TOPDECL " :
                     (topDecl.generic ? "GENERIC TOPDECL " : "TOPDECL ")) +
-                    topDecl.qualifiedName + "::" +
-                    Semantics.ASTPatternUtil.GetString(topDecl.patternASTNode));
+                    topDecl.GetString());
                 Console.ResetColor();
 
                 if (topDecl.generic)

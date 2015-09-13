@@ -61,7 +61,7 @@ namespace TraplTest
             var tokens = Trapl.Grammar.Tokenizer.Tokenize(session, src);
             var ast = Trapl.Grammar.ASTParser.Parse(session, tokens);
 
-            Assert.IsTrue(session.diagn.HasNoError());
+            Assert.IsTrue(session.diagn.ContainsNoError());
         }
 
 
@@ -73,7 +73,7 @@ namespace TraplTest
             var tokens = Trapl.Grammar.Tokenizer.Tokenize(session, src);
             var ast = Trapl.Grammar.ASTParser.Parse(session, tokens);
 
-            Assert.IsTrue(session.diagn.HasErrors());
+            Assert.IsTrue(session.diagn.ContainsErrors());
         }
     }
 }

@@ -47,8 +47,7 @@ namespace Trapl.Semantics
             {
                 if (structDef == topDecl.def)
                 {
-                    return topDecl.qualifiedName + "::" +
-                        ASTPatternUtil.GetString(topDecl.patternASTNode);
+                    return topDecl.GetString();
                 }
             }
             return "<unknown>";

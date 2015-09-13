@@ -244,7 +244,7 @@ namespace TraplTest
             var genericAST = Trapl.Grammar.ASTParser.ParsePattern(session, genericTokens);
             var concreteAST = Trapl.Grammar.ASTParser.ParsePattern(session, concreteTokens);
 
-            if (session.diagn.HasErrors())
+            if (session.diagn.ContainsErrors())
                 Assert.Inconclusive();
 
             return (Trapl.Semantics.ASTPatternMatcher.Match(genericAST, concreteAST) != null);

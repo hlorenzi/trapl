@@ -164,7 +164,7 @@ namespace TraplTest
             var toSubstAST = Trapl.Grammar.ASTParser.ParseType(session, toSubstTokens);
             var correctAST = Trapl.Grammar.ASTParser.ParseType(session, correctTokens);
 
-            if (session.diagn.HasErrors())
+            if (session.diagn.ContainsErrors())
                 Assert.Inconclusive();
 
             var repl = Trapl.Semantics.ASTPatternMatcher.Match(genericAST, concreteAST);
@@ -184,7 +184,7 @@ namespace TraplTest
             }
 
             session.diagn.PrintToConsole();
-            if (session.diagn.HasErrors())
+            if (session.diagn.ContainsErrors())
                 return false;
 
             return Compare(substAST, correctAST);

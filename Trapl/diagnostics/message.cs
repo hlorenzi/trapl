@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 
 namespace Trapl.Diagnostics
@@ -52,6 +53,24 @@ namespace Trapl.Diagnostics
     }
 
 
+    public abstract class MessageContext
+    {
+
+    }
+
+
+    public class MessageContextStruct : MessageContext
+    {
+        public Semantics.TopDecl topDecl;
+
+
+        public MessageContextStruct(Semantics.TopDecl topDecl)
+        {
+            this.topDecl = topDecl;
+        }
+    }
+
+
     public class Message
     {
 		public static Message Make(MessageCode code, string text, MessageKind kind, params MessageCaret[] carets)
@@ -78,18 +97,17 @@ namespace Trapl.Diagnostics
         }
 
 
+        public void SetContext(Stack<MessageContext> ctx)
+        {
+            this.contextStack = new Stack<MessageContext>(ctx);
+        }
+
+
         public void PrintToConsole()
         {
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write(GetErrorPositionString() + ": ");
-            Console.ForegroundColor = GetLightColor(this.kind);
-            Console.Write(GetKindName(this.kind) + ": ");
-            Console.Write(this.text);
-            if (this.replacementContext != null)
-                Console.Write(" " + this.replacementContext.GetString());
-            Console.WriteLine();
-            PrintErrorWithHighlighting();
-            Console.ResetColor();
+            PrintContext();
+            PrintMessage();
+            PrintExcerptWithHighlighting();
         }
 
 
@@ -98,7 +116,7 @@ namespace Trapl.Diagnostics
         private MessageKind kind;
         private MessageCaret[] carets;
         private Interface.SourceCode source; // FIXME! Workaround for the time being. Each caret should contain its source.
-        public Semantics.PatternReplacementCollection replacementContext;
+        private Stack<MessageContext> contextStack = new Stack<MessageContext>();
 
 
         private Message(MessageCode code, string text, MessageKind kind, params MessageCaret[] carets)
@@ -108,7 +126,6 @@ namespace Trapl.Diagnostics
             this.kind = kind;
             this.carets = carets;
             this.source = this.carets[0].span.src;
-            this.replacementContext = null;
         }
 
 
@@ -151,26 +168,6 @@ namespace Trapl.Diagnostics
         }
 
 
-        private string GetErrorPositionString()
-        {
-            string result = "";
-            if (this.carets.Length > 0 && this.source != null)
-            {
-                result = this.source.GetFullName() + ":";
-
-                if (this.carets.Length > 0)
-                {
-                    result += (this.source.GetLineIndexAtSpanStart(this.carets[0].span) + 1) + ":";
-                    result += (this.source.GetColumnAtSpanStart(this.carets[0].span) + 1);
-                }
-            }
-            else
-                result = "<unknown location>";
-
-            return result;
-        }
-
-
         private int GetMinimumLineDistanceFromCarets(int line)
         {
             int min = -1;
@@ -189,7 +186,64 @@ namespace Trapl.Diagnostics
         }
 
 
-        private void PrintErrorWithHighlighting()
+        private void PrintContext()
+        {
+            foreach (var ctx in this.contextStack)
+            {
+                PrintContextStruct(ctx as MessageContextStruct);
+            }
+        }
+
+
+        private bool PrintContextStruct(MessageContextStruct ctx)
+        {
+            if (ctx == null)
+                return false;
+
+            PrintPosition(ctx.topDecl.declASTNode.Span());
+            Console.ForegroundColor = GetLightColor(this.kind);
+            Console.Write("in instantiation of '" + ctx.topDecl.GetString() + "'");
+            if (ctx.topDecl.patternRepl.nameToASTNodeMap.Count > 0)
+                Console.Write(" " + ctx.topDecl.patternRepl.GetString());
+            Console.Write(":");
+            Console.WriteLine();
+            Console.ResetColor();
+            return true;
+        }
+
+
+        private void PrintMessage()
+        {
+            if (this.carets.Length > 0)
+                PrintPosition(this.carets[0].span);
+            else
+                PrintPosition(new Diagnostics.Span());
+
+            Console.ForegroundColor = GetLightColor(this.kind);
+            Console.Write(GetKindName(this.kind) + ": ");
+            Console.Write(this.text);
+            Console.WriteLine();
+        }
+
+
+        private void PrintPosition(Diagnostics.Span span)
+        {
+            Console.ForegroundColor = ConsoleColor.White;
+
+            if (span.src != null)
+            {
+                Console.Write(span.src.GetFullName() + ":");
+                Console.Write((span.src.GetLineIndexAtSpanStart(span) + 1) + ":");
+                Console.Write((span.src.GetColumnAtSpanStart(span) + 1) + ": ");
+            }
+            else
+                Console.Write("<unknown location>: ");
+
+            Console.ResetColor();
+        }
+
+
+        private void PrintExcerptWithHighlighting()
         {
             if (this.carets.Length == 0 || this.source == null)
                 return;

@@ -43,7 +43,7 @@ namespace Trapl.Semantics
                     var defNode = node.Child(1);
 
                     var topDecl = new TopDecl();
-                    topDecl.source = source;
+                    topDecl.declASTNode = node;
                     topDecl.qualifiedName = qualifiedName;
                     topDecl.qualifiedNameASTNode = qualifiedNameNode;
                     topDecl.patternASTNode = patternNode;
@@ -62,7 +62,6 @@ namespace Trapl.Semantics
         private static void AddPrimitive(Interface.Session session, string name)
         {
             var topDecl = new TopDecl();
-            topDecl.source = null;
             topDecl.qualifiedName = name;
             topDecl.qualifiedNameASTNode = null;
             topDecl.patternASTNode = new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern);

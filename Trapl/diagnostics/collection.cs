@@ -6,20 +6,19 @@ namespace Trapl.Diagnostics
     public class Collection
     {
         private List<Message> messages;
-        private Stack<Semantics.PatternReplacementCollection> substitutionContext;
+        private Stack<MessageContext> contextStack;
 
 
         public Collection()
         {
             this.messages = new List<Message>();
-            this.substitutionContext = new Stack<Semantics.PatternReplacementCollection>();
+            this.contextStack = new Stack<MessageContext>();
         }
 
 
         public void Add(Message msg)
         {
-            if (substitutionContext.Count > 0)
-                msg.replacementContext = substitutionContext.Peek();
+            msg.SetContext(this.contextStack);
             this.messages.Add(msg);
         }
 
@@ -27,8 +26,7 @@ namespace Trapl.Diagnostics
         public void Add(MessageKind kind, MessageCode code, string text, Diagnostics.Span span)
         {
             var msg = Message.Make(code, text, kind, MessageCaret.Primary(span));
-            if (substitutionContext.Count > 0)
-                msg.replacementContext = substitutionContext.Peek();
+            msg.SetContext(this.contextStack);
             this.messages.Add(msg);
         }
 
@@ -36,25 +34,24 @@ namespace Trapl.Diagnostics
         public void Add(MessageKind kind, MessageCode code, string text, params MessageCaret[] carets)
         {
             var msg = Message.Make(code, text, kind, carets);
-            if (substitutionContext.Count > 0)
-                msg.replacementContext = substitutionContext.Peek();
+            msg.SetContext(this.contextStack);
             this.messages.Add(msg);
         }
 
 
-        public void EnterSubstitutionContext(Semantics.PatternReplacementCollection repl)
+        public void PushContext(MessageContext ctx)
         {
-            this.substitutionContext.Push(repl);
+            this.contextStack.Push(ctx);
         }
 
 
-        public void ExitSubstitutionContext()
+        public void PopContext()
         {
-            this.substitutionContext.Pop();
+            this.contextStack.Pop();
         }
 
 
-        public bool HasNoError()
+        public bool ContainsNoError()
         {
             foreach (var msg in this.messages)
             {
@@ -65,7 +62,7 @@ namespace Trapl.Diagnostics
         }
 
 
-        public bool HasErrors()
+        public bool ContainsErrors()
         {
             foreach (var msg in this.messages)
             {
