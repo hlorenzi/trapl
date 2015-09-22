@@ -109,9 +109,26 @@ namespace Trapl.Semantics
                     return true;
                 }
 
+                else if (thisNode.kind == Grammar.ASTNodeKind.Identifier &&
+                    otherNode.kind == Grammar.ASTNodeKind.Identifier)
+                {
+                    if (thisNode.GetExcerpt() != otherNode.GetExcerpt())
+                        return false;
 
-                else if (thisNode.kind == otherNode.kind &&
-                    thisNode.GetExcerpt() == otherNode.GetExcerpt())
+                    if (thisNode.ChildNumber() != otherNode.ChildNumber())
+                        return false;
+
+                    for (int i = 0; i < thisNode.ChildNumber(); i++)
+                    {
+                        if (!Match(subst, thisNode.Child(i), otherNode.Child(i)))
+                            return false;
+                    }
+
+                    return true;
+                }
+
+
+                else if (thisNode.kind == otherNode.kind)
                 {
                     if (thisNode.ChildNumber() != otherNode.ChildNumber())
                         return false;

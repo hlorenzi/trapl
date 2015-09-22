@@ -330,6 +330,8 @@ namespace Trapl.Grammar
                 if (this.CurrentIs(TokenKind.TriplePeriod))
                 {
                     this.Advance();
+                    this.MatchListSeparator(TokenKind.Comma, TokenKind.GreaterThan,
+                        MessageCode.Expected, "expected ',' or '>'");
                     node.kind = ASTNodeKind.VariadicParameterPattern;
                     break;
                 }

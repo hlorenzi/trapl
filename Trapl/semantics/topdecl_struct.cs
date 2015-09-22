@@ -43,15 +43,28 @@ namespace Trapl.Semantics
 
                 var memberName = memberNode.Child(0).GetExcerpt();
 
+                var memberDef = new DefStruct.Member();
+                memberDef.name = memberName;
+                memberDef.declSpan = memberNode.Span();
+
+                for (int i = 0; i < members.Count; i++)
+                {
+                    if (members[i].name == memberName)
+                    {
+                        session.diagn.Add(MessageKind.Error, MessageCode.DuplicateDecl,
+                            "duplicate members '" + memberName + "'", memberNode.Span(), members[i].declSpan);
+                        break;
+                    }
+                }
+
                 try
                 {
-                    var memberDef = new DefStruct.Member();
-                    memberDef.name = memberName;
-                    memberDef.declSpan = memberNode.Span();
+                    session.diagn.PushContext(new MessageContext("when resolving type '" + ASTTypeUtil.GetString(memberNode.Child(1)) + "'", memberNode.GetOriginalSpan()));
                     memberDef.type = ASTTypeUtil.Resolve(session, subst, memberNode.Child(1));
                     members.Add(memberDef);
                 }
                 catch (Semantics.CheckException) { }
+                finally { session.diagn.PopContext(); }
             }
         }
 

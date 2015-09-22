@@ -10,24 +10,6 @@ namespace Trapl.Diagnostics
     }
 
 
-	public class MessageCaret
-    {
-        public Diagnostics.Span span;
-
-
-        public static MessageCaret Primary(Diagnostics.Span span)
-        {
-            return new MessageCaret(span);
-        }
-
-
-		private MessageCaret(Diagnostics.Span span)
-        {
-            this.span = span;
-        }
-    }
-
-
     public enum MessageCode
     {
         Internal,
@@ -37,7 +19,7 @@ namespace Trapl.Diagnostics
         UnknownType,
         ExplicitVoid,
         StructRecursion,
-        DoubleDecl,
+        DuplicateDecl,
         Shadowing,
         InferenceImpossible,
         UnknownIdentifier,
@@ -53,27 +35,23 @@ namespace Trapl.Diagnostics
     }
 
 
-    public abstract class MessageContext
+    public class MessageContext
     {
-
-    }
-
-
-    public class MessageContextStruct : MessageContext
-    {
-        public Semantics.TopDecl topDecl;
+        public string text;
+        public Diagnostics.Span span;
 
 
-        public MessageContextStruct(Semantics.TopDecl topDecl)
+        public MessageContext(string text, Diagnostics.Span span)
         {
-            this.topDecl = topDecl;
+            this.text = text;
+            this.span = span;
         }
     }
 
 
     public class Message
     {
-		public static Message Make(MessageCode code, string text, MessageKind kind, params MessageCaret[] carets)
+		public static Message Make(MessageCode code, string text, MessageKind kind, params Diagnostics.Span[] carets)
         {
             return new Message(code, text, kind, carets);
         }
@@ -103,86 +81,27 @@ namespace Trapl.Diagnostics
         }
 
 
-        public void PrintToConsole()
+        public void PrintToConsole(Interface.Session session)
         {
             PrintContext();
             PrintMessage();
-            PrintExcerptWithHighlighting();
+            PrintExcerptWithHighlighting(this.kind, this.spans);
         }
 
 
         private MessageCode code;
         private string text;
         private MessageKind kind;
-        private MessageCaret[] carets;
-        private Interface.SourceCode source; // FIXME! Workaround for the time being. Each caret should contain its source.
+        private Diagnostics.Span[] spans;
         private Stack<MessageContext> contextStack = new Stack<MessageContext>();
 
 
-        private Message(MessageCode code, string text, MessageKind kind, params MessageCaret[] carets)
+        private Message(MessageCode code, string text, MessageKind kind, params Diagnostics.Span[] carets)
         {
             this.code = code;
             this.text = text;
             this.kind = kind;
-            this.carets = carets;
-            this.source = this.carets[0].span.src;
-        }
-
-
-        private string GetKindName(MessageKind kind)
-        {
-            switch (this.kind)
-            {
-                case MessageKind.Error: return "error";
-                case MessageKind.Warning: return "warning";
-                case MessageKind.Style: return "style";
-                case MessageKind.Info: return "info";
-                default: return "unknown";
-            }
-        }
-
-
-        private ConsoleColor GetLightColor(MessageKind kind)
-        {
-            switch (this.kind)
-            {
-                case MessageKind.Error: return ConsoleColor.Red;
-                case MessageKind.Warning: return ConsoleColor.Yellow;
-                case MessageKind.Style: return ConsoleColor.Magenta;
-                case MessageKind.Info: return ConsoleColor.Cyan;
-                default: return ConsoleColor.White;
-            }
-        }
-
-
-        private ConsoleColor GetDarkColor(MessageKind kind)
-        {
-            switch (this.kind)
-            {
-                case MessageKind.Error: return ConsoleColor.DarkRed;
-                case MessageKind.Warning: return ConsoleColor.DarkYellow;
-                case MessageKind.Style: return ConsoleColor.DarkMagenta;
-                case MessageKind.Info: return ConsoleColor.DarkCyan;
-                default: return ConsoleColor.Gray;
-            }
-        }
-
-
-        private int GetMinimumLineDistanceFromCarets(int line)
-        {
-            int min = -1;
-
-            foreach (var caret in this.carets)
-            {
-                int dist = Math.Min(
-                    Math.Abs(this.source.GetLineIndexAtSpanStart(caret.span) - line),
-                    Math.Abs(this.source.GetLineIndexAtSpanEnd(caret.span) - line));
-
-                if (dist < min || min == -1)
-                    min = dist;
-            }
-
-            return min;
+            this.spans = carets;
         }
 
 
@@ -190,32 +109,22 @@ namespace Trapl.Diagnostics
         {
             foreach (var ctx in this.contextStack)
             {
-                PrintContextStruct(ctx as MessageContextStruct);
+                PrintPosition(ctx.span);
+                Console.ForegroundColor = GetLightColor(MessageKind.Info);
+                Console.Write(ctx.text);
+                Console.Write(":");
+                Console.WriteLine();
+                Console.ResetColor();
+                // Probably enable this via a compiler switch.
+                //PrintExcerptWithHighlighting(MessageKind.Info, ctx.span);
             }
-        }
-
-
-        private bool PrintContextStruct(MessageContextStruct ctx)
-        {
-            if (ctx == null)
-                return false;
-
-            PrintPosition(ctx.topDecl.declASTNode.Span());
-            Console.ForegroundColor = GetLightColor(this.kind);
-            Console.Write("in instantiation of '" + ctx.topDecl.GetString() + "'");
-            if (ctx.topDecl.patternRepl.nameToASTNodeMap.Count > 0)
-                Console.Write(" " + ctx.topDecl.patternRepl.GetString());
-            Console.Write(":");
-            Console.WriteLine();
-            Console.ResetColor();
-            return true;
         }
 
 
         private void PrintMessage()
         {
-            if (this.carets.Length > 0)
-                PrintPosition(this.carets[0].span);
+            if (this.spans.Length > 0)
+                PrintPosition(this.spans[0]);
             else
                 PrintPosition(new Diagnostics.Span());
 
@@ -243,19 +152,79 @@ namespace Trapl.Diagnostics
         }
 
 
-        private void PrintExcerptWithHighlighting()
+        private string GetKindName(MessageKind kind)
         {
-            if (this.carets.Length == 0 || this.source == null)
+            switch (kind)
+            {
+                case MessageKind.Error: return "error";
+                case MessageKind.Warning: return "warning";
+                case MessageKind.Style: return "style";
+                case MessageKind.Info: return "info";
+                default: return "unknown";
+            }
+        }
+
+
+        private ConsoleColor GetLightColor(MessageKind kind)
+        {
+            switch (kind)
+            {
+                case MessageKind.Error: return ConsoleColor.Red;
+                case MessageKind.Warning: return ConsoleColor.Yellow;
+                case MessageKind.Style: return ConsoleColor.Magenta;
+                case MessageKind.Info: return ConsoleColor.Cyan;
+                default: return ConsoleColor.White;
+            }
+        }
+
+
+        private ConsoleColor GetDarkColor(MessageKind kind)
+        {
+            switch (kind)
+            {
+                case MessageKind.Error: return ConsoleColor.DarkRed;
+                case MessageKind.Warning: return ConsoleColor.DarkYellow;
+                case MessageKind.Style: return ConsoleColor.DarkMagenta;
+                case MessageKind.Info: return ConsoleColor.DarkCyan;
+                default: return ConsoleColor.Gray;
+            }
+        }
+
+
+        private int GetMinimumLineDistanceFromCarets(Diagnostics.Span[] spans, int line)
+        {
+            int min = -1;
+
+            foreach (var span in spans)
+            {
+                int dist = Math.Min(
+                    Math.Abs(span.src.GetLineIndexAtSpanStart(span) - line),
+                    Math.Abs(span.src.GetLineIndexAtSpanEnd(span) - line));
+
+                if (dist < min || min == -1)
+                    min = dist;
+            }
+
+            return min;
+        }
+
+
+        private void PrintExcerptWithHighlighting(MessageKind color, params Diagnostics.Span[] spans)
+        {
+            if (spans.Length == 0)
                 return;
+
+            // FIXME! Not ready for multiple sources yet.
+            var source = spans[0].src;
             
             // Find the very first and the very last lines
             // referenced by any caret, with some added margin around.
             int startLine = -1;
             int endLine = -1;
-            foreach (var caret in this.carets)
+            foreach (var span in spans)
             {
-                int start = this.source.GetLineIndexAtSpanStart(caret.span) - 2;
-                int end = this.source.GetLineIndexAtSpanEnd(caret.span) + 2;
+                int start = source.GetLineIndexAtSpanStart(span) - 2;
+                int end = source.GetLineIndexAtSpanEnd(span) + 2;
 
                 if (start < startLine || startLine == -1)
                     startLine = start;
@@ -267,15 +236,15 @@ namespace Trapl.Diagnostics
             if (startLine < 0)
                 startLine = 0;
 
-            if (endLine >= this.source.GetNumberOfLines())
-                endLine = this.source.GetNumberOfLines() - 1;
+            if (endLine >= source.GetNumberOfLines())
+                endLine = source.GetNumberOfLines() - 1;
 
             // Step through the referenced line range,
             // skipping lines in between that are too far away from any caret.
             bool skipped = false;
             for (int i = startLine; i <= endLine; i++)
             {
-                if (GetMinimumLineDistanceFromCarets(i) > 2)
+                if (GetMinimumLineDistanceFromCarets(spans, i) > 2)
                 {
                     if (!skipped)
                     {
@@ -292,7 +261,7 @@ namespace Trapl.Diagnostics
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.Write((i + 1).ToString().PadLeft(5) + ": ");
 
-                PrintLineExcerptWithHighlighting(i);
+                PrintLineExcerptWithHighlighting(color, i, spans);
 
                 Console.ResetColor();
                 Console.WriteLine();
@@ -300,28 +269,31 @@ namespace Trapl.Diagnostics
         }
 
 
-        private void PrintLineExcerptWithHighlighting(int line)
+        private void PrintLineExcerptWithHighlighting(MessageKind color, int line, Diagnostics.Span[] spans)
         {
-            if (line >= this.source.GetNumberOfLines())
+            // FIXME! Not ready for multiple sources yet.
+            var source = spans[0].src;
+
+            if (line >= source.GetNumberOfLines())
                 return;
 
-            int lineStart = this.source.GetLineStartPos(line);
+            int lineStart = source.GetLineStartPos(line);
             int index = lineStart;
             var inbetweenLast = false;
 
             // Step through each character in line.
-            while (index <= this.source.Length())
+            while (index <= source.Length())
             {
                 // Find if this character is referenced by any caret.
                 var highlight = false;
                 var inbetween = false;
-                foreach (var caret in this.carets)
+                foreach (var span in spans)
                 {
-                    if (index >= caret.span.start && index < caret.span.end)
+                    if (index >= span.start && index < span.end)
                     {
                         highlight = true;
                     }
-                    else if (!inbetweenLast && index == caret.span.start && index == caret.span.end)
+                    else if (!inbetweenLast && index == span.start && index == span.end)
                     {
                         highlight = true;
                         inbetween = true;
@@ -333,8 +305,8 @@ namespace Trapl.Diagnostics
                 // Set up text color for highlighting.
                 if (highlight)
                 {
-                    Console.BackgroundColor = this.GetDarkColor(this.kind);
-                    Console.ForegroundColor = this.GetLightColor(this.kind);
+                    Console.BackgroundColor = this.GetDarkColor(color);
+                    Console.ForegroundColor = this.GetLightColor(color);
                 }
                 else
                 {
@@ -344,23 +316,23 @@ namespace Trapl.Diagnostics
 
                 // Print a space if two carets meet ends,
                 // or print the current character.
-                if (inbetween && (index == this.source.Length() || !(this.source[index] >= 0 && this.source[index] <= ' ')))
+                if (inbetween && (index == source.Length() || !(source[index] >= 0 && source[index] <= ' ')))
                 {
                     Console.Write(" ");
                 }
-                else if (index == this.source.Length() || this.source[index] == '\n')
+                else if (index == source.Length() || source[index] == '\n')
                 {
                     Console.Write(" ");
                     break;
                 }
                 else
                 {
-                    if (this.source[index] == '\t')
+                    if (source[index] == '\t')
                         Console.Write("  ");
-                    else if (this.source[index] >= 0 && this.source[index] <= ' ')
+                    else if (source[index] >= 0 && source[index] <= ' ')
                         Console.Write(" ");
                     else
-                        Console.Write(this.source[index]);
+                        Console.Write(source[index]);
 
                     index++;
                 }

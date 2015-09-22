@@ -25,15 +25,15 @@ namespace Trapl.Diagnostics
 
         public void Add(MessageKind kind, MessageCode code, string text, Diagnostics.Span span)
         {
-            var msg = Message.Make(code, text, kind, MessageCaret.Primary(span));
+            var msg = Message.Make(code, text, kind, span);
             msg.SetContext(this.contextStack);
             this.messages.Add(msg);
         }
 
 
-        public void Add(MessageKind kind, MessageCode code, string text, params MessageCaret[] carets)
+        public void Add(MessageKind kind, MessageCode code, string text, params Diagnostics.Span[] spans)
         {
-            var msg = Message.Make(code, text, kind, carets);
+            var msg = Message.Make(code, text, kind, spans);
             msg.SetContext(this.contextStack);
             this.messages.Add(msg);
         }
@@ -84,11 +84,11 @@ namespace Trapl.Diagnostics
         }
 
 
-        public void PrintToConsole()
+        public void PrintToConsole(Interface.Session session)
         {
             foreach (var msg in messages)
             {
-                msg.PrintToConsole();
+                msg.PrintToConsole(session);
             }
         }
     }

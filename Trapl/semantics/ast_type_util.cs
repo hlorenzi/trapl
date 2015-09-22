@@ -37,7 +37,7 @@ namespace Trapl.Semantics
             if (candidateTopDecls.Count == 0)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
-                    "unknown type '" + name + "'", nameASTNode.GetOriginalSpan());
+                    "'" + name + "' is not declared", nameASTNode.GetOriginalSpan());
                 throw new Semantics.CheckException();
             }
 
@@ -63,8 +63,7 @@ namespace Trapl.Semantics
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
                     "no '" + name + "' declaration accepts the pattern '" + ASTPatternUtil.GetString(patternASTNode) + "'",
-                    MessageCaret.Primary(nameASTNode.GetOriginalSpan()),
-                    MessageCaret.Primary(patternASTNode.GetOriginalSpan()));
+                    nameASTNode.GetOriginalSpan(), patternASTNode.GetOriginalSpan());
                 throw new Semantics.CheckException();
             }
 
@@ -74,8 +73,7 @@ namespace Trapl.Semantics
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
                     "more than one '" + name + "' declaration accepts this pattern '" + ASTPatternUtil.GetString(patternASTNode) + "'",
-                    MessageCaret.Primary(nameASTNode.GetOriginalSpan()),
-                    MessageCaret.Primary(patternASTNode.GetOriginalSpan()));
+                    nameASTNode.GetOriginalSpan(), patternASTNode.GetOriginalSpan());
                 throw new Semantics.CheckException();
             }
 
@@ -84,13 +82,10 @@ namespace Trapl.Semantics
             try
             {
                 var innerRepl = ASTPatternMatcher.Match(matchingTopDecl.patternASTNode, patternASTNode);
-                session.diagn.PushContext(new Diagnostics.MessageContextStruct(matchingTopDecl));
                 if (matchingTopDecl.generic)
                 {
                     var synthTopDecl = matchingTopDecl.Clone();
 
-                    session.diagn.PopContext();
-                    session.diagn.PushContext(new Diagnostics.MessageContextStruct(synthTopDecl));
                     synthTopDecl.patternRepl = innerRepl;
                     synthTopDecl.patternASTNode = ASTPatternReplacer.CloneReplaced(session, matchingTopDecl.patternASTNode, innerRepl);
                     synthTopDecl.defASTNode = ASTPatternReplacer.CloneReplaced(session, matchingTopDecl.defASTNode, innerRepl);
@@ -103,7 +98,6 @@ namespace Trapl.Semantics
             }
             finally
             {
-                session.diagn.PopContext();
             }
 
             // Check that what the matching TopDecl defines is a struct.

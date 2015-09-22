@@ -144,25 +144,25 @@ namespace TraplTest
         }
 
 
-        public bool CompileAndTest(string genericPatternStr, string concretePatternStr, string toBeSubstitutedStr, string correctSubstitutionStr)
+        public bool CompileAndTest(string genericPatternStr, string concretePatternStr, string replTestStr, string replCorrectStr)
         {
             var session = new Trapl.Interface.Session();
             session.diagn = new Trapl.Diagnostics.Collection();
 
             var genericSrc = Trapl.Interface.SourceCode.MakeFromString(genericPatternStr);
             var concreteSrc = Trapl.Interface.SourceCode.MakeFromString(concretePatternStr);
-            var toSubstSrc = Trapl.Interface.SourceCode.MakeFromString(toBeSubstitutedStr);
-            var correctSrc = Trapl.Interface.SourceCode.MakeFromString(correctSubstitutionStr);
+            var replTestSrc = Trapl.Interface.SourceCode.MakeFromString(replTestStr);
+            var replCorrectSrc = Trapl.Interface.SourceCode.MakeFromString(replCorrectStr);
 
             var genericTokens = Trapl.Grammar.Tokenizer.Tokenize(session, genericSrc);
             var concreteTokens = Trapl.Grammar.Tokenizer.Tokenize(session, concreteSrc);
-            var toSubstTokens = Trapl.Grammar.Tokenizer.Tokenize(session, toSubstSrc);
-            var correctTokens = Trapl.Grammar.Tokenizer.Tokenize(session, correctSrc);
+            var replTestTokens = Trapl.Grammar.Tokenizer.Tokenize(session, replTestSrc);
+            var replCorrectTokens = Trapl.Grammar.Tokenizer.Tokenize(session, replCorrectSrc);
 
             var genericAST = Trapl.Grammar.ASTParser.ParsePattern(session, genericTokens);
             var concreteAST = Trapl.Grammar.ASTParser.ParsePattern(session, concreteTokens);
-            var toSubstAST = Trapl.Grammar.ASTParser.ParseType(session, toSubstTokens);
-            var correctAST = Trapl.Grammar.ASTParser.ParseType(session, correctTokens);
+            var replTestAST = Trapl.Grammar.ASTParser.ParseType(session, replTestTokens);
+            var replCorrectAST = Trapl.Grammar.ASTParser.ParseType(session, replCorrectTokens);
 
             if (session.diagn.ContainsErrors())
                 Assert.Inconclusive();
@@ -171,23 +171,21 @@ namespace TraplTest
             if (repl == null)
                 Assert.Inconclusive();
 
-            Trapl.Grammar.ASTNode substAST = null;
+            Trapl.Grammar.ASTNode replAST = null;
 
             try
             {
-                substAST = Trapl.Semantics.ASTPatternReplacer.CloneReplaced(session, toSubstAST, repl);
+                replAST = Trapl.Semantics.ASTPatternReplacer.CloneReplaced(session, replTestAST, repl);
             }
             catch (Trapl.Semantics.CheckException)
             {
-                session.diagn.PrintToConsole();
                 return false;
             }
 
-            session.diagn.PrintToConsole();
             if (session.diagn.ContainsErrors())
                 return false;
 
-            return Compare(substAST, correctAST);
+            return Compare(replAST, replCorrectAST);
         }
 
 

@@ -39,7 +39,7 @@ namespace Trapl.Interface
             }
 
             session.PrintDefs();
-            session.diagn.PrintToConsole();
+            session.diagn.PrintToConsole(session);
         }
 
 
