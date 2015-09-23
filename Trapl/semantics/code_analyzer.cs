@@ -198,6 +198,8 @@ namespace Trapl.Semantics
                     throw new Semantics.CheckException();
                 }
 
+                matchingTopDecl.ResolveBody(this.session);
+
                 var codeNode = new CodeNodePushFunct();
                 codeNode.topDecl = matchingTopDecl;
                 segment.nodes.Add(codeNode);

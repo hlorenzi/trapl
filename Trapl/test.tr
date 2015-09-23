@@ -25,19 +25,13 @@ Tests: struct
 }
 
 
-test: funct(x: Int32, y: Int64 -> Container::<Int8>)
+call_parametrized: funct(x: Int32)
 {
-	param::<Int32>(x);
+	parametrized_funct::<Int32>(x);
 }
 
 
-test: funct(x: Int32, y: Int8)
+parametrized_funct::<gen T>: funct(x: gen T)
 {
-	
-}
-
-
-param::<gen T>: funct(x: gen T)
-{
-
+	let y: gen T;
 }

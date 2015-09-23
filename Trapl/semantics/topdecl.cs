@@ -81,6 +81,12 @@ namespace Trapl.Semantics
                 "" :
                 "::" + Semantics.ASTPatternUtil.GetString(this.patternASTNode)));
         }
+
+
+        public override string ToString()
+        {
+            return "TopDecl '" + GetString() + "'";
+        }
     }
 
 

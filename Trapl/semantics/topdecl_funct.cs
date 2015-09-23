@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Trapl.Diagnostics;
+using Trapl.Interface;
 
 
 namespace Trapl.Semantics
@@ -83,6 +85,49 @@ namespace Trapl.Semantics
                 body = CodeAnalyzer.Analyze(session, defNode.ChildWithKind(Grammar.ASTNodeKind.Block), localVariables);
             }
             finally { session.diagn.PopContext(); }
+        }
+
+
+        public override void PrintToConsole(Session session, int indentLevel)
+        {
+            var segments = new List<CodeSegment>();
+            segments.Add(this.body);
+
+            for (int i = 0; i < this.localVariables.Count; i++)
+            {
+                Console.Out.WriteLine("  LOCAL " + i + " = " + this.localVariables[i].name + ": " + this.localVariables[i].type.GetString(session));
+            }
+
+            Console.Out.WriteLine();
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                Console.Out.WriteLine("  === Segment " + i + " ===");
+                foreach (var c in segments[i].nodes)
+                {
+                    Console.Out.WriteLine("    " + c.Name());
+                }
+
+                var goesToStr = "";
+                for (int j = 0; j < segments[i].outwardPaths.Count; j++)
+                {
+                    int index = segments.FindIndex(seg => seg == segments[i].outwardPaths[j]);
+                    if (index < 0)
+                    {
+                        segments.Add(segments[i].outwardPaths[j]);
+                        index = segments.Count - 1;
+                    }
+                    goesToStr += index;
+                    if (j < segments[i].outwardPaths.Count - 1)
+                        goesToStr += ", ";
+                }
+
+                if (segments[i].outwardPaths.Count == 0)
+                    goesToStr = "end";
+
+                Console.Out.WriteLine("    -> Goes to " + goesToStr);
+                Console.Out.WriteLine();
+            }
         }
     }
 }

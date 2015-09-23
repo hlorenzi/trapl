@@ -40,7 +40,7 @@ namespace Trapl.Semantics
                 ASTPatternUtil.GetGenericParameterNumber(candidateTopDecls[0].patternASTNode) == ASTPatternUtil.GetGenericParameterNumber(candidateTopDecls[1].patternASTNode))
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
-                    "more than one '" + name + "' declaration accepts this pattern '" + ASTPatternUtil.GetString(patternASTNode) + "'",
+                    "more than one '" + name + "' declaration accepts the pattern '" + ASTPatternUtil.GetString(patternASTNode) + "'",
                     nameASTNode.GetOriginalSpan(), patternASTNode.GetOriginalSpan());
                 throw new Semantics.CheckException();
             }

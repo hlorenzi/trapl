@@ -77,5 +77,18 @@ namespace Trapl.Semantics
                 if (!this.argumentTypes[i].IsSame(otherf.argumentTypes[i])) return false;
             return true;
         }
+        public override string GetString(Interface.Session session)
+        {
+            var result = "(";
+            for (int i = 0; i < argumentTypes.Count; i++)
+            {
+                result += argumentTypes[i].GetString(session);
+                if (i < argumentTypes.Count - 1)
+                    result += ", ";
+                else
+                    result += " ";
+            }
+            return result + "-> " + returnType.GetString(session) + ")";
+        }
     }
 }
