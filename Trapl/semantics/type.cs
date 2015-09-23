@@ -13,6 +13,14 @@ namespace Trapl.Semantics
     }
 
 
+    public class TypeVoid : Type
+    {
+        public override bool IsSame(Type other) { return other is TypeVoid; }
+
+        public override string GetString(Interface.Session session) { return "Void"; }
+    }
+
+
     public class TypePointer : Type
     {
         public Type pointeeType;

@@ -23,3 +23,21 @@ Tests: struct
 	g: List::<Container::<Int64>>,
 	h: List::<Container::<Int64>>,
 }
+
+
+test: funct(x: Int32, y: Int64 -> Container::<Int8>)
+{
+	param::<Int32>(x);
+}
+
+
+test: funct(x: Int32, y: Int8)
+{
+	
+}
+
+
+param::<gen T>: funct(x: gen T)
+{
+
+}

@@ -350,10 +350,11 @@ namespace Trapl.Grammar
             var node = new ASTNode(ASTNodeKind.TypeName);
             node.SetSpan(this.Current().span);
 
+            var modifierNodes = new List<ASTNode>();
+
             while (this.CurrentIs(TokenKind.Ampersand))
             {
-                node.AddChild(new ASTNode(ASTNodeKind.Operator, this.Advance().span));
-                node.AddLastChildSpan();
+                modifierNodes.Add(new ASTNode(ASTNodeKind.Operator, this.Advance().span));
             }
 
             if (this.CurrentIs(TokenKind.KeywordGen))
@@ -365,7 +366,7 @@ namespace Trapl.Grammar
             }
             else
             {
-                node.AddChild(new ASTNode(ASTNodeKind.Identifier,
+                node.AddChild(new ASTNode(ASTNodeKind.Name,
                     this.Match(TokenKind.Identifier, MessageCode.Expected, "expected type name").span));
                 node.AddLastChildSpan();
             }
@@ -379,6 +380,12 @@ namespace Trapl.Grammar
             else
             {
                 node.AddChild(new ASTNode(ASTNodeKind.ParameterPattern, node.Span().JustAfter()));
+            }
+
+            foreach (var mod in modifierNodes)
+            {
+                node.AddChild(mod);
+                node.AddLastChildSpan();
             }
 
             return node;

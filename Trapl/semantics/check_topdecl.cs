@@ -51,7 +51,8 @@ namespace Trapl.Semantics
                     topDecl.defASTNode = defNode;
                     session.topDecls.Add(topDecl);
 
-                    if (defNode.kind != Grammar.ASTNodeKind.StructDecl)
+                    if (defNode.kind != Grammar.ASTNodeKind.StructDecl &&
+                        defNode.kind != Grammar.ASTNodeKind.FunctDecl)
                         throw ErrorAt(session, "Decl", defNode);
                 }
                 catch (CheckException) { }

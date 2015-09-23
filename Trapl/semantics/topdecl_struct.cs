@@ -59,8 +59,8 @@ namespace Trapl.Semantics
 
                 try
                 {
-                    session.diagn.PushContext(new MessageContext("when resolving type '" + ASTTypeUtil.GetString(memberNode.Child(1)) + "'", memberNode.GetOriginalSpan()));
-                    memberDef.type = ASTTypeUtil.Resolve(session, subst, memberNode.Child(1));
+                    session.diagn.PushContext(new MessageContext("while resolving type '" + ASTTypeUtil.GetString(memberNode.Child(1)) + "'", memberNode.GetOriginalSpan()));
+                    memberDef.type = ASTTypeUtil.Resolve(session, subst, memberNode.Child(1), false);
                     members.Add(memberDef);
                 }
                 catch (Semantics.CheckException) { }

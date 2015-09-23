@@ -194,7 +194,7 @@ namespace TraplTest
             if (ast1.kind != ast2.kind)
                 return false;
 
-            if (ast1.kind == Trapl.Grammar.ASTNodeKind.Identifier &&
+            if (ast1.kind == Trapl.Grammar.ASTNodeKind.Name &&
                 ast1.GetExcerpt() != ast2.GetExcerpt())
                 return false;
 

@@ -15,7 +15,7 @@ namespace Trapl.Semantics
         }
 
 
-        private static bool Match(PatternReplacementCollection subst, Grammar.ASTNode thisNode, Grammar.ASTNode otherNode)
+        private static bool Match(PatternReplacementCollection repl, Grammar.ASTNode thisNode, Grammar.ASTNode otherNode)
         {
             if (thisNode.kind == Grammar.ASTNodeKind.ParameterPattern)
             {
@@ -27,7 +27,7 @@ namespace Trapl.Semantics
 
                 for (int i = 0; i < thisNode.ChildNumber(); i++)
                 {
-                    if (!Match(subst, thisNode.Child(i), otherNode.Child(i)))
+                    if (!Match(repl, thisNode.Child(i), otherNode.Child(i)))
                         return false;
                 }
 
@@ -45,7 +45,7 @@ namespace Trapl.Semantics
 
                 for (int i = 0; i < otherNode.ChildNumber(); i++)
                 {
-                    if (!Match(subst, thisNode.Child(Math.Min(i, thisNode.ChildNumber() - 1)), otherNode.Child(i)))
+                    if (!Match(repl, thisNode.Child(Math.Min(i, thisNode.ChildNumber() - 1)), otherNode.Child(i)))
                         return false;
                 }
 
@@ -56,61 +56,58 @@ namespace Trapl.Semantics
             else
             {
                 // Check if this node has a generic name, and that the other node has a concrete name.
-                var genericChildIndex = thisNode.children.FindIndex(c => c.kind == Grammar.ASTNodeKind.GenericIdentifier);
                 if (thisNode.kind == Grammar.ASTNodeKind.TypeName &&
                     otherNode.kind == Grammar.ASTNodeKind.TypeName &&
-                    genericChildIndex >= 0)
+                    thisNode.ChildIs(0, Grammar.ASTNodeKind.GenericIdentifier) &&
+                    otherNode.ChildIs(0, Grammar.ASTNodeKind.Name))
                 {
-                    // Read the generic name, and find the concrete name index.
-                    var genericName = thisNode.Child(genericChildIndex).GetExcerpt();
-                    var concreteChildIndex = otherNode.children.FindIndex(c => c.kind == Grammar.ASTNodeKind.Identifier);
+                    // Read the generic name.
+                    var genericName = thisNode.Child(0).GetExcerpt();
 
-                    if (concreteChildIndex < genericChildIndex)
-                        return false;
+                    // Clone the other node with only the concrete name child.
+                    var matchedNode = otherNode.CloneWithoutChildren();
+                    matchedNode.AddChild(otherNode.Child(0).CloneWithChildren());
 
-                    // Match everything that comes before any of the two names.
-                    for (int i = 0; i < genericChildIndex && i < concreteChildIndex; i++)
+                    // If the generic name's pattern is empty, match any concrete pattern.
+                    if (thisNode.ChildIs(1, Grammar.ASTNodeKind.ParameterPattern) &&
+                        thisNode.Child(1).ChildNumber() == 0)
                     {
-                        if (!Match(subst, thisNode.Child(i), otherNode.Child(i)))
+                        matchedNode.AddChild(otherNode.Child(1).CloneWithChildren());
+                    }
+                    // Else, match the pattern, and add an empty one to the replacement.
+                    else
+                    {
+                        matchedNode.AddChild(new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern, otherNode.Span().JustAfter()));
+                        if (!Match(repl, thisNode.Child(1), otherNode.Child(1)))
                             return false;
                     }
 
-                    // Clone the other node up to and including the concrete name.
-                    var matchedNode = otherNode.CloneWithoutChildren();
-                    for (int i = genericChildIndex; i <= concreteChildIndex; i++)
+                    // Then, match as many modifiers as there are in the generic node...
+                    var curModifier = 2;
+                    while (curModifier < thisNode.ChildNumber())
                     {
-                        matchedNode.AddChild(otherNode.Child(i).CloneWithChildren());
+                        if (curModifier >= otherNode.ChildNumber())
+                            return false;
+
+                        if (!Match(repl, thisNode.Child(curModifier), otherNode.Child(curModifier)))
+                            return false;
+
+                        curModifier++;
+                    }
+                    
+                    // ...and add the rest of the modifiers to the replacement.
+                    while (curModifier < otherNode.ChildNumber())
+                    {
+                        matchedNode.AddChild(otherNode.Child(curModifier).CloneWithChildren());
+                        curModifier++;
                     }
 
-                    // Then check if the pattern in both nodes match.
-                    if (thisNode.ChildNumber() - genericChildIndex != otherNode.ChildNumber() - concreteChildIndex)
-                        return false;
-
-                    // If the generic name's pattern is empty, match everything else.
-                    if (thisNode.ChildIs(genericChildIndex + 1, Grammar.ASTNodeKind.ParameterPattern) &&
-                        thisNode.Child(genericChildIndex + 1).ChildNumber() == 0)
-                    {
-                        for (int i = concreteChildIndex + 1; i < otherNode.ChildNumber(); i++)
-                        {
-                            matchedNode.AddChild(otherNode.Child(i).CloneWithChildren());
-                        }
-                        subst.Add(genericName, matchedNode);
-                    }
-                    else
-                    {
-                        for (int i = 1; i < thisNode.ChildNumber() - genericChildIndex; i++)
-                        {
-                            if (!Match(subst, thisNode.Child(i + genericChildIndex), otherNode.Child(i + concreteChildIndex)))
-                                return false;
-                        }
-                        subst.Add(genericName, matchedNode);
-                    }
-
+                    repl.Add(genericName, matchedNode);
                     return true;
                 }
 
-                else if (thisNode.kind == Grammar.ASTNodeKind.Identifier &&
-                    otherNode.kind == Grammar.ASTNodeKind.Identifier)
+                else if (thisNode.kind == Grammar.ASTNodeKind.Name &&
+                    otherNode.kind == Grammar.ASTNodeKind.Name)
                 {
                     if (thisNode.GetExcerpt() != otherNode.GetExcerpt())
                         return false;
@@ -120,7 +117,7 @@ namespace Trapl.Semantics
 
                     for (int i = 0; i < thisNode.ChildNumber(); i++)
                     {
-                        if (!Match(subst, thisNode.Child(i), otherNode.Child(i)))
+                        if (!Match(repl, thisNode.Child(i), otherNode.Child(i)))
                             return false;
                     }
 
@@ -135,7 +132,7 @@ namespace Trapl.Semantics
 
                     for (int i = 0; i < thisNode.ChildNumber(); i++)
                     {
-                        if (!Match(subst, thisNode.Child(i), otherNode.Child(i)))
+                        if (!Match(repl, thisNode.Child(i), otherNode.Child(i)))
                             return false;
                     }
 

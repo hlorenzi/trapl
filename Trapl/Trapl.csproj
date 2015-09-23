@@ -50,7 +50,9 @@
     <Compile Include="grammar\tokenizer.cs" />
     <Compile Include="main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="old\def_funct.cs" />
+    <Compile Include="semantics\ast_topdecl_finder.cs" />
+    <Compile Include="semantics\code_analyzer.cs" />
+    <Compile Include="semantics\topdecl_funct.cs" />
     <Compile Include="semantics\ast_pattern_matcher.cs" />
     <Compile Include="semantics\ast_pattern_replacer.cs" />
     <Compile Include="semantics\ast_pattern_util.cs" />
@@ -60,8 +62,7 @@
     <Compile Include="semantics\pattern_replacement_collection.cs" />
     <Compile Include="semantics\topdecl.cs" />
     <Compile Include="semantics\type.cs" />
-    <Compile Include="old\Semantics.cs" />
-    <Compile Include="old\Semantics.Output.cs" />
+    <Compile Include="semantics\code.cs" />
     <Compile Include="interface\session.cs" />
     <Compile Include="interface\sourcecode.cs" />
     <Compile Include="semantics\check_topdecl.cs" />

@@ -20,11 +20,10 @@ namespace Trapl.Semantics
             if (result.kind == Grammar.ASTNodeKind.TypeName)
             {
                 // Check whether this node has a generic identifier.
-                var genericIdentifierIndex = node.children.FindIndex(n => n.kind == Grammar.ASTNodeKind.GenericIdentifier);
-                if (genericIdentifierIndex >= 0)
+                if (node.ChildIs(0, Grammar.ASTNodeKind.GenericIdentifier))
                 {
                     // Check whether the generic identifier has a replacement.
-                    var genericIdent = node.Child(genericIdentifierIndex).GetExcerpt();
+                    var genericIdent = node.Child(0).GetExcerpt();
                     if (repl.nameToASTNodeMap.ContainsKey(genericIdent))
                     {
                         // Check whether the replacement's kind is also a TypeName.
@@ -34,29 +33,24 @@ namespace Trapl.Semantics
                             // Then clone from the replacement node!
                             result = CloneReplacedRecursive(session, substNode, repl, true, node.Span());
 
-                            // And insert at the start everything from before the generic name.
-                            for (int i = 0; i < genericIdentifierIndex; i++)
-                                result.children.Insert(0, CloneReplacedRecursive(session, node.Child(i), repl, true, node.Child(i).Span()));
+                            // And add any modifiers from the generic type.
+                            for (int i = 2; i < node.ChildNumber(); i++)
+                                result.children.Add(CloneReplacedRecursive(session, node.Child(i), repl, true, node.Child(i).Span()));
 
-                            var genericPatternIndex = node.children.FindIndex(n => n.kind == Grammar.ASTNodeKind.ParameterPattern);
-                            var substPatternIndex = result.children.FindIndex(n => n.kind == Grammar.ASTNodeKind.ParameterPattern);
-
-                            if (substPatternIndex >= 0 && result.Child(substPatternIndex).ChildNumber() != 0 &&
-                                node.Child(genericPatternIndex).ChildNumber() != 0)
+                            // Check if there's no conflict of patterns.
+                            if (result.Child(1).ChildNumber() != 0 &&
+                                node.Child(1).ChildNumber() != 0)
                             {
                                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
                                     "'gen " + genericIdent + "' replacement already has a pattern", node.Span());
                                 throw new Semantics.CheckException();
                             }
-
-                            if (substPatternIndex < 0)
+                            
+                            // And add the pattern from the generic type if possible!
+                            if (result.Child(1).ChildNumber() == 0)
                             {
-                                result.children.Add(CloneReplacedRecursive(session, node.Child(genericPatternIndex), repl, true, node.Child(genericPatternIndex).Span()));
-                            }
-                            else if (result.Child(substPatternIndex).ChildNumber() == 0)
-                            {
-                                result.children.RemoveAt(substPatternIndex);
-                                result.children.Insert(substPatternIndex, CloneReplacedRecursive(session, node.Child(genericPatternIndex), repl, true, node.Child(genericPatternIndex).Span()));
+                                result.children.RemoveAt(1);
+                                result.children.Insert(1, CloneReplacedRecursive(session, node.Child(1), repl, true, node.Child(1).Span()));
                             }
 
                             return result;

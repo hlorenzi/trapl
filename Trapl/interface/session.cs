@@ -22,8 +22,8 @@ namespace Trapl.Interface
             var tokenCollection = Grammar.Tokenizer.Tokenize(session, src);
             var ast = Grammar.ASTParser.Parse(session, tokenCollection);
 
-            //foreach (var node in ast.topDecls)
-            //    Grammar.AST.PrintDebug(node, 0);
+            foreach (var node in ast.topDecls)
+                Grammar.AST.PrintDebug(node, 0);
 
             if (session.diagn.ContainsNoError())
                 Semantics.CheckTopDecl.Check(session, ast, src);
@@ -34,6 +34,16 @@ namespace Trapl.Interface
                 foreach (var topDecl in topDeclClones)
                 {
                     try { topDecl.Resolve(session);  }
+                    catch (Semantics.CheckException) { }
+                }
+            }
+
+            if (session.diagn.ContainsNoError())
+            {
+                var topDeclClones = new List<Semantics.TopDecl>(session.topDecls);
+                foreach (var topDecl in topDeclClones)
+                {
+                    try { topDecl.ResolveBody(session); }
                     catch (Semantics.CheckException) { }
                 }
             }

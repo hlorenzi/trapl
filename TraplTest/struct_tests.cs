@@ -23,7 +23,8 @@ namespace TraplTest
             ShouldFail("Recursive1: struct { x: Recursive2 } Recursive2: struct { x: Recursive1 }");
             ShouldFail("Recursive1: struct { x: Recursive2 } Recursive2: struct { x: Recursive3 } Recursive3: struct { x: Recursive1 }");
             ShouldFail("Recursive1: struct { x: Recursive3 } Recursive2: struct { x: Recursive1 } Recursive3: struct { x: Recursive2 }");
-            //ShouldFail("VoidMember: struct { x: Void }");
+            ShouldFail("VoidMember: struct { x: Void }");
+            ShouldFail("VoidMember: struct { x: Int32, y: Void }");
             //ShouldFail("SameName: struct { } SameName: struct { }");
         }
 

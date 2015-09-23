@@ -7,98 +7,38 @@ namespace Trapl.Semantics
 {
     public class ASTTypeUtil
     {
-        public static Type Resolve(Interface.Session session, PatternReplacementCollection repl, Grammar.ASTNode node)
+        public static Type Resolve(Interface.Session session, PatternReplacementCollection repl, Grammar.ASTNode node, bool acceptVoid = true)
         {
             if (node.kind != Grammar.ASTNodeKind.TypeName)
                 throw new InternalException("node is not a TypeName");
 
-            // Index to iterate through the node's children.
-            var curChild = 0;
-
             // Read the indirection level of the type. (ex.: '&&Int32' has 2 levels)
             var indirectionLevels = 0;
-            while (node.ChildIs(curChild, Grammar.ASTNodeKind.Operator))
+            foreach (var child in node.EnumerateChildren())
             {
-                indirectionLevels++;
-                curChild++;
+                if (child.kind == Grammar.ASTNodeKind.Operator)
+                    indirectionLevels++;
             }
-
-            // Check that the next node is a name.
-            if (node.Child(curChild).kind != Grammar.ASTNodeKind.Identifier)
-                throw new InternalException("missing Identifier node");
 
             // Read the name. (ex.: '&&List::<Int32>' will read 'List')
-            var nameASTNode = node.Child(curChild);
+            var nameASTNode = node.Child(0);
             var name = nameASTNode.GetExcerpt();
-            curChild++;
 
-            // Find the TopDecls that match the name.
-            var candidateTopDecls = session.topDecls.FindAll(decl => decl.qualifiedName == name);
-            if (candidateTopDecls.Count == 0)
+            // Check if it is the Void type.
+            if (name == "Void")
             {
-                session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
-                    "'" + name + "' is not declared", nameASTNode.GetOriginalSpan());
-                throw new Semantics.CheckException();
-            }
-
-            // Read the pattern. (ex.: 'List::<Int32>' will read '<Int32>')
-            var patternASTNode = new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern, nameASTNode.Span());
-
-            if (node.ChildIs(curChild, Grammar.ASTNodeKind.ParameterPattern) ||
-                node.ChildIs(curChild, Grammar.ASTNodeKind.VariadicParameterPattern))
-            {
-                patternASTNode = node.Child(curChild);
-                curChild++;
-            }
-
-            // Refine candidate TopDecls further by compatibility with the pattern.
-            candidateTopDecls = candidateTopDecls.FindAll(decl => (ASTPatternMatcher.Match(decl.patternASTNode, patternASTNode) != null));
-
-            // Sort candidates by increasing number of generic identifiers,
-            // so that more concrete TopDecls appear first.
-            candidateTopDecls.Sort((a, b) => ASTPatternUtil.GetGenericParameterNumber(a.patternASTNode) - ASTPatternUtil.GetGenericParameterNumber(b.patternASTNode));
-
-            // Check that at least one TopDecl matched.
-            if (candidateTopDecls.Count == 0)
-            {
-                session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
-                    "no '" + name + "' declaration accepts the pattern '" + ASTPatternUtil.GetString(patternASTNode) + "'",
-                    nameASTNode.GetOriginalSpan(), patternASTNode.GetOriginalSpan());
-                throw new Semantics.CheckException();
-            }
-
-            // Check that there is no ambiguity for the best matched TopDecl.
-            if (candidateTopDecls.Count > 1 &&
-                ASTPatternUtil.GetGenericParameterNumber(candidateTopDecls[0].patternASTNode) == ASTPatternUtil.GetGenericParameterNumber(candidateTopDecls[1].patternASTNode))
-            {
-                session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTemplate,
-                    "more than one '" + name + "' declaration accepts this pattern '" + ASTPatternUtil.GetString(patternASTNode) + "'",
-                    nameASTNode.GetOriginalSpan(), patternASTNode.GetOriginalSpan());
-                throw new Semantics.CheckException();
-            }
-
-            // Ask the matching TopDecl to parse and resolve its definition, if not yet done.
-            var matchingTopDecl = candidateTopDecls[0];
-            try
-            {
-                var innerRepl = ASTPatternMatcher.Match(matchingTopDecl.patternASTNode, patternASTNode);
-                if (matchingTopDecl.generic)
+                if (!acceptVoid)
                 {
-                    var synthTopDecl = matchingTopDecl.Clone();
-
-                    synthTopDecl.patternRepl = innerRepl;
-                    synthTopDecl.patternASTNode = ASTPatternReplacer.CloneReplaced(session, matchingTopDecl.patternASTNode, innerRepl);
-                    synthTopDecl.defASTNode = ASTPatternReplacer.CloneReplaced(session, matchingTopDecl.defASTNode, innerRepl);
-
-                    session.topDecls.Add(synthTopDecl);
-                    matchingTopDecl = synthTopDecl;
+                    session.diagn.Add(MessageKind.Error, MessageCode.ExplicitVoid,
+                        "cannot use 'Void' here", nameASTNode.GetOriginalSpan());
+                    throw new Semantics.CheckException();
                 }
 
-                matchingTopDecl.Resolve(session);
+                return new TypeVoid();
             }
-            finally
-            {
-            }
+
+            // Find a matching TopDecl.
+            var matchingTopDecl = ASTTopDeclFinder.Find(session, nameASTNode, node.Child(1));
 
             // Check that what the matching TopDecl defines is a struct.
             if (!(matchingTopDecl.def is DefStruct))
@@ -109,9 +49,9 @@ namespace Trapl.Semantics
             }
 
             // Build a Type with the matching TopDecl's struct.
-            var resolvedType = (Type)new TypeStruct((DefStruct)matchingTopDecl.def);
+            Type resolvedType = new TypeStruct((DefStruct)matchingTopDecl.def);
 
-            // Wrap the type into as many pointer types as needed.
+            // Wrap the type into as many pointer types as specified.
             for (int i = 0; i < indirectionLevels; i++)
                 resolvedType = new TypePointer(resolvedType);
 
@@ -122,11 +62,11 @@ namespace Trapl.Semantics
         public static string GetString(Grammar.ASTNode typeNode)
         {
             var result = "";
+            var prefix = "";
 
             foreach (var child in typeNode.EnumerateChildren())
             {
-                if (child.kind == Grammar.ASTNodeKind.Operator ||
-                    child.kind == Grammar.ASTNodeKind.Identifier)
+                if (child.kind == Grammar.ASTNodeKind.Name)
                     result += child.GetExcerpt();
                 else if (child.kind == Grammar.ASTNodeKind.GenericIdentifier)
                     result += "gen " + child.GetExcerpt();
@@ -135,11 +75,13 @@ namespace Trapl.Semantics
                     if (!ASTPatternUtil.IsEmpty(child))
                         result += "::" + ASTPatternUtil.GetString(child);
                 }
+                else if (child.kind == Grammar.ASTNodeKind.Operator)
+                    prefix += child.GetExcerpt();
                 else
                     result += "?";
             }
 
-            return result;
+            return prefix + result;
         }
     }
 }

@@ -41,8 +41,25 @@ namespace Trapl.Semantics
                 defStruct.Resolve(session, this, this.patternRepl, this.defASTNode);
                 this.resolved = true;
             }
+            else if (this.defASTNode.kind == Grammar.ASTNodeKind.FunctDecl)
+            {
+                var defFunct = new DefFunct();
+                this.def = defFunct;
+                defFunct.ResolveSignature(session, this, this.patternRepl, this.defASTNode);
+                this.resolved = true;
+            }
             else
                 throw new InternalException("unexpected def node");
+        }
+
+
+        public void ResolveBody(Interface.Session session)
+        {
+            if (this.generic || !(this.def is DefFunct))
+                return;
+
+            var funct = (DefFunct)this.def;
+            funct.ResolveBody(session, this, this.patternRepl, this.defASTNode);
         }
 
 
