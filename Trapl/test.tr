@@ -27,11 +27,21 @@ Tests: struct
 
 call_parametrized: funct(x: Int32)
 {
+	x = 1 + 1;
+	x = 1 - 1;
 	parametrized_funct::<Int32>(x);
+	parametrized_funct::<&Int32>(&x);
+	parametrized_funct::<Float64>(x);
+	parametrized_funct::<List::<Container::<Int64>>>(x);
+
+	x < 1;
+	x < 1 + 2;
+	x < 1 & x > 2;
 }
 
 
-parametrized_funct::<gen T>: funct(x: gen T)
+parametrized_funct::<gen T>: funct(x: gen T -> gen T)
 {
 	let y: gen T;
+	parametrized_funct::<gen T>(x);
 }

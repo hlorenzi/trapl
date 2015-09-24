@@ -8,59 +8,93 @@ namespace Trapl.Semantics
     {
         public static void Check(Interface.Session session, Grammar.AST ast, Interface.SourceCode source)
         {
-            AddPrimitive(session, "Void");
-            AddPrimitive(session, "Bool");
-            AddPrimitive(session, "Int8");
-            AddPrimitive(session, "Int16");
-            AddPrimitive(session, "Int32");
-            AddPrimitive(session, "Int64");
-            AddPrimitive(session, "UInt8");
-            AddPrimitive(session, "UInt16");
-            AddPrimitive(session, "UInt32");
-            AddPrimitive(session, "UInt64");
-            AddPrimitive(session, "Float32");
-            AddPrimitive(session, "Float64");
+            AddPrimitiveStruct(session, "Bool");
+            AddPrimitiveStruct(session, "Int8");
+            AddPrimitiveStruct(session, "Int16");
+            AddPrimitiveStruct(session, "Int32");
+            AddPrimitiveStruct(session, "Int64");
+            AddPrimitiveStruct(session, "UInt8");
+            AddPrimitiveStruct(session, "UInt16");
+            AddPrimitiveStruct(session, "UInt32");
+            AddPrimitiveStruct(session, "UInt64");
+            AddPrimitiveStruct(session, "Float32");
+            AddPrimitiveStruct(session, "Float64");
+
+            var numTypes = new string[] { "Int8", "Int16", "Int32", "Int64", "UInt8", "UInt16", "UInt32", "UInt64", "Float32", "Float64" };
+            var arithBinOps = new string[] { "add", "sub", "mul", "div", "rem", "and", "or", "xor" };
+            var arithUnOps = new string[] { "neg" };
+            var relOps = new string[] { "eq", "noteq", "less", "lesseq", "greater", "greatereq"};
+
+            foreach (var op in arithBinOps)
+            {
+                foreach (var type in numTypes)
+                    AddPrimitiveFunct(session,
+                        op + "::<" + type + ", " + type + ">",
+                        "funct(x: " + type + ", y: " + type + " -> " + type + ")");
+            }
+
+            foreach (var op in arithUnOps)
+            {
+                foreach (var type in numTypes)
+                    AddPrimitiveFunct(session,
+                        op + "::<" + type + ">",
+                        "funct(x: " + type + " -> " + type + ")");
+            }
+
+            AddPrimitiveFunct(session, "not::<Bool>", "funct(x: Bool -> Bool)");
+            AddPrimitiveFunct(session, "and::<Bool, Bool>", "funct(x: Bool, y: Bool -> Bool)");
+            AddPrimitiveFunct(session, "or::<Bool, Bool>", "funct(x: Bool, y: Bool -> Bool)");
+            AddPrimitiveFunct(session, "xor::<Bool, Bool>", "funct(x: Bool, y: Bool -> Bool)");
+
+            foreach (var op in relOps)
+            {
+                foreach (var type in numTypes)
+                    AddPrimitiveFunct(session,
+                        op + "::<" + type + ", " + type + ">",
+                        "funct(x: " + type + ", y: " + type + " -> Bool)");
+            }
 
             foreach (var node in ast.topDecls)
             {
                 try
                 {
                     EnsureKind(session, node, Grammar.ASTNodeKind.TopLevelDecl);
-                    EnsureKind(session, node.Child(0), Grammar.ASTNodeKind.Identifier);
-                    EnsureKind(session, node.Child(0).Child(0), Grammar.ASTNodeKind.Name);
-
-                    var qualifiedNameNode = node.Child(0).Child(0);
-                    var qualifiedName = qualifiedNameNode.GetExcerpt();
-
-                    var patternNode = new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern);
-
-                    if (node.Child(0).ChildIs(1, Grammar.ASTNodeKind.ParameterPattern) ||
-                        node.Child(0).ChildIs(1, Grammar.ASTNodeKind.VariadicParameterPattern))
-                    {
-                        patternNode = node.Child(0).Child(1);
-                    }
-
-                    var defNode = node.Child(1);
-
-                    var topDecl = new TopDecl();
-                    topDecl.declASTNode = node;
-                    topDecl.qualifiedName = qualifiedName;
-                    topDecl.qualifiedNameASTNode = qualifiedNameNode;
-                    topDecl.patternASTNode = patternNode;
-                    topDecl.generic = ASTPatternUtil.IsGeneric(patternNode);
-                    topDecl.defASTNode = defNode;
-                    session.topDecls.Add(topDecl);
-
-                    if (defNode.kind != Grammar.ASTNodeKind.StructDecl &&
-                        defNode.kind != Grammar.ASTNodeKind.FunctDecl)
-                        throw ErrorAt(session, "Decl", defNode);
+                    AddTopDecl(session, node, node.Child(0), node.Child(1));
                 }
                 catch (CheckException) { }
             }
         }
 
 
-        private static void AddPrimitive(Interface.Session session, string name)
+        private static void AddTopDecl(Interface.Session session, Grammar.ASTNode topDeclASTNode, Grammar.ASTNode nameASTNode, Grammar.ASTNode defASTNode)
+        {
+            var qualifiedNameNode = nameASTNode.Child(0);
+            var qualifiedName = qualifiedNameNode.GetExcerpt();
+
+            var patternNode = new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern);
+
+            if (nameASTNode.ChildIs(1, Grammar.ASTNodeKind.ParameterPattern) ||
+                nameASTNode.ChildIs(1, Grammar.ASTNodeKind.VariadicParameterPattern))
+            {
+                patternNode = nameASTNode.Child(1);
+            }
+
+            var topDecl = new TopDecl();
+            topDecl.declASTNode = topDeclASTNode;
+            topDecl.qualifiedName = qualifiedName;
+            topDecl.qualifiedNameASTNode = qualifiedNameNode;
+            topDecl.patternASTNode = patternNode;
+            topDecl.generic = ASTPatternUtil.IsGeneric(patternNode);
+            topDecl.defASTNode = defASTNode;
+            session.topDecls.Add(topDecl);
+
+            if (defASTNode.kind != Grammar.ASTNodeKind.StructDecl &&
+                defASTNode.kind != Grammar.ASTNodeKind.FunctDecl)
+                throw ErrorAt(session, "Decl", defASTNode);
+        }
+
+
+        private static void AddPrimitiveStruct(Interface.Session session, string name)
         {
             var topDecl = new TopDecl();
             topDecl.qualifiedName = name;
@@ -70,6 +104,18 @@ namespace Trapl.Semantics
             topDecl.def = new DefStruct();
             topDecl.resolved = true;
             session.topDecls.Add(topDecl);
+        }
+
+
+        private static void AddPrimitiveFunct(Interface.Session session, string name, string functHeader)
+        {
+            var nameTokens = Grammar.Tokenizer.Tokenize(session, Interface.SourceCode.MakeFromString(name));
+            var nameAST = Grammar.ASTParser.ParseType(session, nameTokens);
+
+            var headerTokens = Grammar.Tokenizer.Tokenize(session, Interface.SourceCode.MakeFromString(functHeader + "{ }"));
+            var headerAST = Grammar.ASTParser.ParseFunctDecl(session, headerTokens);
+
+            AddTopDecl(session, null, nameAST, headerAST);
         }
 
 

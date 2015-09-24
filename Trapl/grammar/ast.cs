@@ -47,6 +47,8 @@ namespace Trapl.Grammar
         private bool hasOriginalSpan = false;
         private Diagnostics.Span originalSpan;
 
+        private string overwrittenExcerpt = null;
+
 
         public ASTNode(ASTNodeKind kind)
         {
@@ -68,6 +70,7 @@ namespace Trapl.Grammar
             newNode.span = this.span;
             newNode.spanWithDelimiters = this.spanWithDelimiters;
             newNode.originalSpan = this.originalSpan;
+            newNode.overwrittenExcerpt = this.overwrittenExcerpt;
             newNode.children = new List<ASTNode>();
             return newNode;
         }
@@ -75,11 +78,7 @@ namespace Trapl.Grammar
 
         public ASTNode CloneWithChildren()
         {
-            var newNode = new ASTNode(this.kind);
-            newNode.span = this.span;
-            newNode.spanWithDelimiters = this.spanWithDelimiters;
-            newNode.originalSpan = this.originalSpan;
-            newNode.children = new List<ASTNode>();
+            var newNode = this.CloneWithoutChildren();
             foreach (var child in this.children)
                 newNode.children.Add(child.CloneWithChildren());
             return newNode;
@@ -88,13 +87,19 @@ namespace Trapl.Grammar
 
         public string GetExcerpt()
         {
-            return this.span.GetExcerpt();
+            return (this.overwrittenExcerpt ?? this.span.GetExcerpt());
         }
 
 
         public string GetExcerptWithComments()
         {
-            return this.span.GetExcerpt();
+            return (this.overwrittenExcerpt ?? this.span.GetExcerpt());
+        }
+
+
+        public void OverwriteExcerpt(string str)
+        {
+            this.overwrittenExcerpt = str;
         }
 
 

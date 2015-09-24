@@ -216,6 +216,8 @@ namespace Trapl.Diagnostics
 
             // FIXME! Not ready for multiple sources yet.
             var source = spans[0].src;
+            if (source == null)
+                return;
             
             // Find the very first and the very last lines
             // referenced by any caret, with some added margin around.

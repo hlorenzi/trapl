@@ -13,7 +13,7 @@ namespace Trapl.Grammar
         KeywordLet, KeywordIf, KeywordElse, KeywordWhile, KeywordReturn,
         BraceOpen, BraceClose, ParenOpen, ParenClose,
         Period, Comma, Colon, Semicolon, Arrow, DoubleColon, TriplePeriod,
-        Equal, Plus, Minus, Asterisk, Slash,
+        Equal, Plus, Minus, Asterisk, Slash, PercentSign,
         Ampersand, VerticalBar, Circumflex, At,
         ExclamationMark, ExclamationMarkEqual, QuestionMark,
         LessThan, LessThanEqual, GreaterThan, GreaterThanEqual

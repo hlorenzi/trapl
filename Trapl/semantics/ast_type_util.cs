@@ -5,7 +5,7 @@ using System;
 
 namespace Trapl.Semantics
 {
-    public class ASTTypeUtil
+    public static class ASTTypeUtil
     {
         public static Type Resolve(Interface.Session session, PatternReplacementCollection repl, Grammar.ASTNode node, bool acceptVoid = true)
         {
@@ -56,6 +56,22 @@ namespace Trapl.Semantics
                 resolvedType = new TypePointer(resolvedType);
 
             return resolvedType;
+        }
+
+
+        public static Grammar.ASTNode GetASTNode(Interface.Session session, Type type)
+        {
+            var structType = type as TypeStruct;
+            if (structType == null)
+                throw new InternalException("cannot generate ast node for non-struct type");
+
+            var node = new Grammar.ASTNode(Grammar.ASTNodeKind.TypeName);
+            node.AddChild(new Grammar.ASTNode(Grammar.ASTNodeKind.Name));
+            node.Child(0).OverwriteExcerpt(structType.GetTopDeclName(session));
+
+            node.AddChild(new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern));
+
+            return node;
         }
 
 

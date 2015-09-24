@@ -62,5 +62,11 @@ namespace Trapl.Diagnostics
             else
                 return this.src.GetExcerpt(this.start, this.end);
         }
+
+
+        public override string ToString()
+        {
+            return GetExcerpt();
+        }
     }
 }

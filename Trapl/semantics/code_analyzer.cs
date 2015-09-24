@@ -176,6 +176,7 @@ namespace Trapl.Semantics
                 segment.nodes.Add(codeNode);
 
                 type = this.localVariables[localDeclIndex].type;
+                type.addressable = true;
                 return segment;
             }
 
@@ -231,9 +232,7 @@ namespace Trapl.Semantics
             codeNode.literalExcerpt = node.Span().GetExcerpt();
             segment.nodes.Add(codeNode);
 
-            /*var stType = new TypeStruct();
-            stType.structDef = this.owner.output.structDefs.Find(s => s.name == "Int32");*/
-            type = new TypeVoid();//stType;
+            type = new TypeStruct((DefStruct)this.session.topDecls.Find(d => d.qualifiedName == "Int32").def);
             return segment;
         }
 
@@ -262,9 +261,45 @@ namespace Trapl.Semantics
                 type = new TypeVoid();
                 return segment3;
             }
+            else
+            {
+                Type lhsType, rhsType;
+                var segment2 = this.ParseExpression(node.Child(1), segment, out lhsType);
+                var segment3 = this.ParseExpression(node.Child(2), segment2, out rhsType);
 
-            type = new TypeVoid();
-            return segment;
+                string opName;
+                switch (op)
+                {
+                    case "+":  opName = "add"; break;
+                    case "-":  opName = "sub"; break;
+                    case "*":  opName = "mul"; break;
+                    case "/":  opName = "div"; break;
+                    case "%":  opName = "rem"; break;
+                    case "==": opName = "eq"; break;
+                    case "!=": opName = "noteq"; break;
+                    case "<":  opName = "less"; break;
+                    case "<=": opName = "lesseq"; break;
+                    case ">":  opName = "greater"; break;
+                    case ">=": opName = "greatereq"; break;
+                    case "&":  opName = "and"; break;
+                    case "|":  opName = "or"; break;
+                    case "^":  opName = "xor"; break;
+                    default: throw new InternalException("unimplemented");
+                }
+
+                var matchingTopDecl = ASTTopDeclFinder.FindBinaryOpPrimitive(this.session,
+                    opName, node.Child(0).Span(),
+                    lhsType, node.Child(1).Span(),
+                    rhsType, node.Child(2).Span());
+
+                var codeNode = new CodeNodePushFunct();
+                codeNode.topDecl = matchingTopDecl;
+                segment.nodes.Add(codeNode);
+                segment.nodes.Add(new CodeNodeCall());
+
+                type = ((DefFunct)matchingTopDecl.def).returnType;
+                return segment;
+            }
         }
 
 

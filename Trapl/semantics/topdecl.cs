@@ -18,6 +18,7 @@ namespace Trapl.Semantics
         public Grammar.ASTNode defASTNode;
 
         public bool resolved;
+        public bool bodyResolved;
         public bool generic;
         public bool synthesized;
 
@@ -55,9 +56,10 @@ namespace Trapl.Semantics
 
         public void ResolveBody(Interface.Session session)
         {
-            if (this.generic || !(this.def is DefFunct))
+            if (this.generic || this.bodyResolved || !(this.def is DefFunct))
                 return;
 
+            this.bodyResolved = true;
             var funct = (DefFunct)this.def;
             funct.ResolveBody(session, this, this.patternRepl, this.defASTNode);
         }
@@ -68,6 +70,7 @@ namespace Trapl.Semantics
             var newDecl = (TopDecl)this.MemberwiseClone();
             newDecl.def = null;
             newDecl.resolved = false;
+            newDecl.bodyResolved = false;
             newDecl.generic = false;
             newDecl.synthesized = true;
             return newDecl;

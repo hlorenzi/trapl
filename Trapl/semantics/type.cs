@@ -60,6 +60,18 @@ namespace Trapl.Semantics
             }
             return "<unknown>";
         }
+
+        public string GetTopDeclName(Interface.Session session)
+        {
+            foreach (var topDecl in session.topDecls)
+            {
+                if (structDef == topDecl.def)
+                {
+                    return topDecl.qualifiedName;
+                }
+            }
+            return "<unknown>";
+        }
     }
 
 

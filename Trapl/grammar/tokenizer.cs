@@ -87,6 +87,7 @@ namespace Trapl.Grammar
                 new TokenMatch("-", TokenKind.Minus),
                 new TokenMatch("*", TokenKind.Asterisk),
                 new TokenMatch("/", TokenKind.Slash),
+                new TokenMatch("%", TokenKind.PercentSign),
                 new TokenMatch("!=", TokenKind.ExclamationMarkEqual),
                 new TokenMatch("!", TokenKind.ExclamationMark),
                 new TokenMatch("?", TokenKind.QuestionMark),

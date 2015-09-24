@@ -39,6 +39,17 @@ namespace Trapl.Grammar
             return result;
         }
 
+        public static ASTNode ParseFunctDecl(Interface.Session session, TokenCollection tokenColl)
+        {
+            var parser = new ASTParser(session, tokenColl);
+            ASTNode result = null;
+
+            try { result = parser.ParseFunctDecl(true); }
+            catch (ParserException) { }
+
+            return result;
+        }
+
 
         private class ParserException : Exception
         {
@@ -515,12 +526,24 @@ namespace Trapl.Grammar
                 new OperatorModel(OperatorModel.Associativity.Right, TokenKind.Equal)
             },
             new List<OperatorModel> {
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Ampersand),
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.VerticalBar),
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Circumflex)
+            },
+            new List<OperatorModel> {
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.LessThan),
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.LessThanEqual),
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.GreaterThan),
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.GreaterThanEqual)
+            },
+            new List<OperatorModel> {
                 new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Plus),
                 new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Minus)
             },
             new List<OperatorModel> {
                 new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Asterisk),
-                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Slash)
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Slash),
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.PercentSign)
             },
             new List<OperatorModel> {
                 new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Period)
@@ -531,8 +554,8 @@ namespace Trapl.Grammar
         private static readonly List<OperatorModel>[] unaryOpList = new List<OperatorModel>[]
         {
             new List<OperatorModel> {
-                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Plus),
-                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Minus)
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Minus),
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.ExclamationMark)
             },
             new List<OperatorModel> {
                 new OperatorModel(OperatorModel.Associativity.Left, TokenKind.At),
