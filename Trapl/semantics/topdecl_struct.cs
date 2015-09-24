@@ -24,6 +24,12 @@ namespace Trapl.Semantics
         public List<Member> members = new List<Member>();
 
 
+        public DefStruct(TopDecl topDecl) : base(topDecl)
+        {
+
+        }
+
+
         public DefStruct Clone()
         {
             var def = (DefStruct)this.MemberwiseClone();

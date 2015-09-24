@@ -31,12 +31,24 @@ call_parametrized: funct(x: Int32)
 	x = 1 - 1;
 	parametrized_funct::<Int32>(x);
 	parametrized_funct::<&Int32>(&x);
-	parametrized_funct::<Float64>(x);
-	parametrized_funct::<List::<Container::<Int64>>>(x);
 
 	x < 1;
 	x < 1 + 2;
 	x < 1 & x > 2;
+	if x < 1 { };
+	while x < 1 { };
+
+	let s: Tests;
+	s.a = s.b;
+	s.a = s.f;
+	s.a = 4;
+	s.(1 + 1) = 0;
+	s.s = 0;
+	let w = &s.e;
+	let z = &s.e.data.data;
+	let z2 = @z + @z;
+
+	let y = cast::<&Int32, &Void>(&x);
 }
 
 

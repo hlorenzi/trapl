@@ -25,6 +25,22 @@ namespace Trapl.Semantics
             var arithUnOps = new string[] { "neg" };
             var relOps = new string[] { "eq", "noteq", "less", "lesseq", "greater", "greatereq"};
 
+            foreach (var typeFrom in numTypes)
+            {
+                foreach (var typeTo in numTypes)
+                    AddPrimitiveFunct(session,
+                        "cast::<" + typeFrom + ", " + typeTo + ">",
+                        "funct(x: " + typeFrom + " -> " + typeTo + ")");
+            }
+
+            AddPrimitiveFunct(session,
+                "cast::<&gen T, &Void>",
+                "funct(x: &gen T -> &Void)");
+
+            AddPrimitiveFunct(session,
+                "cast::<&Void, &gen T>",
+                "funct(x: &Void -> &gen T)");
+
             foreach (var op in arithBinOps)
             {
                 foreach (var type in numTypes)
@@ -66,7 +82,7 @@ namespace Trapl.Semantics
         }
 
 
-        private static void AddTopDecl(Interface.Session session, Grammar.ASTNode topDeclASTNode, Grammar.ASTNode nameASTNode, Grammar.ASTNode defASTNode)
+        private static TopDecl AddTopDecl(Interface.Session session, Grammar.ASTNode topDeclASTNode, Grammar.ASTNode nameASTNode, Grammar.ASTNode defASTNode)
         {
             var qualifiedNameNode = nameASTNode.Child(0);
             var qualifiedName = qualifiedNameNode.GetExcerpt();
@@ -91,6 +107,8 @@ namespace Trapl.Semantics
             if (defASTNode.kind != Grammar.ASTNodeKind.StructDecl &&
                 defASTNode.kind != Grammar.ASTNodeKind.FunctDecl)
                 throw ErrorAt(session, "Decl", defASTNode);
+
+            return topDecl;
         }
 
 
@@ -101,8 +119,9 @@ namespace Trapl.Semantics
             topDecl.qualifiedNameASTNode = null;
             topDecl.patternASTNode = new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern);
             topDecl.defASTNode = null;
-            topDecl.def = new DefStruct();
+            topDecl.def = new DefStruct(topDecl);
             topDecl.resolved = true;
+            topDecl.primitive = true;
             session.topDecls.Add(topDecl);
         }
 
@@ -115,7 +134,8 @@ namespace Trapl.Semantics
             var headerTokens = Grammar.Tokenizer.Tokenize(session, Interface.SourceCode.MakeFromString(functHeader + "{ }"));
             var headerAST = Grammar.ASTParser.ParseFunctDecl(session, headerTokens);
 
-            AddTopDecl(session, null, nameAST, headerAST);
+            var topDecl = AddTopDecl(session, null, nameAST, headerAST);
+            topDecl.primitive = true;
         }
 
 

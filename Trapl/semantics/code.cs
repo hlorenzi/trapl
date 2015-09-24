@@ -45,14 +45,6 @@ namespace Trapl.Semantics
     }
 
 
-    public class CodeNodePushLocalAddress : CodeNode
-    {
-        public int localIndex;
-
-        public override string Name() { return "PushLocalAddress " + localIndex; }
-    }
-
-
     public class CodeNodePushLiteral : CodeNode
     {
         public Type type;
@@ -67,6 +59,21 @@ namespace Trapl.Semantics
         public TopDecl topDecl;
 
         public override string Name() { return "PushFunct '" + topDecl.GetString() + "'"; }
+    }
+
+
+    public class CodeNodeAccess : CodeNode
+    {
+        public DefStruct accessedStruct;
+        public int memberIndex;
+
+        public CodeNodeAccess(DefStruct st, int memberIndex)
+        {
+            this.accessedStruct = st;
+            this.memberIndex = memberIndex;
+        }
+
+        public override string Name() { return "Access '" + accessedStruct.topDecl.GetString() + "." + accessedStruct.members[memberIndex].name + "'"; }
     }
 
 

@@ -101,10 +101,9 @@ namespace Trapl.Semantics
                 throw new CheckException();
             }
 
-            Type varType;
             if (node.Child(1).kind == Grammar.ASTNodeKind.TypeName)
             {
-                varType = ASTTypeUtil.Resolve(this.session, new PatternReplacementCollection(), node.Child(1), false);
+                Type varType = ASTTypeUtil.Resolve(this.session, new PatternReplacementCollection(), node.Child(1), false);
                 varType.addressable = true;
 
                 if (node.ChildNumber() == 3)
@@ -131,17 +130,9 @@ namespace Trapl.Semantics
             }
             else
             {
-                var initializerSegment = new CodeSegment();
-                var initializerSegmentEnd = this.ParseExpression(node.Child(1), initializerSegment, out varType);
-
-                if (varType is TypeVoid)
-                {
-                    this.session.diagn.Add(MessageKind.Error, MessageCode.ExplicitVoid,
-                        "type inferred to be 'Void'", node.Child(1).Span(), node.Child(0).Span());
-                    throw new CheckException();
-                }
-
-                var newVariable = new DefFunct.Variable(varName, varType, varSpan);
+                var newVariable = new DefFunct.Variable();
+                newVariable.name = varName;
+                newVariable.declSpan = varSpan;
                 this.localVariables.Add(newVariable);
 
                 var codeNode = new CodeNodeLocalBegin();
@@ -152,7 +143,26 @@ namespace Trapl.Semantics
                 pushLocalNode.localIndex = this.localVariables.Count - 1;
                 segment.nodes.Add(pushLocalNode);
 
-                segment.GoesTo(initializerSegment);
+                Type varType;
+                CodeSegment initializerSegmentEnd;
+                try
+                {
+                    initializerSegmentEnd = this.ParseExpression(node.Child(1), segment, out varType);
+                }
+                catch (CheckException)
+                {
+                    this.localVariables.Remove(newVariable);
+                    throw;
+                }
+
+                if (varType is TypeVoid)
+                {
+                    this.session.diagn.Add(MessageKind.Error, MessageCode.ExplicitVoid,
+                        "type inferred to be 'Void'", node.Child(1).Span(), node.Child(0).Span());
+                    throw new CheckException();
+                }
+
+                newVariable.type = varType;
 
                 var storeNode = new CodeNodeStore();
                 initializerSegmentEnd.nodes.Add(storeNode);
@@ -190,7 +200,7 @@ namespace Trapl.Semantics
             var matchingTopDecl = ASTTopDeclFinder.Find(this.session, nameASTNode, patternASTNode);
             if (matchingTopDecl != null)
             {
-                // Check if what the matching topdecl defines is a funct.
+                // Check that what the matching topdecl defines is a funct.
                 var funct = matchingTopDecl.def as DefFunct;
                 if (funct == null)
                 {
@@ -260,6 +270,43 @@ namespace Trapl.Semantics
                 segment3.nodes.Add(new CodeNodeStore());
                 type = new TypeVoid();
                 return segment3;
+            }
+            else if (op == ".")
+            {
+                Type accessedType;
+                var segment2 = this.ParseExpression(node.Child(1), segment, out accessedType);
+
+                var accessedTypeStruct = (accessedType as TypeStruct);
+                if (accessedTypeStruct == null)
+                {
+                    this.session.diagn.Add(MessageKind.Error, MessageCode.CannotAssign,
+                        "'" + accessedType.GetString(session) + "' expression accessed like a struct",
+                        node.Child(1).Span(), node.Child(2).Span());
+                    throw new CheckException();
+                }
+
+                if (node.Child(2).kind != Grammar.ASTNodeKind.Identifier)
+                {
+                    this.session.diagn.Add(MessageKind.Error, MessageCode.CannotAssign,
+                        "expecting a member name",
+                        node.Child(2).Span());
+                    throw new CheckException();
+                }
+
+                var memberName = node.Child(2).GetExcerpt();
+                var memberIndex = accessedTypeStruct.structDef.members.FindIndex(m => m.name == memberName);
+                if (memberIndex < 0)
+                {
+                    this.session.diagn.Add(MessageKind.Error, MessageCode.CannotAssign,
+                        "'" + accessedType.GetString(session) + "' struct has no member '" + memberName + "'",
+                        node.Child(1).Span(), node.Child(2).Span());
+                    throw new CheckException();
+                }
+
+                segment2.nodes.Add(new CodeNodeAccess(accessedTypeStruct.structDef, memberIndex));
+                type = accessedTypeStruct.structDef.members[memberIndex].type;
+                type.addressable = accessedType.addressable;
+                return segment2;
             }
             else
             {
@@ -402,14 +449,25 @@ namespace Trapl.Semantics
                     +-------+-------+                      +-------+-------+
                     |               |                      |               |
                     v               v                      |               v
-                SEGMENT FALSE    SEGMENT TRUE       or       |          SEGMENT TRUE
+              SEGMENT FALSE    SEGMENT TRUE       or       |          SEGMENT TRUE
                     |               |                      |               |
                     +-------+-------+                      +-------+-------+
                             |                                      |
                             v                                      v
-                        SEGMENT AFTER                          SEGMENT AFTER
+                      SEGMENT AFTER                          SEGMENT AFTER
                          
             */
+
+            Type conditionType;
+            segmentBefore = this.ParseExpression(node.Child(0), segmentBefore, out conditionType);
+            if (!(conditionType is TypeStruct) ||
+                ((TypeStruct)conditionType).structDef.topDecl.qualifiedName != "Bool")
+            {
+                this.session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
+                    "'" + conditionType.GetString(this.session) + "' expression used as condition",
+                    node.Child(0).Span());
+                throw new CheckException();
+            }
 
             segmentBefore.nodes.Add(new CodeNodeIf());
 
@@ -457,13 +515,24 @@ namespace Trapl.Semantics
 
             segmentBefore.GoesTo(segmentCondition);
 
-            segmentCondition.nodes.Add(new CodeNodeIf());
-            segmentCondition.GoesTo(segmentBody);
+            Type conditionType;
+            var segmentConditionEnd = this.ParseExpression(node.Child(0), segmentCondition, out conditionType);
+            if (!(conditionType is TypeStruct) ||
+                ((TypeStruct)conditionType).structDef.topDecl.qualifiedName != "Bool")
+            {
+                this.session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
+                    "'" + conditionType.GetString(this.session) + "' expression used as condition",
+                    node.Child(0).Span());
+                throw new CheckException();
+            }
+
+            segmentConditionEnd.nodes.Add(new CodeNodeIf());
+            segmentConditionEnd.GoesTo(segmentBody);
 
             var segmentBodyEnd = this.ParseBlock(node.Child(1), segmentBody);
             segmentBodyEnd.GoesTo(segmentCondition);
 
-            segmentCondition.GoesTo(segmentAfter);
+            segmentConditionEnd.GoesTo(segmentAfter);
 
             type = new TypeVoid();
             return segmentAfter;

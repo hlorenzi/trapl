@@ -505,7 +505,7 @@ namespace Trapl.Grammar
 
         private class OperatorModel
         {
-            public enum Associativity { Left, Right };
+            public enum Associativity { Unary, Left, Right };
 
 
             public Associativity associativity;
@@ -520,7 +520,7 @@ namespace Trapl.Grammar
         }
 
 
-        private static readonly List<OperatorModel>[] binaryOpList = new List<OperatorModel>[]
+        private static readonly List<OperatorModel>[] opList = new List<OperatorModel>[]
         {
             new List<OperatorModel> {
                 new OperatorModel(OperatorModel.Associativity.Right, TokenKind.Equal)
@@ -531,6 +531,8 @@ namespace Trapl.Grammar
                 new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Circumflex)
             },
             new List<OperatorModel> {
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.DoubleEqual),
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.ExclamationMarkEqual),
                 new OperatorModel(OperatorModel.Associativity.Left, TokenKind.LessThan),
                 new OperatorModel(OperatorModel.Associativity.Left, TokenKind.LessThanEqual),
                 new OperatorModel(OperatorModel.Associativity.Left, TokenKind.GreaterThan),
@@ -546,20 +548,15 @@ namespace Trapl.Grammar
                 new OperatorModel(OperatorModel.Associativity.Left, TokenKind.PercentSign)
             },
             new List<OperatorModel> {
-                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Period)
-            }
-        };
-
-
-        private static readonly List<OperatorModel>[] unaryOpList = new List<OperatorModel>[]
-        {
-            new List<OperatorModel> {
-                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Minus),
-                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.ExclamationMark)
+                new OperatorModel(OperatorModel.Associativity.Unary, TokenKind.Minus),
+                new OperatorModel(OperatorModel.Associativity.Unary, TokenKind.ExclamationMark)
             },
             new List<OperatorModel> {
-                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.At),
-                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Ampersand)
+                new OperatorModel(OperatorModel.Associativity.Unary, TokenKind.At),
+                new OperatorModel(OperatorModel.Associativity.Unary, TokenKind.Ampersand)
+            },
+            new List<OperatorModel> {
+                new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Period)
             }
         };
 
@@ -567,10 +564,30 @@ namespace Trapl.Grammar
         private ASTNode ParseBinaryOp(int level)
         {
             // If reached the end of operators list, continue parsing inner expressions.
-            if (level >= binaryOpList.GetLength(0))
-                return this.ParseUnaryOp(0);
+            if (level >= opList.GetLength(0))
+                return this.ParseCallExpression();
 
-            // Parse left-hand side.
+            // Try to find a unary operator that matches the current token.
+            var unaryMatch = opList[level].Find(
+                op => op.associativity == OperatorModel.Associativity.Unary &&
+                this.CurrentIs(op.tokenKind));
+
+            if (unaryMatch != null)
+            {
+                // Prepare the unary node.
+                var node = new ASTNode(ASTNodeKind.UnaryOp);
+                node.AddChild(new ASTNode(ASTNodeKind.Operator, this.Current().span));
+                node.SetLastChildSpan();
+                this.Advance();
+
+                // Parse the unary operand.
+                node.AddChild(this.ParseBinaryOp(level));
+                node.AddLastChildSpan();
+
+                return node;
+            }
+
+            // If no unary operator matched, parse the left-hand side of a binary expression.
             var lhsNode = this.ParseBinaryOp(level + 1);
 
             // Infinite loop for left associativity.
@@ -579,10 +596,12 @@ namespace Trapl.Grammar
                 var node = new ASTNode(ASTNodeKind.BinaryOp);
 
                 // Find a binary operator that matches the current token.
-                var match = binaryOpList[level].Find(op => this.CurrentIs(op.tokenKind));
+                var binaryMatch = opList[level].Find(
+                    op => op.associativity != OperatorModel.Associativity.Unary &&
+                    this.CurrentIs(op.tokenKind));
 
                 // If no operator matched, return the current left-hand side.
-                if (match == null)
+                if (binaryMatch == null)
                     return lhsNode;
 
                 node.AddChild(new ASTNode(ASTNodeKind.Operator, this.Current().span));
@@ -590,7 +609,7 @@ namespace Trapl.Grammar
 
                 // Parse right-hand side. 
                 ASTNode rhsNode;
-                if (match.associativity == OperatorModel.Associativity.Right)
+                if (binaryMatch.associativity == OperatorModel.Associativity.Right)
                     rhsNode = this.ParseExpression();
                 else
                     rhsNode = this.ParseBinaryOp(level + 1);
@@ -600,40 +619,13 @@ namespace Trapl.Grammar
                 node.SetSpan(lhsNode.SpanWithDelimiters().Merge(rhsNode.SpanWithDelimiters()));
 
                 // In a right-associative operator, return the current binary op node.
-                if (match.associativity == OperatorModel.Associativity.Right)
+                if (binaryMatch.associativity == OperatorModel.Associativity.Right)
                     return node;
 
                 // In a left-associative operator, set the current binary op node
                 // as the left-hand side for the next iteration.
                 lhsNode = node;
             }
-        }
-
-
-        private ASTNode ParseUnaryOp(int level)
-        {
-            // If reached the end of operators list, continue parsing inner expressions.
-            if (level >= unaryOpList.GetLength(0))
-                return this.ParseCallExpression();
-
-            // Find a unary operator that matches the current token.
-            var match = unaryOpList[level].Find(op => this.CurrentIs(op.tokenKind));
-
-            // If no operator matched, parse a inner expression.
-            if (match == null)
-                return this.ParseUnaryOp(level + 1);
-
-            // Prepare the node.
-            var node = new ASTNode(ASTNodeKind.UnaryOp);
-            node.AddChild(new ASTNode(ASTNodeKind.Operator, this.Current().span));
-            node.SetLastChildSpan();
-            this.Advance();
-
-            // Parse the operand.
-            node.AddChild(this.ParseUnaryOp(level));
-            node.AddLastChildSpan();
-
-            return node;
         }
 
 

@@ -15,7 +15,7 @@ namespace Trapl.Grammar
         Period, Comma, Colon, Semicolon, Arrow, DoubleColon, TriplePeriod,
         Equal, Plus, Minus, Asterisk, Slash, PercentSign,
         Ampersand, VerticalBar, Circumflex, At,
-        ExclamationMark, ExclamationMarkEqual, QuestionMark,
+        DoubleEqual, ExclamationMark, ExclamationMarkEqual, QuestionMark,
         LessThan, LessThanEqual, GreaterThan, GreaterThanEqual
     }
 

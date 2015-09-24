@@ -24,32 +24,36 @@ namespace Trapl.Semantics
             var nameASTNode = node.Child(0);
             var name = nameASTNode.GetExcerpt();
 
+            Type resolvedType = null;
+
             // Check if it is the Void type.
             if (name == "Void")
             {
-                if (!acceptVoid)
+                if (!acceptVoid && indirectionLevels == 0)
                 {
                     session.diagn.Add(MessageKind.Error, MessageCode.ExplicitVoid,
                         "cannot use 'Void' here", nameASTNode.GetOriginalSpan());
                     throw new Semantics.CheckException();
                 }
 
-                return new TypeVoid();
+                resolvedType = new TypeVoid();
             }
-
-            // Find a matching TopDecl.
-            var matchingTopDecl = ASTTopDeclFinder.Find(session, nameASTNode, node.Child(1));
-
-            // Check that what the matching TopDecl defines is a struct.
-            if (!(matchingTopDecl.def is DefStruct))
+            else
             {
-                session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
-                    "'" + name + "' is not a struct", nameASTNode.GetOriginalSpan());
-                throw new Semantics.CheckException();
-            }
+                // Find a matching TopDecl.
+                var matchingTopDecl = ASTTopDeclFinder.Find(session, nameASTNode, node.Child(1));
 
-            // Build a Type with the matching TopDecl's struct.
-            Type resolvedType = new TypeStruct((DefStruct)matchingTopDecl.def);
+                // Check that what the matching TopDecl defines is a struct.
+                if (!(matchingTopDecl.def is DefStruct))
+                {
+                    session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
+                        "'" + name + "' is not a struct", nameASTNode.GetOriginalSpan());
+                    throw new Semantics.CheckException();
+                }
+
+                // Build a Type with the matching TopDecl's struct.
+                resolvedType = new TypeStruct((DefStruct)matchingTopDecl.def);
+            }
 
             // Wrap the type into as many pointer types as specified.
             for (int i = 0; i < indirectionLevels; i++)
@@ -63,7 +67,7 @@ namespace Trapl.Semantics
         {
             var structType = type as TypeStruct;
             if (structType == null)
-                throw new InternalException("cannot generate ast node for non-struct type");
+                throw new InternalException("unimplemented; cannot yet generate AST node for non-struct type");
 
             var node = new Grammar.ASTNode(Grammar.ASTNodeKind.TypeName);
             node.AddChild(new Grammar.ASTNode(Grammar.ASTNodeKind.Name));

@@ -82,6 +82,7 @@ namespace Trapl.Grammar
                 new TokenMatch(":", TokenKind.Colon),
                 new TokenMatch(";", TokenKind.Semicolon),
                 new TokenMatch("->", TokenKind.Arrow),
+                new TokenMatch("==", TokenKind.DoubleEqual),
                 new TokenMatch("=", TokenKind.Equal),
                 new TokenMatch("+", TokenKind.Plus),
                 new TokenMatch("-", TokenKind.Minus),

@@ -22,8 +22,8 @@ namespace Trapl.Interface
             var tokenCollection = Grammar.Tokenizer.Tokenize(session, src);
             var ast = Grammar.ASTParser.Parse(session, tokenCollection);
 
-            foreach (var node in ast.topDecls)
-                Grammar.AST.PrintDebug(node, 0);
+            //foreach (var node in ast.topDecls)
+            //    Grammar.AST.PrintDebug(node, 0);
 
             if (session.diagn.ContainsNoError())
                 Semantics.CheckTopDecl.Check(session, ast, src);
@@ -61,6 +61,9 @@ namespace Trapl.Interface
         {
             foreach (var topDecl in this.topDecls)
             {
+                if (topDecl.primitive)
+                    continue;
+
                 Console.ForegroundColor = 
                     (topDecl.synthesized ? ConsoleColor.Cyan :
                     (topDecl.generic ? ConsoleColor.Yellow : ConsoleColor.White));

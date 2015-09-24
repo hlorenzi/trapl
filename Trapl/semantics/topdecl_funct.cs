@@ -35,6 +35,12 @@ namespace Trapl.Semantics
         public CodeSegment body;
 
 
+        public DefFunct(TopDecl topDecl) : base(topDecl)
+        {
+
+        }
+
+
         public void ResolveSignature(Interface.Session session, TopDecl topDecl, PatternReplacementCollection subst, Grammar.ASTNode defNode)
         {
             foreach (var argNode in defNode.EnumerateChildren())
@@ -95,7 +101,11 @@ namespace Trapl.Semantics
 
             for (int i = 0; i < this.localVariables.Count; i++)
             {
-                Console.Out.WriteLine("  LOCAL " + i + " = " + this.localVariables[i].name + ": " + this.localVariables[i].type.GetString(session));
+                Console.Out.WriteLine(
+                    "  " +
+                    (i < this.arguments.Count ? "PARAM " : "LOCAL ") +
+                    i + " = " +
+                    this.localVariables[i].name + ": " + this.localVariables[i].type.GetString(session));
             }
 
             Console.Out.WriteLine();

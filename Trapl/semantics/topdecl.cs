@@ -20,6 +20,7 @@ namespace Trapl.Semantics
         public bool resolved;
         public bool bodyResolved;
         public bool generic;
+        public bool primitive;
         public bool synthesized;
 
 
@@ -37,14 +38,14 @@ namespace Trapl.Semantics
                     throw new Semantics.CheckException();
                 }
 
-                var defStruct = new DefStruct();
+                var defStruct = new DefStruct(this);
                 this.def = defStruct;
                 defStruct.Resolve(session, this, this.patternRepl, this.defASTNode);
                 this.resolved = true;
             }
             else if (this.defASTNode.kind == Grammar.ASTNodeKind.FunctDecl)
             {
-                var defFunct = new DefFunct();
+                var defFunct = new DefFunct(this);
                 this.def = defFunct;
                 defFunct.ResolveSignature(session, this, this.patternRepl, this.defASTNode);
                 this.resolved = true;
@@ -56,7 +57,7 @@ namespace Trapl.Semantics
 
         public void ResolveBody(Interface.Session session)
         {
-            if (this.generic || this.bodyResolved || !(this.def is DefFunct))
+            if (this.generic || this.bodyResolved || this.primitive || !(this.def is DefFunct))
                 return;
 
             this.bodyResolved = true;
@@ -73,6 +74,7 @@ namespace Trapl.Semantics
             newDecl.bodyResolved = false;
             newDecl.generic = false;
             newDecl.synthesized = true;
+            newDecl.primitive = this.primitive;
             return newDecl;
         }
 
@@ -95,6 +97,13 @@ namespace Trapl.Semantics
 
     public abstract class Def
     {
+        public TopDecl topDecl;
+
+        public Def(TopDecl topDecl)
+        {
+            this.topDecl = topDecl;
+        }
+
         public virtual void PrintToConsole(Interface.Session session, int indentLevel) { }
     }
 }
