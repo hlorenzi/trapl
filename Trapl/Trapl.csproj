@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="codegen\codegen_c.cs" />
     <Compile Include="diagnostics\message.cs" />
     <Compile Include="diagnostics\collection.cs" />
     <Compile Include="diagnostics\span.cs" />

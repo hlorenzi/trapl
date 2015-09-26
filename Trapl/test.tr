@@ -35,18 +35,14 @@ call_parametrized: funct(x: Int32)
 	x < 1;
 	x < 1 + 2;
 	x < 1 & x > 2;
-	if x < 1 { };
+	if x < 1 { return };
 	while x < 1 { };
 
 	let s: Tests;
 	s.a = s.b;
-	s.a = s.f;
-	s.a = 4;
-	s.(1 + 1) = 0;
-	s.s = 0;
 	let w = &s.e;
-	let z = &s.e.data.data;
-	let z2 = @z + @z;
+	let z = &s.e.data;
+	let z3 = (@z).data;
 
 	let y = cast::<&Int32, &Void>(&x);
 }

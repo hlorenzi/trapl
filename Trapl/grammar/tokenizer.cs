@@ -40,6 +40,35 @@ namespace Trapl.Grammar
                         index++;
                     continue;
                 }
+                // Skip multiline comments.
+                else if (match.kind == TokenKind.HashColon)
+                {
+                    var nesting = 1;
+                    index += 2;
+
+                    while (index < src.Length() - 1)
+                    {
+                        if (src[index] == ':' && src[index + 1] == '#')
+                        {
+                            nesting--;
+                            index += 2;
+                            if (nesting == 0)
+                                break;
+                        }
+                        else if (src[index] == '#' && src[index + 1] == ':')
+                        { 
+                            nesting++;
+                            index += 2;
+                        }
+                        else
+                            index++;
+                    }
+
+                    if (nesting > 0)
+                        session.diagn.Add(MessageKind.Error, MessageCode.UnexpectedChar, "unterminated comment", span);
+
+                    continue;
+                }
 
                 output.tokens.Add(new Token(match.kind, span));
 
@@ -71,6 +100,9 @@ namespace Trapl.Grammar
         {
             var models = new List<TokenMatch>
             {
+                new TokenMatch("##", TokenKind.DoubleHash),
+                new TokenMatch("#:", TokenKind.HashColon),
+                new TokenMatch(":#", TokenKind.ColonHash),
                 new TokenMatch("{", TokenKind.BraceOpen),
                 new TokenMatch("}", TokenKind.BraceClose),
                 new TokenMatch("(", TokenKind.ParenOpen),
@@ -99,17 +131,7 @@ namespace Trapl.Grammar
                 new TokenMatch("&", TokenKind.Ampersand),
                 new TokenMatch("|", TokenKind.VerticalBar),
                 new TokenMatch("^", TokenKind.Circumflex),
-                new TokenMatch("@", TokenKind.At),
-                new TokenMatch("##", TokenKind.DoubleHash),
-                new TokenMatch("funct", TokenKind.KeywordFunct),
-                new TokenMatch("struct", TokenKind.KeywordStruct),
-                new TokenMatch("trait", TokenKind.KeywordTrait),
-                new TokenMatch("gen", TokenKind.KeywordGen),
-                new TokenMatch("let", TokenKind.KeywordLet),
-                new TokenMatch("if", TokenKind.KeywordIf),
-                new TokenMatch("else", TokenKind.KeywordElse),
-                new TokenMatch("while", TokenKind.KeywordWhile),
-                new TokenMatch("return", TokenKind.KeywordReturn),
+                new TokenMatch("@", TokenKind.At)
             };
 
             // Check all model tokens for matches to the next input.
@@ -143,6 +165,20 @@ namespace Trapl.Grammar
 
         private static TokenMatch TryMatchVaryingToken(Interface.SourceCode src, int index)
         {
+            var keywords = new List<TokenMatch>
+            {
+                new TokenMatch("funct", TokenKind.KeywordFunct),
+                new TokenMatch("struct", TokenKind.KeywordStruct),
+                new TokenMatch("trait", TokenKind.KeywordTrait),
+                new TokenMatch("gen", TokenKind.KeywordGen),
+                new TokenMatch("let", TokenKind.KeywordLet),
+                new TokenMatch("if", TokenKind.KeywordIf),
+                new TokenMatch("else", TokenKind.KeywordElse),
+                new TokenMatch("while", TokenKind.KeywordWhile),
+                new TokenMatch("return", TokenKind.KeywordReturn)
+            };
+
+
             // Check for alphabetic identifiers.
             if (IsIdentifierBeginning(src[index]))
             {
@@ -156,7 +192,11 @@ namespace Trapl.Grammar
                     index++;
                 }
 
-                return new TokenMatch(identifier.ToString(), TokenKind.Identifier);
+                var identifierStr = identifier.ToString();
+
+                // Check if it is a keyword.
+                var keywordMatch = keywords.Find(k => k.representation == identifierStr);
+                return (keywordMatch ?? new TokenMatch(identifierStr, TokenKind.Identifier));
             }
             // Check for number literals.
             else if (IsNumberBeginning(src[index]))

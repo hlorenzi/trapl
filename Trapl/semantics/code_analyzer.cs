@@ -6,9 +6,9 @@ namespace Trapl.Semantics
 {
     public class CodeAnalyzer
     {
-        public static CodeSegment Analyze(Interface.Session session, Grammar.ASTNode node, List<DefFunct.Variable> localVariables)
+        public static CodeSegment Analyze(Interface.Session session, Grammar.ASTNode node, List<DefFunct.Variable> localVariables, Type returnType)
         {
-            var analyzer = new CodeAnalyzer(session, localVariables);
+            var analyzer = new CodeAnalyzer(session, localVariables, returnType);
             var segment = new CodeSegment();
             analyzer.ParseBlock(node, segment);
             localVariables = analyzer.localVariables;
@@ -18,12 +18,14 @@ namespace Trapl.Semantics
 
         private Interface.Session session;
         private List<DefFunct.Variable> localVariables;
+        private Type returnType;
 
 
-        private CodeAnalyzer(Interface.Session session, List<DefFunct.Variable> localVariables)
+        private CodeAnalyzer(Interface.Session session, List<DefFunct.Variable> localVariables, Type returnType)
         {
             this.session = session;
             this.localVariables = localVariables;
+            this.returnType = returnType;
         }
 
 
@@ -69,6 +71,8 @@ namespace Trapl.Semantics
                 return this.ParseControlIf(node, segment, out type);
             else if (node.kind == Grammar.ASTNodeKind.ControlWhile)
                 return this.ParseControlWhile(node, segment, out type);
+            else if (node.kind == Grammar.ASTNodeKind.ControlReturn)
+                return this.ParseControlReturn(node, segment, out type);
             else if (node.kind == Grammar.ASTNodeKind.NumberLiteral)
                 return this.ParseLiteral(node, segment, out type);
             else if (node.kind == Grammar.ASTNodeKind.BinaryOp)
@@ -231,7 +235,7 @@ namespace Trapl.Semantics
             var outOfScopeDecl = this.localVariables.FindLast(v => v.name == varName && v.outOfScope);
             if (outOfScopeDecl != null)
             { } // FIXME: Add info message about out-of-scope local.
-            
+
             throw new CheckException();
         }
 
@@ -317,20 +321,20 @@ namespace Trapl.Semantics
                 string opName;
                 switch (op)
                 {
-                    case "+":  opName = "add"; break;
-                    case "-":  opName = "sub"; break;
-                    case "*":  opName = "mul"; break;
-                    case "/":  opName = "div"; break;
-                    case "%":  opName = "rem"; break;
+                    case "+": opName = "add"; break;
+                    case "-": opName = "sub"; break;
+                    case "*": opName = "mul"; break;
+                    case "/": opName = "div"; break;
+                    case "%": opName = "rem"; break;
                     case "==": opName = "eq"; break;
                     case "!=": opName = "noteq"; break;
-                    case "<":  opName = "less"; break;
+                    case "<": opName = "less"; break;
                     case "<=": opName = "lesseq"; break;
-                    case ">":  opName = "greater"; break;
+                    case ">": opName = "greater"; break;
                     case ">=": opName = "greatereq"; break;
-                    case "&":  opName = "and"; break;
-                    case "|":  opName = "or"; break;
-                    case "^":  opName = "xor"; break;
+                    case "&": opName = "and"; break;
+                    case "|": opName = "or"; break;
+                    case "^": opName = "xor"; break;
                     default: throw new InternalException("unimplemented");
                 }
 
@@ -536,6 +540,47 @@ namespace Trapl.Semantics
 
             type = new TypeVoid();
             return segmentAfter;
+        }
+
+
+
+        private CodeSegment ParseControlReturn(Grammar.ASTNode node, CodeSegment segmentBefore, out Type type)
+        {
+            Type exprType;
+            if (node.ChildNumber() == 1)
+            {
+                segmentBefore = this.ParseExpression(node.Child(0), segmentBefore, out exprType);
+
+                if (!exprType.IsSame(this.returnType))
+                {
+                    this.session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
+                        "'" + exprType.GetString(this.session) + "' expression incompatible with '" +
+                        this.returnType.GetString(this.session) + "' return type",
+                        node.Child(0).Span());
+                    throw new CheckException();
+                }
+            }
+            else
+            {
+                exprType = new TypeVoid();
+
+                if (!exprType.IsSame(this.returnType))
+                {
+                    this.session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
+                        "return expression incompatible with '" +
+                        this.returnType.GetString(this.session) + "' return type",
+                        node.Span());
+                    throw new CheckException();
+                }
+            }
+
+
+            var returnNode = new CodeNodeReturn();
+            returnNode.exprType = exprType;
+            segmentBefore.nodes.Add(returnNode);
+
+            type = new TypeVoid();
+            return segmentBefore;
         }
     }
 }

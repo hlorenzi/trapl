@@ -50,7 +50,7 @@ namespace Trapl.Semantics
         public Type type;
         public string literalExcerpt;
 
-        public override string Name() { return "PushLiteral " + literalExcerpt; }
+        public override string Name() { return "PushLiteral '" + literalExcerpt + "'"; }
     }
 
 
@@ -110,5 +110,13 @@ namespace Trapl.Semantics
     public class CodeNodeIf : CodeNode
     {
         public override string Name() { return "If"; }
+    }
+
+
+    public class CodeNodeReturn : CodeNode
+    {
+        public Type exprType;
+
+        public override string Name() { return "Return"; }
     }
 }

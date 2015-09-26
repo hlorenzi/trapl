@@ -88,7 +88,7 @@ namespace Trapl.Semantics
             session.diagn.PushContext(new MessageContext("in funct '" + topDecl.GetString() + "'", topDecl.qualifiedNameASTNode.Span()));
             try
             {
-                body = CodeAnalyzer.Analyze(session, defNode.ChildWithKind(Grammar.ASTNodeKind.Block), localVariables);
+                body = CodeAnalyzer.Analyze(session, defNode.ChildWithKind(Grammar.ASTNodeKind.Block), localVariables, returnType);
             }
             finally { session.diagn.PopContext(); }
         }
