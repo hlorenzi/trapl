@@ -1,55 +1,30 @@
 
-Container::<gen T>: struct
+Container<gen T>
 {
 	data: gen T
 }
 
 
-List::<gen T::<gen U>>: struct
+ContainerOfContainer<gen T<gen U>>
 {
-	data: gen T::<gen U>
+	data: gen T<gen U>
 }
 
 
-Tests: struct
-{
-	a: Container::<Int32>,
-	b: Container::<Int32>,
-	c: Container::<Container::<Int32>>,
-	d: Container::<Container::<Int32>>,
+put_in_container<gen T> (container: &Container<gen T>, value: gen T)
+	{ (@container).data = value }
 
-	e: List::<Container::<Int32>>,
-	f: List::<Container::<Int32>>,
-	g: List::<Container::<Int64>>,
-	h: List::<Container::<Int64>>,
+
+ContainerCollection
+{
+	a: Container<Int32>,
+	b: Container<Container<Int32>>,
+	c: ContainerOfContainer<Container<Int32>>
 }
 
 
-call_parametrized: funct(x: Int32)
+test()
 {
-	x = 1 + 1;
-	x = 1 - 1;
-	parametrized_funct::<Int32>(x);
-	parametrized_funct::<&Int32>(&x);
-
-	x < 1;
-	x < 1 + 2;
-	x < 1 & x > 2;
-	if x < 1 { return };
-	while x < 1 { };
-
-	let s: Tests;
-	s.a = s.b;
-	let w = &s.e;
-	let z = &s.e.data;
-	let z3 = (@z).data;
-
-	let y = cast::<&Int32, &Void>(&x);
-}
-
-
-parametrized_funct::<gen T>: funct(x: gen T -> gen T)
-{
-	let y: gen T;
-	parametrized_funct::<gen T>(x);
+	let tests: ContainerCollection;
+	put_in_container:<Int32>(&tests.a, 42);
 }

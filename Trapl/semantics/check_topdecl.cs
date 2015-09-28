@@ -29,45 +29,45 @@ namespace Trapl.Semantics
             {
                 foreach (var typeTo in numTypes)
                     AddPrimitiveFunct(session,
-                        "cast::<" + typeFrom + ", " + typeTo + ">",
-                        "funct(x: " + typeFrom + " -> " + typeTo + ")");
+                        "cast<" + typeFrom + ", " + typeTo + ">",
+                        "(x: " + typeFrom + " -> " + typeTo + ")");
             }
 
             AddPrimitiveFunct(session,
-                "cast::<&gen T, &Void>",
-                "funct(x: &gen T -> &Void)");
+                "cast<&gen T, &Void>",
+                "(x: &gen T -> &Void)");
 
             AddPrimitiveFunct(session,
-                "cast::<&Void, &gen T>",
-                "funct(x: &Void -> &gen T)");
+                "cast<&Void, &gen T>",
+                "(x: &Void -> &gen T)");
 
             foreach (var op in arithBinOps)
             {
                 foreach (var type in numTypes)
                     AddPrimitiveFunct(session,
-                        op + "::<" + type + ", " + type + ">",
-                        "funct(x: " + type + ", y: " + type + " -> " + type + ")");
+                        op + "<" + type + ", " + type + ">",
+                        "(x: " + type + ", y: " + type + " -> " + type + ")");
             }
 
             foreach (var op in arithUnOps)
             {
                 foreach (var type in numTypes)
                     AddPrimitiveFunct(session,
-                        op + "::<" + type + ">",
-                        "funct(x: " + type + " -> " + type + ")");
+                        op + "<" + type + ">",
+                        "(x: " + type + " -> " + type + ")");
             }
 
-            AddPrimitiveFunct(session, "not::<Bool>", "funct(x: Bool -> Bool)");
-            AddPrimitiveFunct(session, "and::<Bool, Bool>", "funct(x: Bool, y: Bool -> Bool)");
-            AddPrimitiveFunct(session, "or::<Bool, Bool>", "funct(x: Bool, y: Bool -> Bool)");
-            AddPrimitiveFunct(session, "xor::<Bool, Bool>", "funct(x: Bool, y: Bool -> Bool)");
+            AddPrimitiveFunct(session, "not<Bool>", "(x: Bool -> Bool)");
+            AddPrimitiveFunct(session, "and<Bool, Bool>", "(x: Bool, y: Bool -> Bool)");
+            AddPrimitiveFunct(session, "or<Bool, Bool>", "(x: Bool, y: Bool -> Bool)");
+            AddPrimitiveFunct(session, "xor<Bool, Bool>", "(x: Bool, y: Bool -> Bool)");
 
             foreach (var op in relOps)
             {
                 foreach (var type in numTypes)
                     AddPrimitiveFunct(session,
-                        op + "::<" + type + ", " + type + ">",
-                        "funct(x: " + type + ", y: " + type + " -> Bool)");
+                        op + "<" + type + ", " + type + ">",
+                        "(x: " + type + ", y: " + type + " -> Bool)");
             }
 
             foreach (var node in ast.topDecls)

@@ -11,92 +11,92 @@ namespace TraplTest
         {
             ShouldPass("<>", "<>",
                 "A", "A",
-                "A::<B>", "A::<B>");
+                "A<B>", "A<B>");
 
             ShouldPass("<gen T>", "<A>",
                 "gen T", "A",
                 "&gen T", "&A",
                 "&&gen T", "&&A",
-                "gen T::<gen T>", "A::<A>",
-                "gen T::<&gen T>", "A::<&A>",
-                "&gen T::<gen T>", "&A::<A>",
-                "&gen T::<&gen T>", "&A::<&A>",
-                "gen T::<B>", "A::<B>",
-                "gen T::<&B>", "A::<&B>",
-                "&gen T::<B>", "&A::<B>",
-                "&gen T::<&B>", "&A::<&B>",
-                "gen T::<B, C>", "A::<B, C>",
-                "gen T::<B::<C>>", "A::<B::<C>>",
-                "B::<gen T>", "B::<A>",
-                "B::<B::<gen T>>", "B::<B::<A>>",
-                "B::<C, gen T>", "B::<C, A>");
+                "gen T<gen T>", "A<A>",
+                "gen T<&gen T>", "A<&A>",
+                "&gen T<gen T>", "&A<A>",
+                "&gen T<&gen T>", "&A<&A>",
+                "gen T<B>", "A<B>",
+                "gen T<&B>", "A<&B>",
+                "&gen T<B>", "&A<B>",
+                "&gen T<&B>", "&A<&B>",
+                "gen T<B, C>", "A<B, C>",
+                "gen T<B<C>>", "A<B<C>>",
+                "B<gen T>", "B<A>",
+                "B<B<gen T>>", "B<B<A>>",
+                "B<C, gen T>", "B<C, A>");
 
             ShouldPass("<gen T>", "<&A>",
                 "gen T", "&A",
                 "&gen T", "&&A",
-                "gen T::<gen T>", "&A::<&A>");
+                "gen T<gen T>", "&A<&A>");
 
             ShouldPass("<&gen T>", "<&A>",
                 "gen T", "A",
                 "&gen T", "&A",
-                "gen T::<gen T>", "A::<A>");
+                "gen T<gen T>", "A<A>");
 
             ShouldPass("<&gen T>", "<&&A>",
                 "gen T", "&A",
                 "&gen T", "&&A",
-                "gen T::<gen T>", "&A::<&A>");
+                "gen T<gen T>", "&A<&A>");
 
-            ShouldPass("<gen T>", "<A::<B>>",
-                "gen T", "A::<B>",
-                "C::<gen T>", "C::<A::<B>>",
-                "C::<D, gen T>", "C::<D, A::<B>>");
+            ShouldPass("<gen T>", "<A<B>>",
+                "gen T", "A<B>",
+                "C<gen T>", "C<A<B>>",
+                "C<D, gen T>", "C<D, A<B>>");
 
-            ShouldPass("<gen T>", "<A::<&B>>",
-                "gen T", "A::<&B>",
-                "C::<gen T>", "C::<A::<&B>>",
-                "C::<D, gen T>", "C::<D, A::<&B>>");
+            ShouldPass("<gen T>", "<A<&B>>",
+                "gen T", "A<&B>",
+                "C<gen T>", "C<A<&B>>",
+                "C<D, gen T>", "C<D, A<&B>>");
 
-            ShouldPass("<gen T::<gen U>>", "<A::<B>>",
+            ShouldPass("<gen T<gen U>>", "<A<B>>",
                 "gen T", "A",
                 "gen U", "B",
-                "gen T::<gen U>", "A::<B>",
-                "gen U::<gen T>", "B::<A>",
-                "gen T::<gen T>", "A::<A>",
-                "gen U::<gen U>", "B::<B>",
-                "gen T::<gen T::<gen U>>", "A::<A::<B>>",
-                "gen T::<gen U::<gen U>>", "A::<B::<B>>",
-                "gen U::<gen U::<gen U>>", "B::<B::<B>>",
-                "gen U::<gen T::<gen U>>", "B::<A::<B>>",
-                "gen T::<gen U::<gen T>>", "A::<B::<A>>",
-                "gen T::<gen U, gen T>", "A::<B, A>");
+                "gen T<gen U>", "A<B>",
+                "gen U<gen T>", "B<A>",
+                "gen T<gen T>", "A<A>",
+                "gen U<gen U>", "B<B>",
+                "gen T<gen T<gen U>>", "A<A<B>>",
+                "gen T<gen U<gen U>>", "A<B<B>>",
+                "gen U<gen U<gen U>>", "B<B<B>>",
+                "gen U<gen T<gen U>>", "B<A<B>>",
+                "gen T<gen U<gen T>>", "A<B<A>>",
+                "gen T<gen U, gen T>", "A<B, A>");
 
 
             ShouldFail("<>", "<>",
                 "A", "B",
-                "A::<B>", "A::<C>",
+                "A<B>", "A<C>",
                 "gen T", "Irrelevant");
 
             ShouldFail("<gen T>", "<A>",
                 "gen T", "B",
-                "gen T::<gen T>", "A::<B>",
-                "gen T::<gen T>", "B::<A>",
-                "gen T::<gen T>", "A::<A::<A>>",
-                "gen T::<gen T>", "A::<A::<B>>",
-                "gen T::<B>", "A::<A>",
-                "gen T::<B>", "B::<A>",
-                "B::<gen T>", "A::<A>");
+                "gen T<gen T>", "A<B>",
+                "gen T<gen T>", "B<A>",
+                "gen T<gen T>", "A<A<A>>",
+                "gen T<gen T>", "A<A<B>>",
+                "gen T<B>", "A<A>",
+                "gen T<B>", "B<A>",
+                "B<gen T>", "A<A>");
 
-            ShouldFail("<gen T>", "<A::<B>>",
+            ShouldFail("<gen T>", "<A<B>>",
                 "gen T", "A",
                 "gen T", "B",
-                "gen T::<B>", "A::<B>",
-                "gen T::<B>", "A::<B::<B>>",
-                "gen T::<gen T>", "A::<B>",
-                "gen T::<gen T>", "A::<A::<B>>",
-                "C::<gen T>", "C",
-                "C::<gen T>", "C::<A>",
-                "C::<gen T>", "C::<A, B>",
-                "C::<D, gen T>", "C::<A::<B>>");
+                "gen T<B>", "A<B>",
+                "gen T<B>", "A<B<B>>",
+                "gen T<gen T>", "A<B>",
+                "gen T<gen T>", "A<A<B>>",
+                "C<gen T>", "C",
+                "C<gen T>", "C<A>",
+                "C<gen T>", "C<A, B>",
+                "C<D, gen T>", "C<A<B>>");
 
             ShouldFail("<gen T>", "<&A>",
                 "gen T", "A");
@@ -107,14 +107,14 @@ namespace TraplTest
             ShouldFail("<&gen T>", "<&&A>",
                 "gen T", "&&A");
 
-            ShouldFail("<gen T::<gen U>>", "<A::<B>>",
+            ShouldFail("<gen T<gen U>>", "<A<B>>",
                 "gen T", "B",
                 "gen U", "A",
-                "gen T::<gen U>", "A",
-                "gen T::<gen U>", "B",
-                "gen T::<gen U>", "A::<A>",
-                "gen T::<gen U>", "B::<B>",
-                "gen T::<gen U>", "B::<A>");
+                "gen T<gen U>", "A",
+                "gen T<gen U>", "B",
+                "gen T<gen U>", "A<A>",
+                "gen T<gen U>", "B<B>",
+                "gen T<gen U>", "B<A>");
         }
 
 

@@ -278,15 +278,21 @@ namespace Trapl.Codegen
         private string MangleType(Grammar.ASTNode node)
         {
             var result = "";
+            var indirectionLevels = 0;
             
             for (int i = 2; i < node.ChildNumber(); i++)
             {
                 if (node.Child(i).kind == Grammar.ASTNodeKind.Operator)
-                    result += "Ptr__";
+                {
+                    result += "__Ptr__b";
+                    indirectionLevels++;
+                }
             }
 
             result += node.Child(0).GetExcerpt();
             result += ManglePattern(node.Child(1));
+            for (int i = 0; i < indirectionLevels; i++)
+                result += "e";
             return result;
         }
 

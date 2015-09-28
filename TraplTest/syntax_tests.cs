@@ -13,43 +13,20 @@ namespace TraplTest
         {
             ShouldPass("");
 
-            ShouldPass("Test: struct { }");
-            ShouldPass("Test: struct { x: Int8 }");
-            ShouldPass("Test: struct { x: Int8, y: Int8 }");
-            ShouldPass("Test: struct { x: Int8, y: Int16, }");
-            ShouldPass("Test1: struct { x: Test2 } Test2: struct { x: Int8 }");
-            ShouldPass("Test1: struct { x: Int8 } Test2: struct { x: Test1 }");
+            ShouldPass("Test { }");
+            ShouldPass("Test { x: Int8 }");
+            ShouldPass("Test { x: Int8, y: Int8 }");
+            ShouldPass("Test { x: Int8, y: Int16, }");
+            ShouldPass("Test1 { x: Test2 } Test2 { x: Int8 }");
+            ShouldPass("Test1 { x: Int8 } Test2 { x: Test1 }");
 
             ShouldFail("{ }");
-            ShouldFail("test");
-            ShouldFail("test { }");
-            ShouldFail("test:");
-            ShouldFail("test: { }");
-            ShouldFail("test: test { }");
-            ShouldFail("test: 123 { }");
-            ShouldFail("123: struct { }");
-            ShouldFail(": struct { }");
-            ShouldFail("test: funct() { }; Test2: struct { }");
-
-            ShouldFail("struct { }");
-            ShouldFail("Test struct { }");
-            ShouldFail("Test: struct");
-            ShouldFail("Test: struct {");
-            ShouldFail("Test: struct { x: Int8 y: Int8 }");
-
-            ShouldFail("funct() { }");
-            ShouldFail("test funct() { }");
-            ShouldFail("test: funct");
-            ShouldFail("test: funct(");
-            ShouldFail("test: funct { }");
-            ShouldFail("test: funct()");
-            ShouldFail("test: funct() {");
-            ShouldFail("test: funct( -> { }");
-            ShouldFail("test: funct( -> ) { }");
-            ShouldFail("test: funct() { }; Test2: struct { }");
-            ShouldFail("test: funct(x: Int8 y: Int8) { }");
-            ShouldFail("test: funct(x: Int8, y: Int8 -> ) { }");
-            ShouldFail("test: funct(x: Int8, y: Int8 - > Int8) { return 0; }");
+            ShouldFail("Test");
+            ShouldFail("Test { ");
+            ShouldFail("Test: { }");
+            ShouldFail("123 { }");
+            ShouldFail("Test1 { }; Test2 { }");
+            ShouldFail("Test { x: Int8 y: Int8 }");
         }
 
 

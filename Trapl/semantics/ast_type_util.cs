@@ -93,7 +93,7 @@ namespace Trapl.Semantics
                 else if (child.kind == Grammar.ASTNodeKind.ParameterPattern)
                 {
                     if (!ASTPatternUtil.IsEmpty(child))
-                        result += "::" + ASTPatternUtil.GetString(child);
+                        result += ASTPatternUtil.GetString(child);
                 }
                 else if (child.kind == Grammar.ASTNodeKind.Operator)
                     prefix += child.GetExcerpt();

@@ -84,7 +84,7 @@ namespace Trapl.Semantics
             return (this.qualifiedName + 
                 (Semantics.ASTPatternUtil.IsEmpty(this.patternASTNode) ?
                 "" :
-                "::" + Semantics.ASTPatternUtil.GetString(this.patternASTNode)));
+                Semantics.ASTPatternUtil.GetString(this.patternASTNode)));
         }
 
 

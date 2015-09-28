@@ -10,22 +10,22 @@ namespace TraplTest
         [TestMethod]
         public void TestStructMembers()
         {
-            ShouldPass("Test: struct { }");
-            ShouldPass("Test: struct { x: Int8 }");
-            ShouldPass("Test: struct { x: Int8, y: Int16 }");
-            ShouldPass("Test1: struct { x: Test2 } Test2: struct { x: Int8 }");
-            ShouldPass("Test1: struct { x: Int8 } Test2: struct { x: Test1 }");
+            ShouldPass("Test { }");
+            ShouldPass("Test { x: Int8 }");
+            ShouldPass("Test { x: Int8, y: Int16 }");
+            ShouldPass("Test1 { x: Test2 } Test2 { x: Int8 }");
+            ShouldPass("Test1 { x: Int8 } Test2 { x: Test1 }");
 
-            ShouldFail("Test: struct { x: UnknownType }");
-            ShouldFail("DuplicateMembers: struct { x: Int8, x: Int16 }");
-            ShouldFail("DuplicateMembers: struct { x: Int8, y: Int16, x: Int32 }");
-            ShouldFail("Recursive: struct { x: Recursive }");
-            ShouldFail("Recursive1: struct { x: Recursive2 } Recursive2: struct { x: Recursive1 }");
-            ShouldFail("Recursive1: struct { x: Recursive2 } Recursive2: struct { x: Recursive3 } Recursive3: struct { x: Recursive1 }");
-            ShouldFail("Recursive1: struct { x: Recursive3 } Recursive2: struct { x: Recursive1 } Recursive3: struct { x: Recursive2 }");
-            ShouldFail("VoidMember: struct { x: Void }");
-            ShouldFail("VoidMember: struct { x: Int32, y: Void }");
-            //ShouldFail("SameName: struct { } SameName: struct { }");
+            ShouldFail("Test { x: UnknownType }");
+            ShouldFail("DuplicateMembers { x: Int8, x: Int16 }");
+            ShouldFail("DuplicateMembers { x: Int8, y: Int16, x: Int32 }");
+            ShouldFail("Recursive { x: Recursive }");
+            ShouldFail("Recursive1 { x: Recursive2 } Recursive2 { x: Recursive1 }");
+            ShouldFail("Recursive1 { x: Recursive2 } Recursive2 { x: Recursive3 } Recursive3 { x: Recursive1 }");
+            ShouldFail("Recursive1 { x: Recursive3 } Recursive2 { x: Recursive1 } Recursive3 { x: Recursive2 }");
+            ShouldFail("VoidMember { x: Void }");
+            ShouldFail("VoidMember { x: Int32, y: Void }");
+            //ShouldFail("SameName { } SameName { }");
         }
 
 

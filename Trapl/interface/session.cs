@@ -51,10 +51,13 @@ namespace Trapl.Interface
             session.PrintDefs();
             session.diagn.PrintToConsole(session);
 
-            Console.WriteLine();
-            Console.WriteLine("========== CODEGEN ============");
-            Console.WriteLine();
-            Console.WriteLine(Codegen.CGenerator.Generate(session));
+            if (session.diagn.ContainsNoError())
+            {
+                Console.WriteLine();
+                Console.WriteLine("========== CODEGEN ============");
+                Console.WriteLine();
+                Console.WriteLine(Codegen.CGenerator.Generate(session));
+            }
         }
 
 
