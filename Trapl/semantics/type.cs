@@ -80,6 +80,18 @@ namespace Trapl.Semantics
         public List<Type> argumentTypes = new List<Type>();
         public Type returnType;
 
+
+        public TypeFunct() { }
+
+        public TypeFunct(DefFunct f)
+        {
+            for (int i = 0; i < f.arguments.Count; i++)
+            {
+                this.argumentTypes.Add(f.arguments[i].type);
+            }
+            this.returnType = f.returnType;
+        }
+
         public override bool IsSame(Type other)
         {
             var otherf = other as TypeFunct;

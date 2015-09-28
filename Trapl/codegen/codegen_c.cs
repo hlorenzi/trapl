@@ -1,4 +1,6 @@
-﻿
+﻿using System.Collections.Generic;
+
+
 namespace Trapl.Codegen
 {
     public class CGenerator
@@ -11,6 +13,8 @@ namespace Trapl.Codegen
             var result = "";
             result += gen.GenerateStructDecls() + "\n";
             result += gen.GenerateFunctDecls() + "\n";
+            result += gen.GenerateStructDefs() + "\n";
+            result += gen.GenerateFunctDefs() + "\n";
             return result;
         }
 
@@ -33,7 +37,52 @@ namespace Trapl.Codegen
             }
             return result;
         }
-        
+
+
+        private string GenerateStructDefs()
+        {
+            var result = "";
+            foreach (var topDecl in session.topDecls)
+            {
+                if (topDecl.generic || topDecl.primitive || !topDecl.resolved)
+                    continue;
+
+                if (!(topDecl.def is Semantics.DefStruct))
+                    continue;
+
+                var structDef = (Semantics.DefStruct)topDecl.def;
+
+                result += "struct " + MangleTopDeclName(topDecl) + "\n";
+                result += "{\n";
+                foreach (var member in structDef.members)
+                {
+                    result += "\t" + ConvertType(member.type) + " " + member.name + ";\n";
+                }
+                result += "}\n\n";
+            }
+            return result;
+        }
+
+
+        private string GenerateFunctHeader(Semantics.TopDecl topDecl, Semantics.DefFunct f)
+        {
+            var result = "";
+
+            result += MangleTopDeclName(topDecl) + "(";
+
+            for (int i = 0; i < f.arguments.Count; i++)
+            {
+                result +=
+                    ConvertTypeDecl(f.arguments[i].type).Replace("#", f.arguments[i].name);
+
+                if (i < f.arguments.Count - 1)
+                    result += ", ";
+            }
+
+            result += ")";
+            return ConvertTypeDecl(f.returnType).Replace("#", result);
+        }
+
 
         private string GenerateFunctDecls()
         {
@@ -46,23 +95,151 @@ namespace Trapl.Codegen
                 if (!(topDecl.def is Semantics.DefFunct))
                     continue;
 
-                var funct = (Semantics.DefFunct)topDecl.def;
+                result += GenerateFunctHeader(topDecl, (Semantics.DefFunct)topDecl.def) + ";\n";
+            }
+            return result;
+        }
 
-                result +=
-                    ConvertType(funct.returnType) + " " +
-                    MangleTopDeclName(topDecl) + "(";
 
-                for (int i = 0; i < funct.arguments.Count; i++)
+        private string GenerateFunctDefs()
+        {
+            var result = "";
+            foreach (var topDecl in session.topDecls)
+            {
+                if (topDecl.generic || topDecl.primitive || !topDecl.resolved)
+                    continue;
+
+                if (!(topDecl.def is Semantics.DefFunct))
+                    continue;
+
+                var f = (Semantics.DefFunct)topDecl.def;
+
+                result += GenerateFunctHeader(topDecl, f) + "\n";
+                result += "{\n";
+
+                // Generate local variables.
+                for (int i = f.arguments.Count; i < f.localVariables.Count; i++)
                 {
-                    result += 
-                        ConvertType(funct.arguments[i].type) + " " +
-                        funct.arguments[i].name;
+                    result +=
+                        "\t" + ConvertType(f.localVariables[i].type) + " " +
+                        f.localVariables[i].name + ";\n";
+                }
+                result += "\n";
 
-                    if (i < funct.arguments.Count - 1)
-                        result += ", ";
+                // Generate code segments.
+                var segments = new List<Semantics.CodeSegment>();
+                segments.Add(f.body);
+
+                var curTempIndex = 0;
+                var tempTypeStack = new Stack<Semantics.Type>();
+                var tempIndexStack = new Stack<int>();
+
+                for (int i = 0; i < segments.Count; i++)
+                {
+                    result += "\t__segment" + i + ":;\n";
+
+                    foreach (var c in segments[i].nodes)
+                    {
+                        if (c is Semantics.CodeNodePushLocal)
+                        {
+                            var code = (Semantics.CodeNodePushLocal)c;
+                            result += "\t" +
+                                ConvertTypeDecl(f.localVariables[code.localIndex].type).Replace("#", "__" + curTempIndex) +
+                                " = " + f.localVariables[code.localIndex].name + ";\n";
+                            tempIndexStack.Push(curTempIndex);
+                            tempTypeStack.Push(f.localVariables[code.localIndex].type);
+                            curTempIndex += 1;
+                        }
+                        else if (c is Semantics.CodeNodePushLiteral)
+                        {
+                            var code = (Semantics.CodeNodePushLiteral)c;
+                            result += "\t" + ConvertTypeDecl(code.type).Replace("#", "__" + curTempIndex) +
+                                " = " + code.literalExcerpt + ";\n";
+                            tempIndexStack.Push(curTempIndex);
+                            tempTypeStack.Push(code.type);
+                            curTempIndex += 1;
+                        }
+                        else if (c is Semantics.CodeNodePushFunct)
+                        {
+                            var code = (Semantics.CodeNodePushFunct)c;
+                            var fType = new Semantics.TypeFunct((Semantics.DefFunct)code.topDecl.def);
+                            result += "\t" + ConvertTypeDecl(fType).Replace("#", "__" + curTempIndex) +
+                                " = " + MangleTopDeclName(code.topDecl) + ";\n";
+                            tempIndexStack.Push(curTempIndex);
+                            tempTypeStack.Push(fType);
+                            curTempIndex += 1;
+                        }
+                        else if (c is Semantics.CodeNodeCall)
+                        {
+                            var code = (Semantics.CodeNodeCall)c;
+                            var fType = (Semantics.TypeFunct)tempTypeStack.Pop();
+                            result += "\t" + ConvertTypeDecl(fType.returnType).Replace("#", "__" + curTempIndex) +
+                                " = __" + tempIndexStack.Pop() + "(";
+
+                            for (int j = 0; j < fType.argumentTypes.Count; j++)
+                            {
+                                result += "__" + tempIndexStack.Pop();
+                                tempTypeStack.Pop();
+                                if (j < fType.argumentTypes.Count - 1)
+                                    result += ", ";
+                            }
+
+                            result += ");\n";
+
+                            tempIndexStack.Push(curTempIndex);
+                            tempTypeStack.Push(fType.returnType);
+                            curTempIndex += 1;
+                        }
+                        else if (c is Semantics.CodeNodePop)
+                        {
+                            tempIndexStack.Pop();
+                            tempTypeStack.Pop();
+                            continue;
+                        }
+                        else if (
+                            c is Semantics.CodeNodeLocalBegin ||
+                            c is Semantics.CodeNodeLocalEnd)
+                        {
+                            continue;
+                        }
+                        else
+                            result += "\t<unimplemented code>;\n";
+                    }
+
+                    if (segments[i].outwardPaths.Count == 0)
+                        result += "\tgoto __segment_end;\n\n";
+                    else if (segments[i].outwardPaths.Count == 1)
+                    {
+                        int index = segments.FindIndex(seg => seg == segments[i].outwardPaths[0]);
+                        if (index < 0)
+                        {
+                            segments.Add(segments[i].outwardPaths[0]);
+                            index = segments.Count - 1;
+                        }
+                        result += "\tgoto __segment" + index + ";\n\n";
+                    }
+                    else if (segments[i].outwardPaths.Count == 2)
+                    {
+                        int indexTrue = segments.FindIndex(seg => seg == segments[i].outwardPaths[0]);
+                        if (indexTrue < 0)
+                        {
+                            segments.Add(segments[i].outwardPaths[0]);
+                            indexTrue = segments.Count - 1;
+                        }
+
+                        int indexFalse = segments.FindIndex(seg => seg == segments[i].outwardPaths[1]);
+                        if (indexFalse < 0)
+                        {
+                            segments.Add(segments[i].outwardPaths[1]);
+                            indexFalse = segments.Count - 1;
+                        }
+                        result += "\tif (__" + tempIndexStack.Pop() + ") goto __segment" + indexTrue + "; else goto __segment" + indexFalse + ";\n\n";
+                    }
+                    else throw new System.Exception("unimplemented");
                 }
 
-                result += ");\n";
+                result += "\t__segment_end:;\n";
+                result += "}\n\n";
             }
             return result;
         }
@@ -135,13 +312,72 @@ namespace Trapl.Codegen
 
                 if (name == null)
                     return "???";
+                else if (name == "Bool")
+                    return "char";
                 else if (name == "Int32")
                     return "int";
                 else
                     return MangleTopDeclName(topDecl);
             }
+            else if (type is Semantics.TypeFunct)
+            {
+                var fType = (Semantics.TypeFunct)type;
+                var result = ConvertType(fType.returnType) + "(*)(";
+                for (int i = 0; i < fType.argumentTypes.Count; i++)
+                {
+                    result += ConvertType(fType.argumentTypes[i]);
+                    if (i < fType.argumentTypes.Count - 1)
+                        result += ", ";
+                }
+                return result + ")";
+            }
             else
                 return "???";
+        }
+
+
+        private string ConvertTypeDecl(Semantics.Type type)
+        {
+            if (type is Semantics.TypePointer)
+                return ConvertType(((Semantics.TypePointer)type).pointeeType) + "* #";
+            else if (type is Semantics.TypeVoid)
+                return "void #";
+            else if (type is Semantics.TypeStruct)
+            {
+                Semantics.TopDecl topDecl = null;
+                string name = null;
+                foreach (var decl in session.topDecls)
+                {
+                    if (((Semantics.TypeStruct)type).structDef == decl.def)
+                    {
+                        topDecl = decl;
+                        name = decl.GetString();
+                    }
+                }
+
+                if (name == null)
+                    return "??? #";
+                else if (name == "Bool")
+                    return "char #";
+                else if (name == "Int32")
+                    return "int #";
+                else
+                    return MangleTopDeclName(topDecl) + " #";
+            }
+            else if (type is Semantics.TypeFunct)
+            {
+                var fType = (Semantics.TypeFunct)type;
+                var result = ConvertType(fType.returnType) + "(*#)(";
+                for (int i = 0; i < fType.argumentTypes.Count; i++)
+                {
+                    result += ConvertType(fType.argumentTypes[i]);
+                    if (i < fType.argumentTypes.Count - 1)
+                        result += ", ";
+                }
+                return result + ")";
+            }
+            else
+                return "??? #";
         }
     }
 }
