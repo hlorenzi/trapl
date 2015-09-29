@@ -132,7 +132,7 @@ namespace Trapl.Codegen
 
                 var curTempIndex = 0;
                 var tempTypeStack = new Stack<Semantics.Type>();
-                var tempIndexStack = new Stack<int>();
+                var tempExcerptStack = new Stack<string>();
 
                 for (int i = 0; i < segments.Count; i++)
                 {
@@ -143,29 +143,20 @@ namespace Trapl.Codegen
                         if (c is Semantics.CodeNodePushLocal)
                         {
                             var code = (Semantics.CodeNodePushLocal)c;
-                            result += "\t" +
-                                ConvertTypeDecl(f.localVariables[code.localIndex].type).Replace("#", "__" + curTempIndex) +
-                                " = " + f.localVariables[code.localIndex].name + ";\n";
-                            tempIndexStack.Push(curTempIndex);
+                            tempExcerptStack.Push(f.localVariables[code.localIndex].name);
                             tempTypeStack.Push(f.localVariables[code.localIndex].type);
-                            curTempIndex += 1;
                         }
                         else if (c is Semantics.CodeNodePushLiteral)
                         {
                             var code = (Semantics.CodeNodePushLiteral)c;
-                            result += "\t" + ConvertTypeDecl(code.type).Replace("#", "__" + curTempIndex) +
-                                " = " + code.literalExcerpt + ";\n";
-                            tempIndexStack.Push(curTempIndex);
+                            tempExcerptStack.Push(code.literalExcerpt);
                             tempTypeStack.Push(code.type);
-                            curTempIndex += 1;
                         }
                         else if (c is Semantics.CodeNodePushFunct)
                         {
                             var code = (Semantics.CodeNodePushFunct)c;
                             var fType = new Semantics.TypeFunct((Semantics.DefFunct)code.topDecl.def);
-                            result += "\t" + ConvertTypeDecl(fType).Replace("#", "__" + curTempIndex) +
-                                " = " + MangleTopDeclName(code.topDecl) + ";\n";
-                            tempIndexStack.Push(curTempIndex);
+                            tempExcerptStack.Push(MangleTopDeclName(code.topDecl));
                             tempTypeStack.Push(fType);
                             curTempIndex += 1;
                         }
@@ -173,28 +164,67 @@ namespace Trapl.Codegen
                         {
                             var code = (Semantics.CodeNodeCall)c;
                             var fType = (Semantics.TypeFunct)tempTypeStack.Pop();
-                            result += "\t" + ConvertTypeDecl(fType.returnType).Replace("#", "__" + curTempIndex) +
-                                " = __" + tempIndexStack.Pop() + "(";
+
+                            var excerpt = tempExcerptStack.Pop() + "(";
 
                             for (int j = 0; j < fType.argumentTypes.Count; j++)
                             {
-                                result += "__" + tempIndexStack.Pop();
+                                excerpt += tempExcerptStack.Pop();
                                 tempTypeStack.Pop();
                                 if (j < fType.argumentTypes.Count - 1)
-                                    result += ", ";
+                                    excerpt += ", ";
                             }
 
-                            result += ");\n";
+                            excerpt += ")";
 
-                            tempIndexStack.Push(curTempIndex);
+                            tempExcerptStack.Push(excerpt);
                             tempTypeStack.Push(fType.returnType);
                             curTempIndex += 1;
                         }
+                        else if (c is Semantics.CodeNodeAccess)
+                        {
+                            var code = (Semantics.CodeNodeAccess)c;
+                            var excerpt = tempExcerptStack.Pop();
+                            var type = tempTypeStack.Pop();
+
+                            tempExcerptStack.Push(excerpt + "." + code.accessedStruct.members[code.memberIndex].name);
+                            tempTypeStack.Push(code.accessedStruct.members[code.memberIndex].type);
+                        }
+                        else if (c is Semantics.CodeNodeAddress)
+                        {
+                            var code = (Semantics.CodeNodeAddress)c;
+                            var excerpt = tempExcerptStack.Pop();
+                            var type = tempTypeStack.Pop();
+
+                            tempExcerptStack.Push("&" + excerpt);
+                            tempTypeStack.Push(new Semantics.TypePointer(type));
+                        }
+                        else if (c is Semantics.CodeNodeDereference)
+                        {
+                            var code = (Semantics.CodeNodeDereference)c;
+                            var excerpt = tempExcerptStack.Pop();
+                            var type = (Semantics.TypePointer)tempTypeStack.Pop();
+
+                            tempExcerptStack.Push("(*" + excerpt + ")");
+                            tempTypeStack.Push(type.pointeeType);
+                        }
+                        else if (c is Semantics.CodeNodeStore)
+                        {
+                            var excerptRhs = tempExcerptStack.Pop();
+                            var excerptLhs = tempExcerptStack.Pop();
+                            tempTypeStack.Pop();
+                            tempTypeStack.Pop();
+
+                            tempExcerptStack.Push(excerptLhs + " = " + excerptRhs);
+                            tempTypeStack.Push(new Semantics.TypeVoid());
+                        }
                         else if (c is Semantics.CodeNodePop)
                         {
-                            tempIndexStack.Pop();
-                            tempTypeStack.Pop();
-                            continue;
+                            if (tempExcerptStack.Count > 0)
+                            {
+                                result += "\t" + tempExcerptStack.Pop() + ";\n";
+                                tempTypeStack.Pop();
+                            }
                         }
                         else if (
                             c is Semantics.CodeNodeLocalBegin ||
@@ -203,7 +233,9 @@ namespace Trapl.Codegen
                             continue;
                         }
                         else
+                        {
                             result += "\t<unimplemented code>;\n";
+                        }
                     }
 
                     if (segments[i].outwardPaths.Count == 0)
@@ -233,7 +265,7 @@ namespace Trapl.Codegen
                             segments.Add(segments[i].outwardPaths[1]);
                             indexFalse = segments.Count - 1;
                         }
-                        result += "\tif (__" + tempIndexStack.Pop() + ") goto __segment" + indexTrue + "; else goto __segment" + indexFalse + ";\n\n";
+                        //result += "\tif (__" + tempIndexStack.Pop() + ") goto __segment" + indexTrue + "; else goto __segment" + indexFalse + ";\n\n";
                     }
                     else throw new System.Exception("unimplemented");
                 }

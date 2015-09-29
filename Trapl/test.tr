@@ -26,5 +26,10 @@ ContainerCollection
 test()
 {
 	let tests: ContainerCollection;
+
+	## Test the generic function!
 	put_in_container:<Int32>(&tests.a, 42);
+
+	## Test struct member access!
+	tests.a.data = 42;
 }

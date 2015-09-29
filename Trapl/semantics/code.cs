@@ -45,6 +45,14 @@ namespace Trapl.Semantics
     }
 
 
+    public class CodeNodePushLocalReference : CodeNode
+    {
+        public int localIndex;
+
+        public override string Name() { return "PushLocalReference " + localIndex; }
+    }
+
+
     public class CodeNodePushLiteral : CodeNode
     {
         public Type type;

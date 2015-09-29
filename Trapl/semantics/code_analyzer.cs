@@ -19,6 +19,7 @@ namespace Trapl.Semantics
         private Interface.Session session;
         private List<DefFunct.Variable> localVariables;
         private Type returnType;
+        private Stack<bool> inAssignmentLhs = new Stack<bool>();
 
 
         private CodeAnalyzer(Interface.Session session, List<DefFunct.Variable> localVariables, Type returnType)
@@ -26,6 +27,7 @@ namespace Trapl.Semantics
             this.session = session;
             this.localVariables = localVariables;
             this.returnType = returnType;
+            this.inAssignmentLhs.Push(false);
         }
 
 
@@ -39,8 +41,7 @@ namespace Trapl.Semantics
                 {
                     Type type;
                     segment = this.ParseExpression(exprNode, segment, out type);
-                    if (!(type is TypeVoid))
-                        segment.nodes.Add(new CodeNodePop());
+                    segment.nodes.Add(new CodeNodePop());
                 }
                 catch (CheckException) { }
             }
@@ -185,9 +186,18 @@ namespace Trapl.Semantics
             var localDeclIndex = this.localVariables.FindLastIndex(v => v.name == varName && !v.outOfScope);
             if (localDeclIndex >= 0)
             {
-                var codeNode = new CodeNodePushLocal();
-                codeNode.localIndex = localDeclIndex;
-                segment.nodes.Add(codeNode);
+                /*if (this.inAssignmentLhs.Peek())
+                {
+                    var codeNode = new CodeNodePushLocalReference();
+                    codeNode.localIndex = localDeclIndex;
+                    segment.nodes.Add(codeNode);
+                }
+                else*/
+                {
+                    var codeNode = new CodeNodePushLocal();
+                    codeNode.localIndex = localDeclIndex;
+                    segment.nodes.Add(codeNode);
+                }
 
                 type = this.localVariables[localDeclIndex].type;
                 type.addressable = true;
@@ -258,7 +268,11 @@ namespace Trapl.Semantics
             if (op == "=")
             {
                 Type lhsType, rhsType;
+
+                this.inAssignmentLhs.Push(true);
                 var segment2 = this.ParseExpression(node.Child(1), segment, out lhsType);
+                this.inAssignmentLhs.Pop();
+
                 var segment3 = this.ParseExpression(node.Child(2), segment2, out rhsType);
 
                 if (!lhsType.addressable)
@@ -403,7 +417,7 @@ namespace Trapl.Semantics
             var argTypes = new Type[node.ChildNumber() - 1];
             Type targetType;
 
-            for (int i = 1; i < node.ChildNumber(); i++)
+            for (int i = node.ChildNumber() - 1; i >= 1; i--)
             {
                 segment = this.ParseExpression(node.Child(i), segment, out argTypes[i - 1]);
             }
