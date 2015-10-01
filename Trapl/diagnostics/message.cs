@@ -31,7 +31,8 @@ namespace Trapl.Diagnostics
         IncompatibleTypes,
         IncompatibleTemplate,
         WrongFunctNameStyle,
-        WrongStructNameStyle
+        WrongStructNameStyle,
+        UninitializedLocal
     }
 
 

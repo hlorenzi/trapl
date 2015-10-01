@@ -25,6 +25,15 @@ ContainerCollection
 
 test()
 {
+	let x = 0;
+	let y: Int32;
+
+	x = 1;
+	x = y;
+
+
+
+	#:
 	let tests: ContainerCollection;
 
 	## Test the generic function!
@@ -32,4 +41,7 @@ test()
 
 	## Test struct member access!
 	tests.a.data = 42;
+
+	if (tests.a.data < 1) { tests.a.data = 42 }
+	:#
 }

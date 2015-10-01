@@ -52,6 +52,7 @@
     <Compile Include="main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="semantics\ast_topdecl_finder.cs" />
+    <Compile Include="semantics\check_local_init.cs" />
     <Compile Include="semantics\code_analyzer.cs" />
     <Compile Include="semantics\topdecl_funct.cs" />
     <Compile Include="semantics\ast_pattern_matcher.cs" />

@@ -144,7 +144,7 @@ namespace Trapl.Semantics
                 codeNode.localIndex = this.localVariables.Count - 1;
                 segment.nodes.Add(codeNode);
 
-                var pushLocalNode = new CodeNodePushLocal();
+                var pushLocalNode = new CodeNodePushLocalReference();
                 pushLocalNode.localIndex = this.localVariables.Count - 1;
                 segment.nodes.Add(pushLocalNode);
 
@@ -186,16 +186,17 @@ namespace Trapl.Semantics
             var localDeclIndex = this.localVariables.FindLastIndex(v => v.name == varName && !v.outOfScope);
             if (localDeclIndex >= 0)
             {
-                /*if (this.inAssignmentLhs.Peek())
+                if (this.inAssignmentLhs.Peek())
                 {
                     var codeNode = new CodeNodePushLocalReference();
                     codeNode.localIndex = localDeclIndex;
                     segment.nodes.Add(codeNode);
                 }
-                else*/
+                else
                 {
                     var codeNode = new CodeNodePushLocal();
                     codeNode.localIndex = localDeclIndex;
+                    codeNode.span = node.Span();
                     segment.nodes.Add(codeNode);
                 }
 
@@ -329,8 +330,8 @@ namespace Trapl.Semantics
             else
             {
                 Type lhsType, rhsType;
-                var segment2 = this.ParseExpression(node.Child(1), segment, out lhsType);
-                var segment3 = this.ParseExpression(node.Child(2), segment2, out rhsType);
+                var segment2 = this.ParseExpression(node.Child(2), segment, out rhsType);
+                var segment3 = this.ParseExpression(node.Child(1), segment2, out lhsType);
 
                 string opName;
                 switch (op)
@@ -473,7 +474,6 @@ namespace Trapl.Semantics
                             |                                      |
                             v                                      v
                       SEGMENT AFTER                          SEGMENT AFTER
-                         
             */
 
             Type conditionType;
@@ -524,7 +524,6 @@ namespace Trapl.Semantics
                 |       |               |
                 |       v               v
                 +-- SEGMENT BODY    SEGMENT AFTER
-                
             */
 
             var segmentCondition = new CodeSegment();

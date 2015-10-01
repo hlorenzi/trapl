@@ -48,6 +48,9 @@ namespace Trapl.Interface
                 }
             }
 
+            if (session.diagn.ContainsNoError())
+                Semantics.LocalInitializationCheck.Check(session);
+
             session.PrintDefs();
             session.diagn.PrintToConsole(session);
 

@@ -17,6 +17,8 @@ namespace Trapl.Semantics
 
     public abstract class CodeNode
     {
+        public Diagnostics.Span span;
+
         public virtual string Name() { return "error"; }
     }
 

@@ -146,6 +146,12 @@ namespace Trapl.Codegen
                             tempExcerptStack.Push(f.localVariables[code.localIndex].name);
                             tempTypeStack.Push(f.localVariables[code.localIndex].type);
                         }
+                        else if (c is Semantics.CodeNodePushLocalReference)
+                        {
+                            var code = (Semantics.CodeNodePushLocalReference)c;
+                            tempExcerptStack.Push(f.localVariables[code.localIndex].name);
+                            tempTypeStack.Push(f.localVariables[code.localIndex].type);
+                        }
                         else if (c is Semantics.CodeNodePushLiteral)
                         {
                             var code = (Semantics.CodeNodePushLiteral)c;
@@ -228,7 +234,8 @@ namespace Trapl.Codegen
                         }
                         else if (
                             c is Semantics.CodeNodeLocalBegin ||
-                            c is Semantics.CodeNodeLocalEnd)
+                            c is Semantics.CodeNodeLocalEnd ||
+                            c is Semantics.CodeNodeIf)
                         {
                             continue;
                         }
@@ -265,7 +272,11 @@ namespace Trapl.Codegen
                             segments.Add(segments[i].outwardPaths[1]);
                             indexFalse = segments.Count - 1;
                         }
-                        //result += "\tif (__" + tempIndexStack.Pop() + ") goto __segment" + indexTrue + "; else goto __segment" + indexFalse + ";\n\n";
+
+                        tempTypeStack.Pop();
+                        result += 
+                            "\tif (__" + tempExcerptStack.Pop() + ") goto __segment" +
+                            indexTrue + "; else goto __segment" + indexFalse + ";\n\n";
                     }
                     else throw new System.Exception("unimplemented");
                 }
