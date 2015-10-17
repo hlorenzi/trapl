@@ -39,19 +39,20 @@ namespace Trapl.Semantics
     }
 
 
-    public class CodeNodePushLocal : CodeNode
+    public class CodeNodeLocalInit : CodeNode
     {
         public int localIndex;
 
-        public override string Name() { return "PushLocal " + localIndex; }
+        public override string Name() { return "LocalInit " + localIndex; }
     }
 
 
-    public class CodeNodePushLocalReference : CodeNode
+    public class CodeNodePushLocal : CodeNode
     {
         public int localIndex;
+        public bool asReference;
 
-        public override string Name() { return "PushLocalReference " + localIndex; }
+        public override string Name() { return "PushLocal" + (asReference ? "Ref " : " ") + localIndex; }
     }
 
 

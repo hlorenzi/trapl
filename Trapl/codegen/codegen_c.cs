@@ -146,12 +146,6 @@ namespace Trapl.Codegen
                             tempExcerptStack.Push(f.localVariables[code.localIndex].name);
                             tempTypeStack.Push(f.localVariables[code.localIndex].type);
                         }
-                        else if (c is Semantics.CodeNodePushLocalReference)
-                        {
-                            var code = (Semantics.CodeNodePushLocalReference)c;
-                            tempExcerptStack.Push(f.localVariables[code.localIndex].name);
-                            tempTypeStack.Push(f.localVariables[code.localIndex].type);
-                        }
                         else if (c is Semantics.CodeNodePushLiteral)
                         {
                             var code = (Semantics.CodeNodePushLiteral)c;
@@ -235,6 +229,7 @@ namespace Trapl.Codegen
                         else if (
                             c is Semantics.CodeNodeLocalBegin ||
                             c is Semantics.CodeNodeLocalEnd ||
+                            c is Semantics.CodeNodeLocalInit ||
                             c is Semantics.CodeNodeIf)
                         {
                             continue;

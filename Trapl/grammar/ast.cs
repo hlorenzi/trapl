@@ -28,7 +28,7 @@ namespace Trapl.Grammar
         FunctDecl, FunctArgDecl, FunctReturnDecl,
         StructDecl, StructMemberDecl,
         TraitDecl, TraitMemberDecl,
-        Identifier, Name, NumberLiteral,
+        Identifier, Name, NumberLiteral, StructLiteral, MemberInit,
         TypeName, GenericIdentifier,
         ParameterPattern, VariadicParameterPattern,
         Block,

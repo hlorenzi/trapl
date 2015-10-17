@@ -172,6 +172,7 @@ namespace Trapl.Grammar
                 new TokenMatch("trait", TokenKind.KeywordTrait),
                 new TokenMatch("gen", TokenKind.KeywordGen),
                 new TokenMatch("let", TokenKind.KeywordLet),
+                new TokenMatch("new", TokenKind.KeywordNew),
                 new TokenMatch("if", TokenKind.KeywordIf),
                 new TokenMatch("else", TokenKind.KeywordElse),
                 new TokenMatch("while", TokenKind.KeywordWhile),

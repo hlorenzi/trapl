@@ -1,47 +1,5 @@
-
-Container<gen T>
-{
-	data: gen T
-}
-
-
-ContainerOfContainer<gen T<gen U>>
-{
-	data: gen T<gen U>
-}
-
-
-put_in_container<gen T> (container: &Container<gen T>, value: gen T)
-	{ (@container).data = value }
-
-
-ContainerCollection
-{
-	a: Container<Int32>,
-	b: Container<Container<Int32>>,
-	c: ContainerOfContainer<Container<Int32>>
-}
-
-
 test()
 {
 	let x = 0;
-	let y: Int32;
-
-	x = 1;
-	x = y;
-
-
-
-	#:
-	let tests: ContainerCollection;
-
-	## Test the generic function!
-	put_in_container:<Int32>(&tests.a, 42);
-
-	## Test struct member access!
-	tests.a.data = 42;
-
-	if (tests.a.data < 1) { tests.a.data = 42 }
-	:#
+	let y = 1;
 }

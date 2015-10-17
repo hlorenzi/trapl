@@ -39,10 +39,15 @@ namespace Trapl.Semantics
         {
             foreach (var code in seg.nodes)
             {
+                var localInit = (code as CodeNodeLocalInit);
                 var pushLocal = (code as CodeNodePushLocal);
-                var pushLocalRef = (code as CodeNodePushLocalReference);
-
-                if (pushLocal != null)
+                
+                if (localInit != null)
+                {
+                    var localIndex = localInit.localIndex;
+                    initStatus[localIndex] = true;
+                }
+                else if (pushLocal != null && !pushLocal.asReference)
                 {
                     var localIndex = pushLocal.localIndex;
                     if (!initStatus[localIndex])
@@ -54,18 +59,16 @@ namespace Trapl.Semantics
                         initStatus[localIndex] = true;
                     }
                 }
-                else if (pushLocalRef != null)
-                {
-                    var localIndex = pushLocalRef.localIndex;
-                    initStatus[localIndex] = true;
-                }
             }
 
             segPath.Push(seg);
             foreach (var nextSeg in seg.outwardPaths)
             {
                 if (!segPath.Contains(nextSeg))
-                    CheckSegment(session, fn, initStatus, nextSeg, segPath);
+                {
+                    var initStatusClone = new List<bool>(initStatus);
+                    CheckSegment(session, fn, initStatusClone, nextSeg, segPath);
+                }
             }
             segPath.Pop();
         }

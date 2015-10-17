@@ -144,8 +144,9 @@ namespace Trapl.Semantics
                 codeNode.localIndex = this.localVariables.Count - 1;
                 segment.nodes.Add(codeNode);
 
-                var pushLocalNode = new CodeNodePushLocalReference();
+                var pushLocalNode = new CodeNodePushLocal();
                 pushLocalNode.localIndex = this.localVariables.Count - 1;
+                pushLocalNode.asReference = true;
                 segment.nodes.Add(pushLocalNode);
 
                 Type varType;
@@ -172,6 +173,10 @@ namespace Trapl.Semantics
                 var storeNode = new CodeNodeStore();
                 initializerSegmentEnd.nodes.Add(storeNode);
 
+                var localInitNode = new CodeNodeLocalInit();
+                localInitNode.localIndex = this.localVariables.Count - 1;
+                segment.nodes.Add(localInitNode);
+
                 type = new TypeVoid();
                 return initializerSegmentEnd;
             }
@@ -186,19 +191,11 @@ namespace Trapl.Semantics
             var localDeclIndex = this.localVariables.FindLastIndex(v => v.name == varName && !v.outOfScope);
             if (localDeclIndex >= 0)
             {
-                if (this.inAssignmentLhs.Peek())
-                {
-                    var codeNode = new CodeNodePushLocalReference();
-                    codeNode.localIndex = localDeclIndex;
-                    segment.nodes.Add(codeNode);
-                }
-                else
-                {
-                    var codeNode = new CodeNodePushLocal();
-                    codeNode.localIndex = localDeclIndex;
-                    codeNode.span = node.Span();
-                    segment.nodes.Add(codeNode);
-                }
+                var codeNode = new CodeNodePushLocal();
+                codeNode.localIndex = localDeclIndex;
+                codeNode.asReference = false;
+                codeNode.span = node.Span();
+                segment.nodes.Add(codeNode);
 
                 type = this.localVariables[localDeclIndex].type;
                 type.addressable = true;

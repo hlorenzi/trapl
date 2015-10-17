@@ -432,6 +432,35 @@ namespace Trapl.Grammar
         }
 
 
+        private ASTNode ParseStructLiteral()
+        {
+            var node = new ASTNode(ASTNodeKind.StructLiteral);
+            node.SetSpan(this.Current().span);
+            this.Match(TokenKind.KeywordNew, MessageCode.Expected, "expected 'new'");
+            node.AddChild(this.ParseType());
+            node.AddLastChildSpan();
+            this.Match(TokenKind.BraceOpen, MessageCode.Expected, "expected '{'");
+
+            while (this.CurrentIsNot(TokenKind.BraceClose))
+            {
+                var member = new ASTNode(ASTNodeKind.MemberInit);
+                member.AddChild(this.ParseName(MessageCode.Expected, "expected member name"));
+                member.SetLastChildSpan();
+                this.Match(TokenKind.Colon, MessageCode.Expected, "expected ':'");
+                member.AddChild(ParseExpression());
+                member.SetLastChildSpan();
+                node.AddChild(member);
+                node.AddLastChildSpan();
+                this.MatchListSeparator(TokenKind.Comma, TokenKind.BraceClose,
+                    MessageCode.Expected, "expected ',' or '}'");
+            }
+            node.AddSpan(this.Current().span);
+            this.Match(TokenKind.BraceClose, MessageCode.Expected, "expected '}'");
+
+            return node;
+        }
+
+
         private ASTNode ParseIfExpression()
         {
             var node = new ASTNode(ASTNodeKind.ControlIf);
@@ -635,6 +664,8 @@ namespace Trapl.Grammar
                 return this.ParseNameWithParameterPattern(true, MessageCode.Internal, "expected identifier");
             else if (this.CurrentIs(TokenKind.Number))
                 return this.ParseNumberLiteral();
+            else if (this.CurrentIs(TokenKind.KeywordNew))
+                return this.ParseStructLiteral();
             else if (this.CurrentIs(TokenKind.BraceOpen))
                 return this.ParseBlock();
             else if (this.CurrentIs(TokenKind.ParenOpen))
