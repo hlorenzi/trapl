@@ -4,33 +4,16 @@ using System.Collections.Generic;
 
 namespace Trapl.Grammar
 {
-    public class AST
-    {
-        public List<ASTNode> topDecls;
-
-
-        public AST()
-        {
-            this.topDecls = new List<ASTNode>();
-        }
-
-
-        public static void PrintDebug(ASTNode node, int indentLevel)
-        {
-            node.PrintDebugRecursive(indentLevel, indentLevel);
-        }
-    }
-
-
     public enum ASTNodeKind
     {
         TopLevelDecl,
-        FunctDecl, FunctArgDecl, FunctReturnDecl,
-        StructDecl, StructMemberDecl,
+        FunctDecl, FunctArg, FunctReturnType, FunctBody,
+        StructDecl, StructField,
         TraitDecl, TraitMemberDecl,
-        Identifier, Name, NumberLiteral, StructLiteral, MemberInit,
-        TypeName, GenericIdentifier,
-        ParameterPattern, VariadicParameterPattern,
+        Name, Path, Identifier, Type,
+        NumberLiteral, BooleanLiteral, StructLiteral, MemberInit,
+        TemplateList, TemplateVariadicList,
+        TemplateParameter, TypeParameter, GenericTypeParameter,
         Block,
         BinaryOp, UnaryOp, Operator, Call,
         ControlLet, ControlIf, ControlWhile, ControlReturn,
@@ -41,7 +24,6 @@ namespace Trapl.Grammar
     {
         public ASTNodeKind kind;
         private Diagnostics.Span span;
-        private Diagnostics.Span spanWithDelimiters;
         public List<ASTNode> children = new List<ASTNode>();
 
         private bool hasOriginalSpan = false;
@@ -60,7 +42,6 @@ namespace Trapl.Grammar
         {
             this.kind = kind;
             this.span = span;
-            this.spanWithDelimiters = span;
         }
 
 
@@ -68,7 +49,6 @@ namespace Trapl.Grammar
         {
             var newNode = new ASTNode(this.kind);
             newNode.span = this.span;
-            newNode.spanWithDelimiters = this.spanWithDelimiters;
             newNode.originalSpan = this.originalSpan;
             newNode.overwrittenExcerpt = this.overwrittenExcerpt;
             newNode.children = new List<ASTNode>();
@@ -109,22 +89,21 @@ namespace Trapl.Grammar
         }
 
 
-        public Diagnostics.Span SpanWithDelimiters()
+        public void SetSpan(Diagnostics.Span span)
         {
-            return this.spanWithDelimiters;
+            this.span = span;
+        }
+
+
+        public void AddSpan(Diagnostics.Span span)
+        {
+            this.span = this.span.Merge(span);
         }
 
 
         public Diagnostics.Span GetOriginalSpan()
         {
             return (this.hasOriginalSpan ? this.originalSpan : this.span);
-        }
-
-
-        public void SetSpan(Diagnostics.Span span)
-        {
-            this.span = span;
-            this.spanWithDelimiters = span;
         }
 
 
@@ -135,22 +114,10 @@ namespace Trapl.Grammar
         }
 
 
-        public void AddSpan(Diagnostics.Span span)
-        {
-            this.span = this.span.Merge(span);
-            this.spanWithDelimiters = this.spanWithDelimiters.Merge(span);
-        }
-
-
-        public void AddSpanWithDelimiters(Diagnostics.Span span)
-        {
-            this.spanWithDelimiters = this.spanWithDelimiters.Merge(span);
-        }
-
-
         public void AddChild(ASTNode node)
         {
             this.children.Add(node);
+            this.AddSpan(node.Span());
         }
 
 
@@ -177,20 +144,6 @@ namespace Trapl.Grammar
         public int ChildNumber()
         {
             return this.children.Count;
-        }
-
-
-        public void SetLastChildSpan()
-        {
-            if (this.children.Count > 0)
-                this.SetSpan(this.children[this.children.Count - 1].SpanWithDelimiters());
-        }
-
-
-        public void AddLastChildSpan()
-        {
-            if (this.children.Count > 0)
-                this.AddSpan(this.children[this.children.Count - 1].SpanWithDelimiters());
         }
 
 

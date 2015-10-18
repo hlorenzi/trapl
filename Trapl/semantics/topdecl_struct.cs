@@ -7,21 +7,21 @@ namespace Trapl.Semantics
 {
     public class DefStruct : Def
     {
-        public class Member
+        public class Field
         {
-            public string name;
+            public Grammar.ASTNode nameASTNode;
             public Type type;
             public Diagnostics.Span declSpan;
 
 
-            public Member Clone()
+            public Field Clone()
             {
-                return (Member)this.MemberwiseClone();
+                return (Field)this.MemberwiseClone();
             }
         }
 
 
-        public List<Member> members = new List<Member>();
+        public List<Field> fields = new List<Field>();
 
 
         public DefStruct(TopDecl topDecl) : base(topDecl)
@@ -33,55 +33,54 @@ namespace Trapl.Semantics
         public DefStruct Clone()
         {
             var def = (DefStruct)this.MemberwiseClone();
-            def.members = new List<Member>();
-            foreach (var member in this.members)
-                def.members.Add(member.Clone());
+            def.fields = new List<Field>();
+            foreach (var field in this.fields)
+                def.fields.Add(field.Clone());
             return def;
         }
 
 
-        public void Resolve(Interface.Session session, TopDecl topDecl, PatternReplacementCollection subst, Grammar.ASTNode defNode)
+        public void Resolve(Infrastructure.Session session, TopDecl topDecl, Grammar.ASTNode defNode)
         {
-            foreach (var memberNode in defNode.EnumerateChildren())
+            foreach (var fieldNode in defNode.EnumerateChildren())
             {
-                if (memberNode.kind != Grammar.ASTNodeKind.StructMemberDecl)
-                    throw new InternalException("node is not a StructMemberDecl");
+                if (fieldNode.kind != Grammar.ASTNodeKind.StructField)
+                    throw new InternalException("node is not a StructFieldDecl");
 
-                var memberName = memberNode.Child(0).GetExcerpt();
+                var field = new DefStruct.Field();
+                field.nameASTNode = fieldNode.Child(0);
+                field.declSpan = fieldNode.Span();
 
-                var memberDef = new DefStruct.Member();
-                memberDef.name = memberName;
-                memberDef.declSpan = memberNode.Span();
-
-                for (int i = 0; i < members.Count; i++)
+                for (int i = 0; i < fields.Count; i++)
                 {
-                    if (members[i].name == memberName)
+                    if (ASTPathUtil.Compare(fields[i].nameASTNode.Child(0), field.nameASTNode.Child(0)))
                     {
                         session.diagn.Add(MessageKind.Error, MessageCode.DuplicateDecl,
-                            "duplicate members '" + memberName + "'", memberNode.Span(), members[i].declSpan);
+                            "duplicate field '" + ASTPathUtil.GetString(field.nameASTNode.Child(0)) + "'",
+                            field.nameASTNode.Span(), fields[i].nameASTNode.Span());
                         break;
                     }
                 }
 
                 try
                 {
-                    session.diagn.PushContext(new MessageContext("while resolving type '" + ASTTypeUtil.GetString(memberNode.Child(1)) + "'", memberNode.GetOriginalSpan()));
-                    memberDef.type = ASTTypeUtil.Resolve(session, subst, memberNode.Child(1), false);
-                    members.Add(memberDef);
+                    //session.diagn.PushContext(new MessageContext("while resolving type '" + ASTTypeUtil.GetString(fieldNode.Child(1)) + "'", fieldNode.GetOriginalSpan()));
+                    field.type = ASTTypeUtil.Resolve(session, fieldNode.Child(1));
+                    fields.Add(field);
                 }
                 catch (Semantics.CheckException) { }
-                finally { session.diagn.PopContext(); }
+                finally { /*session.diagn.PopContext();*/ }
             }
         }
 
 
-        public override void PrintToConsole(Interface.Session session, int indentLevel)
+        public override void PrintToConsole(Infrastructure.Session session, int indentLevel)
         {
-            foreach (var member in this.members)
+            foreach (var member in this.fields)
             {
                 Console.Out.WriteLine(
                     new string(' ', indentLevel * 2) +
-                    member.name + ": " +
+                    ASTPathUtil.GetString(member.nameASTNode.Child(0)) + ": " +
                     member.type.GetString(session));
             }
         }

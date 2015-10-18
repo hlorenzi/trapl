@@ -2,20 +2,20 @@
 using System.IO;
 
 
-namespace Trapl.Interface
+namespace Trapl.Infrastructure
 {
-    public class SourceCode
+    public class Unit
     {
-        public static SourceCode MakeFromFile(string filepath)
+        public static Unit MakeFromFile(string filepath)
         {
-            var src = new SourceCode();
+            var src = new Unit();
             src.filepath = filepath;
             return src;
         }
 
-        public static SourceCode MakeFromString(string str)
+        public static Unit MakeFromString(string str)
         {
-            var src = new SourceCode();
+            var src = new Unit();
             src.stringContents = str;
             return src;
         }
@@ -26,7 +26,7 @@ namespace Trapl.Interface
         private WeakReference<string> fileContents;
 
 
-        private SourceCode()
+        private Unit()
         {
             this.stringContents = null;
             this.filepath = null;

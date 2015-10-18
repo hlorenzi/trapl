@@ -1,133 +1,102 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 
 namespace Trapl.Semantics
 {
-    public class CodeSegment
+    public class CodeBody
     {
-        public List<CodeSegment> outwardPaths = new List<CodeSegment>();
-        public List<CodeNode> nodes = new List<CodeNode>();
-
-        public void GoesTo(CodeSegment other)
-        {
-            outwardPaths.Add(other);
-        }
+        public CodeNode code;
+        public List<Variable> localVariables = new List<Variable>();
     }
 
 
-    public abstract class CodeNode
+    public class CodeNode
     {
         public Diagnostics.Span span;
-
-        public virtual string Name() { return "error"; }
-    }
-
-
-    public class CodeNodeLocalBegin : CodeNode
-    {
-        public int localIndex;
-
-        public override string Name() { return "LocalBegin " + localIndex; }
-    }
+        public List<CodeNode> children = new List<CodeNode>();
+        public List<Type> inputTypes = new List<Type>();
+        public Type outputType;
 
 
-    public class CodeNodeLocalEnd : CodeNode
-    {
-        public int localIndex;
-
-        public override string Name() { return "LocalEnd " + localIndex; }
-    }
+        public virtual string GetDebugString(Infrastructure.Session session) { return ""; }
 
 
-    public class CodeNodeLocalInit : CodeNode
-    {
-        public int localIndex;
-
-        public override string Name() { return "LocalInit " + localIndex; }
-    }
-
-
-    public class CodeNodePushLocal : CodeNode
-    {
-        public int localIndex;
-        public bool asReference;
-
-        public override string Name() { return "PushLocal" + (asReference ? "Ref " : " ") + localIndex; }
-    }
-
-
-    public class CodeNodePushLiteral : CodeNode
-    {
-        public Type type;
-        public string literalExcerpt;
-
-        public override string Name() { return "PushLiteral '" + literalExcerpt + "'"; }
-    }
-
-
-    public class CodeNodePushFunct : CodeNode
-    {
-        public TopDecl topDecl;
-
-        public override string Name() { return "PushFunct '" + topDecl.GetString() + "'"; }
-    }
-
-
-    public class CodeNodeAccess : CodeNode
-    {
-        public DefStruct accessedStruct;
-        public int memberIndex;
-
-        public CodeNodeAccess(DefStruct st, int memberIndex)
+        public void PrintDebugRecursive(Infrastructure.Session session, int indentLevel, int firstIndentLevel)
         {
-            this.accessedStruct = st;
-            this.memberIndex = memberIndex;
+            string indentation =
+                new string(' ', firstIndentLevel * 2) +
+                (firstIndentLevel >= indentLevel ? "" : "| " + new string(' ', (indentLevel - firstIndentLevel - 1) * 2));
+
+            string firstColumn =
+                indentation +
+                this.GetType().Name.Substring("CodeNode".Length) + " " +
+                GetDebugString(session) +
+                ": " + outputType.GetString(session);
+
+            Console.Out.WriteLine(firstColumn);
+            foreach (var child in this.children)
+                child.PrintDebugRecursive(session, indentLevel + 1, firstIndentLevel);
         }
-
-        public override string Name() { return "Access '" + accessedStruct.topDecl.GetString() + "." + accessedStruct.members[memberIndex].name + "'"; }
     }
 
 
-    public class CodeNodeStore : CodeNode
+    public class CodeName
     {
-        public override string Name() { return "Store"; }
+        public Grammar.ASTNode pathASTNode;
+        public Template template;
     }
 
 
-    public class CodeNodePop : CodeNode
+    public class CodeNodeSequence : CodeNode
     {
-        public override string Name() { return "Pop"; }
     }
 
 
-    public class CodeNodeAddress : CodeNode
+    public class CodeNodeControlLet : CodeNode
     {
-        public override string Name() { return "Address"; }
+        public Variable local;
     }
 
 
-    public class CodeNodeDereference : CodeNode
+    public class CodeNodeAssign : CodeNode
     {
-        public override string Name() { return "Dereference"; }
+    }
+
+
+    public class CodeNodeLocalAddress : CodeNode
+    {
+        public int localIndex = -1;
+        public override string GetDebugString(Infrastructure.Session session) { return "LOCAL " + localIndex; }
+    }
+
+
+    public class CodeNodeLocalValue : CodeNode
+    {
+        public int localIndex = -1;
+        public override string GetDebugString(Infrastructure.Session session) { return "LOCAL " + localIndex; }
+    }
+
+
+    public class CodeNodeFunct : CodeNode
+    {
+        public CodeName nameInference = new CodeName();
+        public List<DefFunct> potentialFuncts = new List<DefFunct>();
+        public override string GetDebugString(Infrastructure.Session session)
+        {
+            if (potentialFuncts.Count == 0) return "NO FUNCT";
+            else if (potentialFuncts.Count > 1) return "AMBIGUOUS FUNCT";
+            else return ASTNameUtil.GetString(potentialFuncts[0].topDecl.nameASTNode);
+        }
+    }
+
+
+    public class CodeNodeStructLiteral : CodeNode
+    {
     }
 
 
     public class CodeNodeCall : CodeNode
     {
-        public override string Name() { return "Call"; }
-    }
-
-
-    public class CodeNodeIf : CodeNode
-    {
-        public override string Name() { return "If"; }
-    }
-
-
-    public class CodeNodeReturn : CodeNode
-    {
-        public Type exprType;
-
-        public override string Name() { return "Return"; }
     }
 }

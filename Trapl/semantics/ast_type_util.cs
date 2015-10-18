@@ -7,10 +7,10 @@ namespace Trapl.Semantics
 {
     public static class ASTTypeUtil
     {
-        public static Type Resolve(Interface.Session session, PatternReplacementCollection repl, Grammar.ASTNode node, bool acceptVoid = true)
+        public static Type Resolve(Infrastructure.Session session, Grammar.ASTNode node)
         {
-            if (node.kind != Grammar.ASTNodeKind.TypeName)
-                throw new InternalException("node is not a TypeName");
+            if (node.kind != Grammar.ASTNodeKind.Type)
+                throw new InternalException("node is not a Type");
 
             // Read the indirection level of the type. (ex.: '&&Int32' has 2 levels)
             var indirectionLevels = 0;
@@ -20,36 +20,30 @@ namespace Trapl.Semantics
                     indirectionLevels++;
             }
 
-            // Read the name. (ex.: '&&List::<Int32>' will read 'List')
+            // Get the name node. (ex.: '&&Structure::List::<Int32>' will get 'Structure::List::<Int32>')
             var nameASTNode = node.Child(0);
-            var name = nameASTNode.GetExcerpt();
+
+            // Get the name's string, if the path has only one level.
+            string onlyName = null;
+            if (nameASTNode.Child(0).ChildNumber() == 1)
+                onlyName = nameASTNode.Child(0).Child(0).GetExcerpt();
 
             Type resolvedType = null;
 
             // Check if it is the Void type.
-            if (name == "Void")
+            if (onlyName == "Void")
             {
-                if (!acceptVoid && indirectionLevels == 0)
-                {
-                    session.diagn.Add(MessageKind.Error, MessageCode.ExplicitVoid,
-                        "cannot use 'Void' here", nameASTNode.GetOriginalSpan());
-                    throw new Semantics.CheckException();
-                }
-
                 resolvedType = new TypeVoid();
+            }
+            // Check if it is a placeholder type.
+            else if (onlyName == "_")
+            {
+                resolvedType = new TypeUnconstrained();
             }
             else
             {
                 // Find a matching TopDecl.
-                var matchingTopDecl = ASTTopDeclFinder.Find(session, nameASTNode, node.Child(1));
-
-                // Check that what the matching TopDecl defines is a struct.
-                if (!(matchingTopDecl.def is DefStruct))
-                {
-                    session.diagn.Add(MessageKind.Error, MessageCode.UnknownType,
-                        "'" + name + "' is not a struct", nameASTNode.GetOriginalSpan());
-                    throw new Semantics.CheckException();
-                }
+                var matchingTopDecl = ASTTopDeclFinder.FindStruct(session, nameASTNode);
 
                 // Build a Type with the matching TopDecl's struct.
                 resolvedType = new TypeStruct((DefStruct)matchingTopDecl.def);
@@ -63,22 +57,6 @@ namespace Trapl.Semantics
         }
 
 
-        public static Grammar.ASTNode GetASTNode(Interface.Session session, Type type)
-        {
-            var structType = type as TypeStruct;
-            if (structType == null)
-                throw new InternalException("unimplemented; cannot yet generate AST node for non-struct type");
-
-            var node = new Grammar.ASTNode(Grammar.ASTNodeKind.TypeName);
-            node.AddChild(new Grammar.ASTNode(Grammar.ASTNodeKind.Name));
-            node.Child(0).OverwriteExcerpt(structType.GetTopDeclName(session));
-
-            node.AddChild(new Grammar.ASTNode(Grammar.ASTNodeKind.ParameterPattern));
-
-            return node;
-        }
-
-
         public static string GetString(Grammar.ASTNode typeNode)
         {
             var result = "";
@@ -88,13 +66,6 @@ namespace Trapl.Semantics
             {
                 if (child.kind == Grammar.ASTNodeKind.Name)
                     result += child.GetExcerpt();
-                else if (child.kind == Grammar.ASTNodeKind.GenericIdentifier)
-                    result += "gen " + child.GetExcerpt();
-                else if (child.kind == Grammar.ASTNodeKind.ParameterPattern)
-                {
-                    if (!ASTPatternUtil.IsEmpty(child))
-                        result += ASTPatternUtil.GetString(child);
-                }
                 else if (child.kind == Grammar.ASTNodeKind.Operator)
                     prefix += child.GetExcerpt();
                 else

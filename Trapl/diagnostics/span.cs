@@ -5,21 +5,13 @@ namespace Trapl.Diagnostics
 {
     public struct Span
     {
-        public Interface.SourceCode src;
+        public Infrastructure.Unit unit;
         public int start, end;
 
 
-        public Span(Interface.SourceCode src)
+        public Span(Infrastructure.Unit unit, int start, int end)
         {
-            this.src = src;
-            this.start = 0;
-            this.end = 0;
-        }
-
-
-        public Span(Interface.SourceCode src, int start, int end)
-        {
-            this.src = src;
+            this.unit = unit;
             this.start = start;
             this.end = end;
         }
@@ -27,11 +19,17 @@ namespace Trapl.Diagnostics
 
         public Span Merge(Span other)
         {
-            if (this.src != other.src)
-                throw new InvalidOperationException("trying to merge spans from different sources");
+            if (this.unit == null)
+                return other;
+
+            if (other.unit == null)
+                return this;
+
+            if (this.unit != other.unit)
+                throw new InvalidOperationException("attempted to merge spans from different units");
 
             return new Span(
-                this.src,
+                this.unit,
                 Math.Min(this.start, other.start),
                 Math.Max(this.end, other.end));
         }
@@ -39,13 +37,13 @@ namespace Trapl.Diagnostics
 
         public Span JustBefore()
         {
-            return new Span(this.src, this.start, this.start);
+            return new Span(this.unit, this.start, this.start);
         }
 
 
         public Span JustAfter()
         {
-            return new Span(this.src, this.end, this.end);
+            return new Span(this.unit, this.end, this.end);
         }
 
 
@@ -57,10 +55,10 @@ namespace Trapl.Diagnostics
 
         public string GetExcerpt()
         {
-            if (this.src == null)
+            if (this.unit == null)
                 return "<<unknown source>>";
             else
-                return this.src.GetExcerpt(this.start, this.end);
+                return this.unit.GetExcerpt(this.start, this.end);
         }
 
 

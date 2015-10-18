@@ -13,26 +13,20 @@ namespace Trapl.Diagnostics
     public enum MessageCode
     {
         Internal,
+        Info,
+
         UnexpectedChar,
         Expected,
         UnmatchedElse,
-        UnknownType,
-        ExplicitVoid,
-        StructRecursion,
+
         DuplicateDecl,
-        Shadowing,
-        InferenceImpossible,
-        UnknownIdentifier,
-        CannotAssign,
-        CannotAddress,
-        CannotDereference,
-        CannotCall,
-        WrongArgumentNumber,
+        StructRecursion,
+
+        UndeclaredIdentifier,
+        UndeclaredTemplate,
+        WrongTopDeclKind,
+        InferenceFailed,
         IncompatibleTypes,
-        IncompatibleTemplate,
-        WrongFunctNameStyle,
-        WrongStructNameStyle,
-        UninitializedLocal
     }
 
 
@@ -82,11 +76,22 @@ namespace Trapl.Diagnostics
         }
 
 
-        public void PrintToConsole(Interface.Session session)
+        public void SetInner(Message msg)
+        {
+            this.innerMessage = msg;
+        }
+
+
+        public void PrintToConsole(Infrastructure.Session session)
         {
             PrintContext();
             PrintMessage();
             PrintExcerptWithHighlighting(this.kind, this.spans);
+            if (this.innerMessage != null)
+            {
+                this.innerMessage.indentation = this.indentation + "  ";
+                this.innerMessage.PrintToConsole(session);
+            }
         }
 
 
@@ -95,6 +100,8 @@ namespace Trapl.Diagnostics
         private MessageKind kind;
         private Diagnostics.Span[] spans;
         private Stack<MessageContext> contextStack = new Stack<MessageContext>();
+        private Message innerMessage;
+        private string indentation = "";
 
 
         private Message(MessageCode code, string text, MessageKind kind, params Diagnostics.Span[] carets)
@@ -110,6 +117,7 @@ namespace Trapl.Diagnostics
         {
             foreach (var ctx in this.contextStack)
             {
+                Console.Write(this.indentation);
                 PrintPosition(ctx.span);
                 Console.ForegroundColor = GetLightColor(MessageKind.Info);
                 Console.Write(ctx.text);
@@ -124,6 +132,8 @@ namespace Trapl.Diagnostics
 
         private void PrintMessage()
         {
+            Console.Write(this.indentation);
+
             if (this.spans.Length > 0)
                 PrintPosition(this.spans[0]);
             else
@@ -140,11 +150,11 @@ namespace Trapl.Diagnostics
         {
             Console.ForegroundColor = ConsoleColor.White;
 
-            if (span.src != null)
+            if (span.unit != null)
             {
-                Console.Write(span.src.GetFullName() + ":");
-                Console.Write((span.src.GetLineIndexAtSpanStart(span) + 1) + ":");
-                Console.Write((span.src.GetColumnAtSpanStart(span) + 1) + ": ");
+                Console.Write(span.unit.GetFullName() + ":");
+                Console.Write((span.unit.GetLineIndexAtSpanStart(span) + 1) + ":");
+                Console.Write((span.unit.GetColumnAtSpanStart(span) + 1) + ": ");
             }
             else
                 Console.Write("<unknown location>: ");
@@ -199,8 +209,8 @@ namespace Trapl.Diagnostics
             foreach (var span in spans)
             {
                 int dist = Math.Min(
-                    Math.Abs(span.src.GetLineIndexAtSpanStart(span) - line),
-                    Math.Abs(span.src.GetLineIndexAtSpanEnd(span) - line));
+                    Math.Abs(span.unit.GetLineIndexAtSpanStart(span) - line),
+                    Math.Abs(span.unit.GetLineIndexAtSpanEnd(span) - line));
 
                 if (dist < min || min == -1)
                     min = dist;
@@ -216,7 +226,7 @@ namespace Trapl.Diagnostics
                 return;
 
             // FIXME! Not ready for multiple sources yet.
-            var source = spans[0].src;
+            var source = spans[0].unit;
             if (source == null)
                 return;
             
@@ -251,6 +261,7 @@ namespace Trapl.Diagnostics
                 {
                     if (!skipped)
                     {
+                        Console.Write(this.indentation);
                         Console.ForegroundColor = ConsoleColor.White;
                         Console.WriteLine("".PadLeft(6) + "...");
                     }
@@ -262,6 +273,7 @@ namespace Trapl.Diagnostics
 
 
                 Console.ForegroundColor = ConsoleColor.White;
+                Console.Write(this.indentation);
                 Console.Write((i + 1).ToString().PadLeft(5) + ": ");
 
                 PrintLineExcerptWithHighlighting(color, i, spans);
@@ -275,7 +287,7 @@ namespace Trapl.Diagnostics
         private void PrintLineExcerptWithHighlighting(MessageKind color, int line, Diagnostics.Span[] spans)
         {
             // FIXME! Not ready for multiple sources yet.
-            var source = spans[0].src;
+            var source = spans[0].unit;
 
             if (line >= source.GetNumberOfLines())
                 return;

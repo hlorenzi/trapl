@@ -1,38 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using Trapl.Diagnostics;
-using Trapl.Interface;
+using Trapl.Infrastructure;
 
 
 namespace Trapl.Semantics
 {
     public class DefFunct : Def
     {
-        public class Variable
-        {
-            public string name;
-            public Type type;
-            public Diagnostics.Span declSpan;
-            public bool outOfScope;
-
-            public Variable()
-            {
-            }
-
-            public Variable(string name, Type type, Diagnostics.Span declSpan)
-            {
-                this.name = name;
-                this.type = type;
-                this.declSpan = declSpan;
-                this.outOfScope = false;
-            }
-        }
-
         public List<Variable> arguments = new List<Variable>();
         public Type returnType;
 
-        public List<Variable> localVariables = new List<Variable>();
-        public CodeSegment body;
+        public CodeBody body;
 
 
         public DefFunct(TopDecl topDecl) : base(topDecl)
@@ -41,54 +20,59 @@ namespace Trapl.Semantics
         }
 
 
-        public void ResolveSignature(Interface.Session session, TopDecl topDecl, PatternReplacementCollection subst, Grammar.ASTNode defNode)
+        public void ResolveSignature(Infrastructure.Session session, TopDecl topDecl, Grammar.ASTNode defNode)
         {
             foreach (var argNode in defNode.EnumerateChildren())
             {
-                if (argNode.kind != Grammar.ASTNodeKind.FunctArgDecl)
+                if (argNode.kind != Grammar.ASTNodeKind.FunctArg)
                     continue;
 
-                var argName = argNode.Child(0).GetExcerpt();
-
-                var argDef = new DefFunct.Variable();
-                argDef.name = argName;
-                argDef.declSpan = argNode.Span();
+                var arg = new Variable();
+                arg.pathASTNode = argNode.Child(0).Child(0);
+                arg.template = ASTTemplateUtil.ResolveTemplateFromName(session, argNode.Child(0));
+                arg.declSpan = argNode.Span();
 
                 try
                 {
-                    session.diagn.PushContext(new MessageContext("while resolving type '" + ASTTypeUtil.GetString(argNode.Child(1)) + "'", argNode.GetOriginalSpan()));
-                    argDef.type = ASTTypeUtil.Resolve(session, subst, argNode.Child(1), false);
-                    arguments.Add(argDef);
-                    localVariables.Add(argDef);
+                    //session.diagn.PushContext(new MessageContext("while resolving type '" + ASTTypeUtil.GetString(argNode.Child(1)) + "'", argNode.GetOriginalSpan()));
+                    arg.type = ASTTypeUtil.Resolve(session, argNode.Child(1));
+                    this.arguments.Add(arg);
                 }
                 catch (Semantics.CheckException) { }
-                finally { session.diagn.PopContext(); }
+                finally { /*session.diagn.PopContext();*/ }
             }
 
 
             returnType = new TypeVoid();
             foreach (var retNode in defNode.EnumerateChildren())
             {
-                if (retNode.kind != Grammar.ASTNodeKind.FunctReturnDecl)
+                if (retNode.kind != Grammar.ASTNodeKind.FunctReturnType)
                     continue;
 
                 try
                 {
-                    session.diagn.PushContext(new MessageContext("while resolving type '" + ASTTypeUtil.GetString(retNode.Child(0)) + "'", retNode.GetOriginalSpan()));
-                    returnType = ASTTypeUtil.Resolve(session, subst, retNode.Child(0), true);
+                    //session.diagn.PushContext(new MessageContext("while resolving type '" + ASTTypeUtil.GetString(retNode.Child(0)) + "'", retNode.GetOriginalSpan()));
+                    this.returnType = ASTTypeUtil.Resolve(session, retNode.Child(0));
                 }
                 catch (Semantics.CheckException) { }
-                finally { session.diagn.PopContext(); }
+                finally { /*session.diagn.PopContext();*/ }
             }
         }
 
 
-        public void ResolveBody(Interface.Session session, TopDecl topDecl, PatternReplacementCollection subst, Grammar.ASTNode defNode)
+        public void ResolveBody(Infrastructure.Session session, TopDecl topDecl, Grammar.ASTNode defNode)
         {
-            session.diagn.PushContext(new MessageContext("in funct '" + topDecl.GetString() + "'", topDecl.qualifiedNameASTNode.Span()));
+            session.diagn.PushContext(new MessageContext("in funct '" + topDecl.GetString() + "'", topDecl.pathASTNode.Span()));
             try
             {
-                body = CodeAnalyzer.Analyze(session, defNode.ChildWithKind(Grammar.ASTNodeKind.Block), localVariables, returnType);
+                body = ASTCodeConverter.Convert(
+                    session, 
+                    defNode.ChildWithKind(Grammar.ASTNodeKind.FunctBody).Child(0),
+                    new List<Variable>(this.arguments),
+                    returnType);
+
+                CodeTypeInferenceAnalyzer.Analyze(session, body);
+                CodeTypeChecker.Check(session, body);
             }
             finally { session.diagn.PopContext(); }
         }
@@ -96,19 +80,25 @@ namespace Trapl.Semantics
 
         public override void PrintToConsole(Session session, int indentLevel)
         {
-            var segments = new List<CodeSegment>();
-            segments.Add(this.body);
-
-            for (int i = 0; i < this.localVariables.Count; i++)
+            for (int i = 0; i < this.body.localVariables.Count; i++)
             {
                 Console.Out.WriteLine(
                     "  " +
                     (i < this.arguments.Count ? "PARAM " : "LOCAL ") +
                     i + " = " +
-                    this.localVariables[i].name + ": " + this.localVariables[i].type.GetString(session));
+                    this.body.localVariables[i].GetString(session) + ": " +
+                    this.body.localVariables[i].type.GetString(session));
             }
 
+            Console.Out.WriteLine(
+                "  RETURNS " + this.returnType.GetString(session));
+
             Console.Out.WriteLine();
+
+            this.body.code.PrintDebugRecursive(session, 1, 1);
+
+            /*var segments = new List<CodeSegment>();
+            segments.Add(this.body);
 
             for (int i = 0; i < segments.Count; i++)
             {
@@ -137,7 +127,7 @@ namespace Trapl.Semantics
 
                 Console.Out.WriteLine("    -> Goes to " + goesToStr);
                 Console.Out.WriteLine();
-            }
+            }*/
         }
     }
 }

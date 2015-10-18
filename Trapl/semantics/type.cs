@@ -7,9 +7,23 @@ namespace Trapl.Semantics
     {
         public bool addressable;
 
+        public virtual Type Clone() { return (Type)MemberwiseClone(); }
+
         public virtual bool IsSame(Type other) { return false; }
 
-        public virtual string GetString(Interface.Session session) { return "<error>"; }
+        public virtual string GetString(Infrastructure.Session session) { return "(???)"; }
+    }
+
+
+    public class TypeError : Type
+    {
+        public override string GetString(Infrastructure.Session session) { return "(error)"; }
+    }
+
+
+    public class TypeUnconstrained : Type
+    {
+        public override string GetString(Infrastructure.Session session) { return "(unconstrained)"; }
     }
 
 
@@ -17,7 +31,7 @@ namespace Trapl.Semantics
     {
         public override bool IsSame(Type other) { return other is TypeVoid; }
 
-        public override string GetString(Interface.Session session) { return "Void"; }
+        public override string GetString(Infrastructure.Session session) { return "Void"; }
     }
 
 
@@ -32,7 +46,7 @@ namespace Trapl.Semantics
             return (((TypePointer)other).pointeeType.IsSame(this.pointeeType));
         }
 
-        public override string GetString(Interface.Session session)
+        public override string GetString(Infrastructure.Session session)
         {
             return "&" + pointeeType.GetString(session);
         }
@@ -49,25 +63,13 @@ namespace Trapl.Semantics
             if (!(other is TypeStruct)) return false;
             return (((TypeStruct)other).structDef == this.structDef);
         }
-        public override string GetString(Interface.Session session)
+        public override string GetString(Infrastructure.Session session)
         { 
             foreach (var topDecl in session.topDecls)
             {
                 if (structDef == topDecl.def)
                 {
                     return topDecl.GetString();
-                }
-            }
-            return "<unknown>";
-        }
-
-        public string GetTopDeclName(Interface.Session session)
-        {
-            foreach (var topDecl in session.topDecls)
-            {
-                if (structDef == topDecl.def)
-                {
-                    return topDecl.qualifiedName;
                 }
             }
             return "<unknown>";
@@ -101,7 +103,7 @@ namespace Trapl.Semantics
                 if (!this.argumentTypes[i].IsSame(otherf.argumentTypes[i])) return false;
             return true;
         }
-        public override string GetString(Interface.Session session)
+        public override string GetString(Infrastructure.Session session)
         {
             var result = "(";
             for (int i = 0; i < argumentTypes.Count; i++)
@@ -109,10 +111,8 @@ namespace Trapl.Semantics
                 result += argumentTypes[i].GetString(session);
                 if (i < argumentTypes.Count - 1)
                     result += ", ";
-                else
-                    result += " ";
             }
-            return result + "-> " + returnType.GetString(session) + ")";
+            return result + ") -> " + returnType.GetString(session);
         }
     }
 }

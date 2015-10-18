@@ -1,5 +1,22 @@
+Apple {}
+Banana {}
+Orange {}
+
+
+make_apple() -> Apple {}
+
+convert_fruit<Apple, Banana>(in: Apple) -> Banana {}
+convert_fruit<Apple, Orange>(in: Apple) -> Orange {}
+
+
 test()
 {
-	let x = 0;
-	let y = 1;
+	let a;
+	a = make_apple();
+
+	let b;
+	b = convert_fruit::<_, Banana>(a);
+
+	let c: Orange;
+	c = convert_fruit(a);
 }

@@ -8,7 +8,7 @@ namespace Trapl.Grammar
     {
         Error,
         DoubleHash, HashColon, ColonHash,
-        Identifier, Number,
+        Identifier, Number, Boolean,
         KeywordFunct, KeywordStruct, KeywordTrait, KeywordGen,
         KeywordLet, KeywordNew, KeywordIf, KeywordElse, KeywordWhile, KeywordReturn,
         BraceOpen, BraceClose, ParenOpen, ParenClose,
@@ -55,7 +55,7 @@ namespace Trapl.Grammar
         }
 
 
-        public void PrintDebug(Interface.SourceCode src)
+        public void PrintDebug(Infrastructure.Unit src)
         {
             foreach (var token in this.tokens)
             {

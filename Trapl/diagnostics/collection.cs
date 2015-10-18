@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 
 namespace Trapl.Diagnostics
@@ -16,26 +17,18 @@ namespace Trapl.Diagnostics
         }
 
 
-        public void Add(Message msg)
-        {
-            msg.SetContext(this.contextStack);
-            this.messages.Add(msg);
-        }
-
-
-        public void Add(MessageKind kind, MessageCode code, string text, Diagnostics.Span span)
-        {
-            var msg = Message.Make(code, text, kind, span);
-            msg.SetContext(this.contextStack);
-            this.messages.Add(msg);
-        }
-
-
         public void Add(MessageKind kind, MessageCode code, string text, params Diagnostics.Span[] spans)
         {
             var msg = Message.Make(code, text, kind, spans);
             msg.SetContext(this.contextStack);
             this.messages.Add(msg);
+        }
+
+
+        public void AddInnerToLast(MessageKind kind, MessageCode code, string text, params Diagnostics.Span[] spans)
+        {
+            var msg = Message.Make(code, text, kind, spans);
+            this.messages[this.messages.Count - 1].SetInner(msg);
         }
 
 
@@ -84,7 +77,7 @@ namespace Trapl.Diagnostics
         }
 
 
-        public void PrintToConsole(Interface.Session session)
+        public void PrintToConsole(Infrastructure.Session session)
         {
             foreach (var msg in messages)
             {

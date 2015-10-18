@@ -7,7 +7,7 @@ namespace Trapl
     {
         static void Main(string[] args)
         {
-            Interface.Session.Compile(Interface.SourceCode.MakeFromFile("../../test.tr"));
+            Infrastructure.Session.Compile(Infrastructure.Unit.MakeFromFile("../../test.tr"));
             Console.ReadKey();
         }
     }

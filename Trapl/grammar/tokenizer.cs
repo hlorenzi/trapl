@@ -7,16 +7,16 @@ namespace Trapl.Grammar
 {
     public class Tokenizer
     {
-        public static TokenCollection Tokenize(Interface.Session session, Interface.SourceCode src)
+        public static TokenCollection Tokenize(Infrastructure.Session session, Infrastructure.Unit unit)
         {
             var output = new TokenCollection();
 
             // Iterate through all characters in input.
             var index = 0;
-            while (index < src.Length())
+            while (index < unit.Length())
             {
                 // Skip whitespace.
-                if (IsWhitespace(src[index]))
+                if (IsWhitespace(unit[index]))
                 {
                     index++;
                     continue;
@@ -24,11 +24,11 @@ namespace Trapl.Grammar
 
                 // Match next characters to a token, and add it to the output.
                 var match =
-                    TryMatchModelToken(src, index) ??
-                    TryMatchVaryingToken(src, index) ??
-                    new TokenMatch(new string(src[index], 1), TokenKind.Error);
+                    TryMatchModelToken(unit, index) ??
+                    TryMatchVaryingToken(unit, index) ??
+                    new TokenMatch(new string(unit[index], 1), TokenKind.Error);
 
-                var span = new Span(src, index, index + match.representation.Length);
+                var span = new Span(unit, index, index + match.representation.Length);
 
                 if (match.kind == TokenKind.Error)
                     session.diagn.Add(MessageKind.Error, MessageCode.UnexpectedChar, "unexpected character", span);
@@ -36,7 +36,7 @@ namespace Trapl.Grammar
                 // Skip line comments.
                 if (match.kind == TokenKind.DoubleHash)
                 {
-                    while (index < src.Length() && src[index] != '\n')
+                    while (index < unit.Length() && unit[index] != '\n')
                         index++;
                     continue;
                 }
@@ -46,16 +46,16 @@ namespace Trapl.Grammar
                     var nesting = 1;
                     index += 2;
 
-                    while (index < src.Length() - 1)
+                    while (index < unit.Length() - 1)
                     {
-                        if (src[index] == ':' && src[index + 1] == '#')
+                        if (unit[index] == ':' && unit[index + 1] == '#')
                         {
                             nesting--;
                             index += 2;
                             if (nesting == 0)
                                 break;
                         }
-                        else if (src[index] == '#' && src[index + 1] == ':')
+                        else if (unit[index] == '#' && unit[index + 1] == ':')
                         { 
                             nesting++;
                             index += 2;
@@ -76,7 +76,7 @@ namespace Trapl.Grammar
             }
 
             output.tokenAfterEnd =
-                new Token(TokenKind.Error, new Diagnostics.Span(src, index, index));
+                new Token(TokenKind.Error, new Diagnostics.Span(unit, index, index));
 
             return output;
         }
@@ -96,7 +96,7 @@ namespace Trapl.Grammar
         }
 
 
-        private static TokenMatch TryMatchModelToken(Interface.SourceCode src, int index)
+        private static TokenMatch TryMatchModelToken(Infrastructure.Unit unit, int index)
         {
             var models = new List<TokenMatch>
             {
@@ -142,13 +142,13 @@ namespace Trapl.Grammar
                 var matched = true;
                 for (int i = 0; i < model.representation.Length; i++)
                 {
-                    if (index + i >= src.Length())
+                    if (index + i >= unit.Length())
                     {
                         matched = false;
                         break;
                     }
 
-                    if (src[index + i] != model.representation[i])
+                    if (unit[index + i] != model.representation[i])
                     {
                         matched = false;
                         break;
@@ -163,7 +163,7 @@ namespace Trapl.Grammar
         }
 
 
-        private static TokenMatch TryMatchVaryingToken(Interface.SourceCode src, int index)
+        private static TokenMatch TryMatchVaryingToken(Infrastructure.Unit unit, int index)
         {
             var keywords = new List<TokenMatch>
             {
@@ -176,20 +176,22 @@ namespace Trapl.Grammar
                 new TokenMatch("if", TokenKind.KeywordIf),
                 new TokenMatch("else", TokenKind.KeywordElse),
                 new TokenMatch("while", TokenKind.KeywordWhile),
-                new TokenMatch("return", TokenKind.KeywordReturn)
+                new TokenMatch("return", TokenKind.KeywordReturn),
+                new TokenMatch("true", TokenKind.Boolean),
+                new TokenMatch("false", TokenKind.Boolean)
             };
 
 
             // Check for alphabetic identifiers.
-            if (IsIdentifierBeginning(src[index]))
+            if (IsIdentifierBeginning(unit[index]))
             {
                 var identifier = new StringBuilder();
-                identifier.Append(src[index]);
+                identifier.Append(unit[index]);
                 index++;
 
-                while (index < src.Length() && IsIdentifier(src[index]))
+                while (index < unit.Length() && IsIdentifier(unit[index]))
                 {
-                    identifier.Append(src[index]);
+                    identifier.Append(unit[index]);
                     index++;
                 }
 
@@ -200,15 +202,15 @@ namespace Trapl.Grammar
                 return (keywordMatch ?? new TokenMatch(identifierStr, TokenKind.Identifier));
             }
             // Check for number literals.
-            else if (IsNumberBeginning(src[index]))
+            else if (IsNumberBeginning(unit[index]))
             {
                 var number = new StringBuilder();
-                number.Append(src[index]);
+                number.Append(unit[index]);
                 index++;
 
-                while (index < src.Length() && IsNumber(src[index]))
+                while (index < unit.Length() && IsNumber(unit[index]))
                 {
-                    number.Append(src[index]);
+                    number.Append(unit[index]);
                     index++;
                 }
 

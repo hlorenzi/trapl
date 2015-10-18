@@ -50,9 +50,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="pattern_substitution_tests.cs" />
     <Compile Include="struct_tests.cs" />
-    <Compile Include="pattern_matching_tests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="syntax_tests.cs" />
   </ItemGroup>
