@@ -53,10 +53,10 @@ namespace Trapl.Semantics
 
                 for (int i = 0; i < fields.Count; i++)
                 {
-                    if (ASTPathUtil.Compare(fields[i].nameASTNode.Child(0), field.nameASTNode.Child(0)))
+                    if (PathASTUtil.Compare(fields[i].nameASTNode.Child(0), field.nameASTNode.Child(0)))
                     {
                         session.diagn.Add(MessageKind.Error, MessageCode.DuplicateDecl,
-                            "duplicate field '" + ASTPathUtil.GetString(field.nameASTNode.Child(0)) + "'",
+                            "duplicate field '" + PathASTUtil.GetString(field.nameASTNode.Child(0)) + "'",
                             field.nameASTNode.Span(), fields[i].nameASTNode.Span());
                         break;
                     }
@@ -65,7 +65,7 @@ namespace Trapl.Semantics
                 try
                 {
                     //session.diagn.PushContext(new MessageContext("while resolving type '" + ASTTypeUtil.GetString(fieldNode.Child(1)) + "'", fieldNode.GetOriginalSpan()));
-                    field.type = ASTTypeUtil.Resolve(session, fieldNode.Child(1));
+                    field.type = TypeASTUtil.Resolve(session, fieldNode.Child(1));
                     fields.Add(field);
                 }
                 catch (Semantics.CheckException) { }
@@ -80,7 +80,7 @@ namespace Trapl.Semantics
             {
                 Console.Out.WriteLine(
                     new string(' ', indentLevel * 2) +
-                    ASTPathUtil.GetString(member.nameASTNode.Child(0)) + ": " +
+                    PathASTUtil.GetString(member.nameASTNode.Child(0)) + ": " +
                     member.type.GetString(session));
             }
         }

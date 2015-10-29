@@ -7,7 +7,11 @@ namespace Trapl
     {
         static void Main(string[] args)
         {
-            Infrastructure.Session.Compile(Infrastructure.Unit.MakeFromFile("../../test.tr"));
+            var session = new Infrastructure.Session();
+            session.AddUnit(Infrastructure.Unit.MakeFromFile("../../test.tr"));
+            session.Resolve();
+            session.PrintDefs();
+            session.diagn.PrintToConsole(session);
             Console.ReadKey();
         }
     }

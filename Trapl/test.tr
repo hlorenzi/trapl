@@ -8,6 +8,8 @@ make_apple() -> Apple {}
 convert_fruit<Apple, Banana>(in: Apple) -> Banana {}
 convert_fruit<Apple, Orange>(in: Apple) -> Orange {}
 
+fruits::make_banana<Banana>() -> Banana {}
+
 
 test()
 {
@@ -19,4 +21,12 @@ test()
 
 	let c: Orange;
 	c = convert_fruit(a);
+
+	let d;
+	d = fruits::make_banana::<Banana>;
+
+	let e: ();
+	let f: (Apple);
+	let g: (Apple, Banana,);
+	let h: (Apple, Banana, Orange);
 }

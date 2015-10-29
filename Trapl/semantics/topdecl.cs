@@ -9,6 +9,7 @@ namespace Trapl.Semantics
 
         public Grammar.ASTNode nameASTNode;
         public Grammar.ASTNode pathASTNode;
+        public Grammar.ASTNode templateASTNode;
         public Template template;
 
         public Def def;
@@ -16,6 +17,12 @@ namespace Trapl.Semantics
 
         public bool resolved;
         public bool bodyResolved;
+
+
+        public void ResolveTemplate(Infrastructure.Session session)
+        {
+            this.template = TemplateASTUtil.ResolveTemplate(session, this.templateASTNode);
+        }
 
 
         public void Resolve(Infrastructure.Session session)
@@ -72,7 +79,7 @@ namespace Trapl.Semantics
 
         public string GetString()
         {
-            return ASTPathUtil.GetString(this.pathASTNode);
+            return PathASTUtil.GetString(this.pathASTNode);
         }
 
 

@@ -93,7 +93,25 @@ namespace Trapl.Semantics
                     }
                 }
 
-                typeTo = functTo;                
+                typeTo = functTo;
+            }
+            else if (typeTo is TypeTuple &&
+                typeFrom is TypeTuple)
+            {
+                var tupleTo = (TypeTuple)typeTo;
+                var tupleFrom = (TypeTuple)typeFrom;
+
+                if (tupleTo.elementTypes.Count == tupleFrom.elementTypes.Count)
+                {
+                    for (var i = 0; i < tupleTo.elementTypes.Count; i++)
+                    {
+                        var elemTo = tupleTo.elementTypes[i];
+                        TryInference(tupleFrom.elementTypes[i], ref elemTo);
+                        tupleTo.elementTypes[i] = elemTo;
+                    }
+                }
+
+                typeTo = tupleTo;
             }
         }
 

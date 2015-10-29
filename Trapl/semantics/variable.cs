@@ -22,7 +22,7 @@ namespace Trapl.Semantics
 
         public string GetString(Infrastructure.Session session)
         {
-            return ASTPathUtil.GetString(this.pathASTNode) + this.template.GetString(session);
+            return PathASTUtil.GetString(this.pathASTNode) + this.template.GetString(session);
         }
     }
 }

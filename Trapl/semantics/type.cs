@@ -27,14 +27,6 @@ namespace Trapl.Semantics
     }
 
 
-    public class TypeVoid : Type
-    {
-        public override bool IsSame(Type other) { return other is TypeVoid; }
-
-        public override string GetString(Infrastructure.Session session) { return "Void"; }
-    }
-
-
     public class TypePointer : Type
     {
         public Type pointeeType;
@@ -73,6 +65,32 @@ namespace Trapl.Semantics
                 }
             }
             return "<unknown>";
+        }
+    }
+
+    public class TypeTuple : Type
+    {
+        public List<Type> elementTypes = new List<Type>();
+
+        public override bool IsSame(Type other)
+        {
+            var otherf = other as TypeTuple;
+            if (otherf == null) return false;
+            if (this.elementTypes.Count != otherf.elementTypes.Count) return false;
+            for (int i = 0; i < elementTypes.Count; i++)
+                if (!this.elementTypes[i].IsSame(otherf.elementTypes[i])) return false;
+            return true;
+        }
+        public override string GetString(Infrastructure.Session session)
+        {
+            var result = "(";
+            for (int i = 0; i < elementTypes.Count; i++)
+            {
+                result += elementTypes[i].GetString(session);
+                if (i < elementTypes.Count - 1)
+                    result += ", ";
+            }
+            return result + ")";
         }
     }
 

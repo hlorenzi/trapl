@@ -353,11 +353,26 @@ namespace Trapl.Grammar
                 modifierNodes.Add(new ASTNode(ASTNodeKind.Operator, this.Advance().span));
             }
 
-            node.AddChild(this.ParseName(false));
-
-            foreach (var mod in modifierNodes)
+            // Parse a tuple type.
+            if (this.CurrentIs(TokenKind.ParenOpen))
             {
-                node.AddChild(mod);
+                node.kind = ASTNodeKind.TupleType;
+                this.Advance();
+                while (this.CurrentIsNot(TokenKind.ParenClose))
+                {
+                    node.AddChild(this.ParseType());
+                    this.MatchListSeparator(TokenKind.Comma, TokenKind.ParenClose, MessageCode.Expected, "expected ',' or ')'");
+                }
+                node.AddSpan(this.Current().span);
+                this.Match(TokenKind.ParenClose, MessageCode.Expected, "expected ')'");
+            }
+            // Parse a struct type.
+            else
+            {
+                node.AddChild(this.ParseName(false));
+
+                foreach (var mod in modifierNodes)
+                    node.AddChild(mod);
             }
 
             return node;

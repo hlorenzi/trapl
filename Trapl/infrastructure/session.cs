@@ -19,7 +19,6 @@ namespace Trapl.Infrastructure
             var session = new Session();
             session.AddUnit(unit);
             session.Resolve();
-            session.diagn.PrintToConsole(session);
         }
 
 
@@ -30,8 +29,7 @@ namespace Trapl.Infrastructure
 
             foreach (var topDeclNode in topDeclNodes)
             {
-                //topDeclNode.PrintDebugRecursive(0, 0);
-                this.topDecls.Add(Semantics.ASTTopDeclConverter.Convert(this, topDeclNode));
+                this.topDecls.Add(Semantics.TopDeclASTConverter.Convert(this, topDeclNode));
             }
         }
 
@@ -39,6 +37,12 @@ namespace Trapl.Infrastructure
         public void Resolve()
         {
             var topDeclsToResolve = new List<Semantics.TopDecl>(this.topDecls);
+            foreach (var topDecl in topDeclsToResolve)
+            {
+                topDecl.ResolveTemplate(this);
+            }
+
+            topDeclsToResolve = new List<Semantics.TopDecl>(this.topDecls);
             foreach (var topDecl in topDeclsToResolve)
             {
                 topDecl.Resolve(this);
@@ -49,8 +53,6 @@ namespace Trapl.Infrastructure
             {
                 topDecl.ResolveBody(this);
             }
-
-            PrintDefs();
         }
 
 

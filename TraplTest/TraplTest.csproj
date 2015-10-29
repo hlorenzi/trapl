@@ -50,9 +50,11 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="funct_tests.cs" />
     <Compile Include="struct_tests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="syntax_tests.cs" />
+    <Compile Include="_base.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Trapl\Trapl.csproj">

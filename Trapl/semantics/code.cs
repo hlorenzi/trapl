@@ -86,7 +86,7 @@ namespace Trapl.Semantics
         {
             if (potentialFuncts.Count == 0) return "NO FUNCT";
             else if (potentialFuncts.Count > 1) return "AMBIGUOUS FUNCT";
-            else return ASTNameUtil.GetString(potentialFuncts[0].topDecl.nameASTNode);
+            else return NameASTUtil.GetString(potentialFuncts[0].topDecl.nameASTNode);
         }
     }
 

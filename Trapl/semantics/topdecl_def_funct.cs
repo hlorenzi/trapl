@@ -29,13 +29,13 @@ namespace Trapl.Semantics
 
                 var arg = new Variable();
                 arg.pathASTNode = argNode.Child(0).Child(0);
-                arg.template = ASTTemplateUtil.ResolveTemplateFromName(session, argNode.Child(0));
+                arg.template = TemplateASTUtil.ResolveTemplateFromName(session, argNode.Child(0));
                 arg.declSpan = argNode.Span();
 
                 try
                 {
                     //session.diagn.PushContext(new MessageContext("while resolving type '" + ASTTypeUtil.GetString(argNode.Child(1)) + "'", argNode.GetOriginalSpan()));
-                    arg.type = ASTTypeUtil.Resolve(session, argNode.Child(1));
+                    arg.type = TypeASTUtil.Resolve(session, argNode.Child(1));
                     this.arguments.Add(arg);
                 }
                 catch (Semantics.CheckException) { }
@@ -43,7 +43,7 @@ namespace Trapl.Semantics
             }
 
 
-            returnType = new TypeVoid();
+            returnType = new TypeTuple();
             foreach (var retNode in defNode.EnumerateChildren())
             {
                 if (retNode.kind != Grammar.ASTNodeKind.FunctReturnType)
@@ -52,7 +52,7 @@ namespace Trapl.Semantics
                 try
                 {
                     //session.diagn.PushContext(new MessageContext("while resolving type '" + ASTTypeUtil.GetString(retNode.Child(0)) + "'", retNode.GetOriginalSpan()));
-                    this.returnType = ASTTypeUtil.Resolve(session, retNode.Child(0));
+                    this.returnType = TypeASTUtil.Resolve(session, retNode.Child(0));
                 }
                 catch (Semantics.CheckException) { }
                 finally { /*session.diagn.PopContext();*/ }
@@ -65,7 +65,7 @@ namespace Trapl.Semantics
             session.diagn.PushContext(new MessageContext("in funct '" + topDecl.GetString() + "'", topDecl.pathASTNode.Span()));
             try
             {
-                body = ASTCodeConverter.Convert(
+                body = CodeASTConverter.Convert(
                     session, 
                     defNode.ChildWithKind(Grammar.ASTNodeKind.FunctBody).Child(0),
                     new List<Variable>(this.arguments),

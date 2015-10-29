@@ -4,18 +4,18 @@ using System.Collections.Generic;
 
 namespace Trapl.Semantics
 {
-    public static class ASTTopDeclFinder
+    public static class TopDeclFinder
     {
         public static TopDecl FindStruct(Infrastructure.Session session, Grammar.ASTNode nameASTNode)
         {
             // Find the TopDecls that match the name.
             var candidateTopDecls = session.topDecls.FindAll(
-                decl => ASTPathUtil.Compare(decl.pathASTNode, nameASTNode.Child(0)));
+                decl => PathASTUtil.Compare(decl.pathASTNode, nameASTNode.Child(0)));
 
             if (candidateTopDecls.Count == 0)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredIdentifier,
-                    "'" + ASTPathUtil.GetString(nameASTNode.Child(0)) + "' is not declared", nameASTNode.GetOriginalSpan());
+                    "'" + PathASTUtil.GetString(nameASTNode.Child(0)) + "' is not declared", nameASTNode.GetOriginalSpan());
                 throw new Semantics.CheckException();
             }
 
@@ -27,7 +27,7 @@ namespace Trapl.Semantics
             if (!(matchingTopDecl.def is DefStruct))
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.WrongTopDeclKind,
-                    "'" + ASTPathUtil.GetString(nameASTNode.Child(0)) + "' is not a struct", nameASTNode.GetOriginalSpan());
+                    "'" + PathASTUtil.GetString(nameASTNode.Child(0)) + "' is not a struct", nameASTNode.GetOriginalSpan());
                 throw new Semantics.CheckException();
             }
 
@@ -39,7 +39,7 @@ namespace Trapl.Semantics
         {
             // Find the TopDecls that match the name.
             var candidateTopDecls = session.topDecls.FindAll(
-                decl => ASTPathUtil.Compare(decl.pathASTNode, nameASTNode.Child(0)));
+                decl => PathASTUtil.Compare(decl.pathASTNode, nameASTNode.Child(0)));
 
             if (candidateTopDecls.Count == 0)
                 return false;
@@ -55,7 +55,7 @@ namespace Trapl.Semantics
         {
             // Find the TopDecls that match the name.
             var candidateTopDecls = session.topDecls.FindAll(
-                decl => ASTPathUtil.Compare(decl.pathASTNode, nameASTNode.Child(0)));
+                decl => PathASTUtil.Compare(decl.pathASTNode, nameASTNode.Child(0)));
 
             return candidateTopDecls.FindAll(d => d.def is DefFunct);
         }
