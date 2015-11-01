@@ -15,7 +15,6 @@ namespace Trapl.Semantics
     {
         public Diagnostics.Span span;
         public List<CodeNode> children = new List<CodeNode>();
-        public List<Type> inputTypes = new List<Type>();
         public Type outputType;
 
 

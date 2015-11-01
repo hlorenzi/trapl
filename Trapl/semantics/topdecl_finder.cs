@@ -19,6 +19,23 @@ namespace Trapl.Semantics
                 throw new Semantics.CheckException();
             }
 
+            // Refine matching TopDecls by template compatibility.
+            var template = TemplateASTUtil.ResolveTemplateFromName(session, nameASTNode);
+            candidateTopDecls = candidateTopDecls.FindAll((decl) => template.IsMatch(decl.template));
+
+            if (candidateTopDecls.Count == 0)
+            {
+                session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
+                    "no '" + PathASTUtil.GetString(nameASTNode.Child(0)) + "' declaration accepts this template", nameASTNode.GetOriginalSpan());
+                throw new Semantics.CheckException();
+            }
+            else if (candidateTopDecls.Count > 1)
+            {
+                session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
+                    "multiple '" + PathASTUtil.GetString(nameASTNode.Child(0)) + "' declarations accept this template", nameASTNode.GetOriginalSpan());
+                throw new Semantics.CheckException();
+            }
+
             // Ask the matching TopDecl to parse and resolve its definition, if not yet done.
             var matchingTopDecl = candidateTopDecls[0];
             matchingTopDecl.Resolve(session);
@@ -53,6 +70,9 @@ namespace Trapl.Semantics
 
         public static List<TopDecl> FindFunctsNamed(Infrastructure.Session session, Grammar.ASTNode nameASTNode)
         {
+            if (nameASTNode.kind != Grammar.ASTNodeKind.Name)
+                throw new InternalException("node is not a Name");
+
             // Find the TopDecls that match the name.
             var candidateTopDecls = session.topDecls.FindAll(
                 decl => PathASTUtil.Compare(decl.pathASTNode, nameASTNode.Child(0)));

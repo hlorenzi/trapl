@@ -70,7 +70,7 @@ namespace Trapl.Infrastructure
                 Console.Out.WriteLine("TOPDECL " +
                     //(topDecl.synthesized ? "SYNTHESIZED TOPDECL " :
                     //(topDecl.generic ? "GENERIC TOPDECL " : "TOPDECL ")) +
-                    topDecl.GetString());
+                    topDecl.GetString(this));
                 Console.ResetColor();
 
                 /*if (topDecl.generic)

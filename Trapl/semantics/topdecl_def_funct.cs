@@ -62,7 +62,7 @@ namespace Trapl.Semantics
 
         public void ResolveBody(Infrastructure.Session session, TopDecl topDecl, Grammar.ASTNode defNode)
         {
-            session.diagn.PushContext(new MessageContext("in funct '" + topDecl.GetString() + "'", topDecl.pathASTNode.Span()));
+            session.diagn.PushContext(new MessageContext("in funct '" + topDecl.GetString(session) + "'", topDecl.pathASTNode.Span()));
             try
             {
                 body = CodeASTConverter.Convert(

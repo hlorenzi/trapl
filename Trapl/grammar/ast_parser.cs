@@ -17,7 +17,18 @@ namespace Trapl.Grammar
             return parser.topDeclNodes;
         }
 
-        public static ASTNode ParsePattern(Infrastructure.Session session, TokenCollection tokenColl)
+        public static ASTNode ParseName(Infrastructure.Session session, TokenCollection tokenColl)
+        {
+            var parser = new ASTParser(session, tokenColl);
+            ASTNode result = null;
+
+            try { result = parser.ParseName(false); }
+            catch (ParserException) { }
+
+            return result;
+        }
+
+        public static ASTNode ParseTemplateList(Infrastructure.Session session, TokenCollection tokenColl)
         {
             var parser = new ASTParser(session, tokenColl);
             ASTNode result = null;

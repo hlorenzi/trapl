@@ -77,15 +77,9 @@ namespace Trapl.Semantics
         }
 
 
-        public string GetString()
+        public string GetString(Infrastructure.Session session)
         {
-            return PathASTUtil.GetString(this.pathASTNode);
-        }
-
-
-        public override string ToString()
-        {
-            return "TopDecl '" + GetString() + "'";
+            return PathASTUtil.GetString(this.pathASTNode) + template.GetString(session);
         }
     }
 

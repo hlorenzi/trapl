@@ -2,31 +2,20 @@ Apple {}
 Banana {}
 Orange {}
 
+Fruit<Apple> {}
+Fruit<Banana> {}
+Fruit<Orange> {}
 
-make_apple() -> Apple {}
 
-convert_fruit<Apple, Banana>(in: Apple) -> Banana {}
-convert_fruit<Apple, Orange>(in: Apple) -> Orange {}
+make_apple() -> Fruit<Apple> {}
 
-fruits::make_banana<Banana>() -> Banana {}
+take<Fruit<Apple>>(a: Fruit<Apple>) {}
+take<Apple>(a: Apple) {}
+take<Fruit<Banana>>(a: Fruit<Banana>) {}
 
 
 test()
 {
-	let a;
-	a = make_apple();
-
-	let b;
-	b = convert_fruit::<_, Banana>(a);
-
-	let c: Orange;
-	c = convert_fruit(a);
-
-	let d;
-	d = fruits::make_banana::<Banana>;
-
-	let e: ();
-	let f: (Apple);
-	let g: (Apple, Banana,);
-	let h: (Apple, Banana, Orange);
+	let b: Fruit<_>;
+	take(b);
 }

@@ -61,7 +61,7 @@ namespace Trapl.Semantics
             {
                 if (structDef == topDecl.def)
                 {
-                    return topDecl.GetString();
+                    return topDecl.GetString(session);
                 }
             }
             return "<unknown>";
