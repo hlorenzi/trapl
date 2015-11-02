@@ -27,6 +27,8 @@ namespace Trapl.Diagnostics
         WrongTopDeclKind,
         InferenceFailed,
         IncompatibleTypes,
+        CannotAddress,
+        CannotDereference
     }
 
 
@@ -89,7 +91,7 @@ namespace Trapl.Diagnostics
             PrintExcerptWithHighlighting(this.kind, this.spans);
             if (this.innerMessage != null)
             {
-                this.innerMessage.indentation = this.indentation + "  ";
+                this.innerMessage.indentation = this.indentation + "    ";
                 this.innerMessage.PrintToConsole(session);
             }
         }

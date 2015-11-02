@@ -63,14 +63,7 @@ namespace Trapl.Semantics
     }
 
 
-    public class CodeNodeLocalAddress : CodeNode
-    {
-        public int localIndex = -1;
-        public override string GetDebugString(Infrastructure.Session session) { return "LOCAL " + localIndex; }
-    }
-
-
-    public class CodeNodeLocalValue : CodeNode
+    public class CodeNodeLocal : CodeNode
     {
         public int localIndex = -1;
         public override string GetDebugString(Infrastructure.Session session) { return "LOCAL " + localIndex; }
@@ -91,6 +84,16 @@ namespace Trapl.Semantics
 
 
     public class CodeNodeStructLiteral : CodeNode
+    {
+    }
+
+
+    public class CodeNodeAddress : CodeNode
+    {
+    }
+
+
+    public class CodeNodeDereference : CodeNode
     {
     }
 

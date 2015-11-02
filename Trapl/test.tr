@@ -2,33 +2,19 @@ Apple {}
 Banana {}
 Orange {}
 
-Fruit<Apple> {}
-Fruit<Banana> {}
-Fruit<Orange> {}
+Vec<Apple> {}
+Vec<Banana> {}
 
-take<Apple>(a: Apple) {}
-take<Banana>(b: Banana) {}
-take<Orange>(b: Orange) {}
-take<Fruit<Apple>>(a: Fruit<Apple>) {}
-take<Fruit<Banana>>(a: Fruit<Banana>) {}
+push<Apple>(v: Vec<Apple>, e: Apple) {}
+push<Banana>(v: Vec<Banana>, e: Banana) {}
 
 test()
 {
-	let a: Apple;
-	let b: Banana;
-	let c: Orange;
+	let a;
+	let ra;
+	let rra;
 
-	take(a);
-	take(b);
-	take(c);
-
-	let fn: Fruit;
-	let fa: Fruit<Apple>;
-	let fb: Fruit<Banana>;
-
-	take(fn);
-	take(fa);
-
-	let fu;
-	take::<Fruit>(fu);
+	push(Vec::<_> {}, a);
+	ra = &a;
+	rra = &ra;
 }

@@ -5,12 +5,6 @@ namespace Trapl.Semantics
 {
     public abstract class Type
     {
-        public bool addressable;
-
-
-        public virtual Type Clone() { return (Type)MemberwiseClone(); }
-
-
         public virtual bool IsResolved()
         {
             return false;
@@ -39,7 +33,7 @@ namespace Trapl.Semantics
     {
         public override bool IsResolved()
         {
-            return true;
+            return false;
         }
 
 
@@ -50,8 +44,14 @@ namespace Trapl.Semantics
     }
 
 
-    public class TypeUnconstrained : Type
+    public class TypePlaceholder : Type
     {
+        public override bool IsSame(Type other)
+        {
+            return true;
+        }
+
+
         public override bool IsMatch(Type other)
         {
             return true;
@@ -65,47 +65,47 @@ namespace Trapl.Semantics
     }
 
 
-    public class TypePointer : Type
+    public class TypeReference : Type
     {
-        public Type pointeeType;
+        public Type referencedType;
 
 
-        public TypePointer(Type pointeeType)
+        public TypeReference(Type referencedType)
         {
-            this.pointeeType = pointeeType;
+            this.referencedType = referencedType;
         }
 
 
         public override bool IsResolved()
         {
-            return this.pointeeType.IsResolved();
+            return this.referencedType.IsResolved();
         }
 
 
         public override bool IsSame(Type other)
         {
-            if (!(other is TypePointer))
+            if (!(other is TypeReference))
                 return false;
 
-            return (((TypePointer)other).pointeeType.IsSame(this.pointeeType));
+            return (((TypeReference)other).referencedType.IsSame(this.referencedType));
         }
 
 
         public override bool IsMatch(Type other)
         {
-            if (other is TypeUnconstrained)
+            if (other is TypePlaceholder)
                 return true;
 
-            if (!(other is TypePointer))
+            if (!(other is TypeReference))
                 return false;
 
-            return (((TypePointer)other).pointeeType.IsMatch(this.pointeeType));
+            return (((TypeReference)other).referencedType.IsMatch(this.referencedType));
         }
 
 
         public override string GetString(Infrastructure.Session session)
         {
-            return "&" + pointeeType.GetString(session);
+            return "&" + referencedType.GetString(session);
         }
     }
 
@@ -143,7 +143,7 @@ namespace Trapl.Semantics
 
         public override bool IsMatch(Type other)
         {
-            if (other is TypeUnconstrained)
+            if (other is TypePlaceholder)
                 return true;
 
             var otherStruct = (other as TypeStruct);
@@ -201,7 +201,7 @@ namespace Trapl.Semantics
 
         public override bool IsMatch(Type other)
         {
-            if (other is TypeUnconstrained)
+            if (other is TypePlaceholder)
                 return true;
 
             var otherf = other as TypeTuple;
@@ -290,7 +290,7 @@ namespace Trapl.Semantics
 
         public override bool IsMatch(Type other)
         {
-            if (other is TypeUnconstrained)
+            if (other is TypePlaceholder)
                 return true;
 
             var otherf = other as TypeFunct;

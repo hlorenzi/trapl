@@ -27,6 +27,7 @@ namespace Trapl.Semantics
         {
             this.CheckUnresolvedLocals();
             this.PerformCheck(CheckAssignment, this.body.code);
+            this.PerformCheck(CheckDereference, this.body.code);
             this.PerformCheck(CheckFunctResolution, this.body.code);
             this.PerformCheck(CheckCallArguments, this.body.code);
         }
@@ -45,8 +46,8 @@ namespace Trapl.Semantics
 
         private bool DoesMismatch(Type type1, Type type2)
         {
-            if (type1 is TypeUnconstrained ||
-                type2 is TypeUnconstrained ||
+            if (type1 is TypePlaceholder ||
+                type2 is TypePlaceholder ||
                 type1 is TypeError ||
                 type2 is TypeError)
                 return false;
@@ -71,6 +72,7 @@ namespace Trapl.Semantics
             }
         }
 
+
         private void CheckAssignment(CodeNode code)
         {
             var codeAssign = code as CodeNodeAssign;
@@ -86,6 +88,23 @@ namespace Trapl.Semantics
                     codeAssign.children[1].span);
             }
         }
+
+
+        private void CheckDereference(CodeNode code)
+        {
+            var codeDereference = code as CodeNodeDereference;
+            if (codeDereference == null)
+                return;
+
+            if (!(codeDereference.children[0].outputType is TypeReference))
+            {
+                session.diagn.Add(MessageKind.Error, MessageCode.CannotDereference,
+                    "cannot dereference '" +
+                    codeDereference.children[0].outputType.GetString(session) + "'",
+                    codeDereference.children[0].span);
+            }
+        }
+
 
         private void CheckFunctResolution(CodeNode code)
         {
@@ -123,6 +142,7 @@ namespace Trapl.Semantics
                 }
             }
         }
+
 
         private void CheckCallArguments(CodeNode code)
         {

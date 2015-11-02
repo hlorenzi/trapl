@@ -27,7 +27,7 @@ namespace Trapl.Semantics
                 // Check if it is a placeholder type.
                 if (onlyName == "_")
                 {
-                    resolvedType = new TypeUnconstrained();
+                    resolvedType = new TypePlaceholder();
                 }
                 else
                 {
@@ -99,7 +99,7 @@ namespace Trapl.Semantics
             foreach (var child in node.EnumerateChildren())
             {
                 if (child.kind == Grammar.ASTNodeKind.Operator)
-                    resolvedType = new TypePointer(resolvedType);
+                    resolvedType = new TypeReference(resolvedType);
             }
 
             return resolvedType;

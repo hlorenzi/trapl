@@ -19,7 +19,6 @@ namespace Trapl.Semantics
         private Infrastructure.Session session;
         private List<Variable> localVariables;
         private Type returnType;
-        private Stack<bool> inAssignmentLhs = new Stack<bool>();
 
 
         private CodeASTConverter(Infrastructure.Session session, List<Variable> localVariables, Type returnType)
@@ -27,7 +26,6 @@ namespace Trapl.Semantics
             this.session = session;
             this.localVariables = localVariables;
             this.returnType = returnType;
-            this.inAssignmentLhs.Push(false);
         }
 
 
@@ -60,6 +58,8 @@ namespace Trapl.Semantics
                 return this.ParseCall(astNode);
             else if (astNode.kind == Grammar.ASTNodeKind.BinaryOp)
                 return this.ParseBinaryOp(astNode);
+            else if (astNode.kind == Grammar.ASTNodeKind.UnaryOp)
+                return this.ParseUnaryOp(astNode);
             else if (astNode.kind == Grammar.ASTNodeKind.StructLiteral)
                 return this.ParseStructLiteral(astNode);
             else if (astNode.kind == Grammar.ASTNodeKind.Name)
@@ -82,7 +82,7 @@ namespace Trapl.Semantics
             local.template = TemplateASTUtil.ResolveTemplateFromName(this.session, astNode.Child(0), true);
             local.template.unconstrained = false;
 
-            local.type = new TypeUnconstrained();
+            local.type = new TypePlaceholder();
             if (astNode.ChildNumber() >= 2 &&
                 TypeASTUtil.IsTypeNode(astNode.Child(1).kind))
             {
@@ -99,7 +99,7 @@ namespace Trapl.Semantics
         {
             var code = new CodeNodeCall();
             code.span = astNode.Span();
-            code.outputType = new TypeUnconstrained();
+            code.outputType = new TypePlaceholder();
 
             foreach (var child in astNode.children)
                 code.children.Add(this.ParseExpression(child));
@@ -117,12 +117,36 @@ namespace Trapl.Semantics
                 var code = new CodeNodeAssign();
                 code.span = astNode.Span();
 
-                inAssignmentLhs.Push(true);
                 code.children.Add(this.ParseExpression(astNode.Child(1)));
-                inAssignmentLhs.Pop();
-
                 code.children.Add(this.ParseExpression(astNode.Child(2)));
                 code.outputType = new TypeTuple();
+
+                return code;
+            }
+            else
+                throw new InternalException("not implemented");
+        }
+
+
+        private CodeNode ParseUnaryOp(Grammar.ASTNode astNode)
+        {
+            var op = astNode.Child(0).GetExcerpt();
+
+            if (op == "&")
+            {
+                var code = new CodeNodeAddress();
+                code.span = astNode.Span();
+                code.children.Add(this.ParseExpression(astNode.Child(1)));
+                code.outputType = new TypeReference(new TypePlaceholder());
+
+                return code;
+            }
+            else if (op == "@")
+            {
+                var code = new CodeNodeDereference();
+                code.span = astNode.Span();
+                code.children.Add(this.ParseExpression(astNode.Child(1)));
+                code.outputType = new TypePlaceholder();
 
                 return code;
             }
@@ -152,24 +176,12 @@ namespace Trapl.Semantics
 
             if (localIndex >= 0)
             {
-                if (this.inAssignmentLhs.Peek())
-                {
-                    var code = new CodeNodeLocalAddress();
-                    code.span = astNode.Span();
-                    code.localIndex = localIndex;
-                    code.outputType = new TypeUnconstrained();
+                var code = new CodeNodeLocal();
+                code.span = astNode.Span();
+                code.localIndex = localIndex;
+                code.outputType = new TypePlaceholder();
 
-                    return code;
-                }
-                else
-                {
-                    var code = new CodeNodeLocalValue();
-                    code.span = astNode.Span();
-                    code.localIndex = localIndex;
-                    code.outputType = new TypeUnconstrained();
-
-                    return code;
-                }
+                return code;
             }
 
             var functList = session.functDecls.GetDeclsClone(astNode.Child(0));
@@ -180,7 +192,7 @@ namespace Trapl.Semantics
                 code.nameInference.pathASTNode = astNode.Child(0);
                 code.nameInference.template = templ;
                 code.potentialFuncts = functList;
-                code.outputType = new TypeUnconstrained();
+                code.outputType = new TypePlaceholder();
 
                 return code;
             }

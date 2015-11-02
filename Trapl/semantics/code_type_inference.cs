@@ -30,9 +30,10 @@ namespace Trapl.Semantics
         {
             var ruleList = new List<RuleDelegate>
             {
-                InferTypeLocalAddress,
-                InferTypeLocalValue,
+                InferTypeLocal,
                 InferTypeAssignment,
+                InferTypeAddress,
+                InferTypeDereference,
                 InferFunctTemplate,
                 InferCall
             };
@@ -64,10 +65,17 @@ namespace Trapl.Semantics
 
         private void TryInference(Type typeFrom, ref Type typeTo)
         {
-            if (typeTo is TypeUnconstrained && !(typeFrom is TypeUnconstrained))
+            if (typeTo is TypePlaceholder && !(typeFrom is TypePlaceholder))
             {
                 this.appliedAnyRule = true;
                 typeTo = typeFrom;
+            }
+            else if (typeTo is TypeReference && typeFrom is TypeReference)
+            {
+                var refTo = (TypeReference)typeTo;
+                var refFrom = (TypeReference)typeFrom;
+                TryInference(refFrom.referencedType, ref refTo.referencedType);
+                TryInference(refTo.referencedType, ref refFrom.referencedType);
             }
             else if (typeTo is TypeStruct && typeFrom is TypeStruct)
             {
@@ -144,23 +152,9 @@ namespace Trapl.Semantics
         }
 
 
-        private void InferTypeLocalAddress(CodeNode code)
+        private void InferTypeLocal(CodeNode code)
         {
-            var codeLocalAddr = code as CodeNodeLocalAddress;
-            if (codeLocalAddr == null)
-                return;
-
-            if (codeLocalAddr.localIndex >= 0)
-            {
-                TryInference(this.body.localVariables[codeLocalAddr.localIndex].type, ref codeLocalAddr.outputType);
-                TryInference(codeLocalAddr.outputType, ref this.body.localVariables[codeLocalAddr.localIndex].type);
-            }
-        }
-
-
-        private void InferTypeLocalValue(CodeNode code)
-        {
-            var codeLocalValue = code as CodeNodeLocalValue;
+            var codeLocalValue = code as CodeNodeLocal;
             if (codeLocalValue == null)
                 return;
 
@@ -180,6 +174,36 @@ namespace Trapl.Semantics
 
             TryInference(codeAssign.children[1].outputType, ref codeAssign.children[0].outputType);
             TryInference(codeAssign.children[0].outputType, ref codeAssign.children[1].outputType);
+        }
+
+
+        private void InferTypeAddress(CodeNode code)
+        {
+            var codeReference = code as CodeNodeAddress;
+            if (codeReference == null)
+                return;
+
+            var outputRefType = (TypeReference)codeReference.outputType;
+            TryInference(codeReference.children[0].outputType, ref outputRefType.referencedType);
+            TryInference(outputRefType.referencedType, ref codeReference.children[0].outputType);
+        }
+
+
+        private void InferTypeDereference(CodeNode code)
+        {
+            var codeDereference = code as CodeNodeDereference;
+            if (codeDereference == null)
+                return;
+
+            if (codeDereference.children[0].outputType is TypePlaceholder)
+                codeDereference.children[0].outputType = new TypeReference(new TypePlaceholder());
+
+            var childRefType = (codeDereference.children[0].outputType as TypeReference);
+            if (childRefType != null)
+            {
+                TryInference(childRefType.referencedType, ref codeDereference.outputType);
+                TryInference(codeDereference.outputType, ref childRefType.referencedType);
+            }
         }
 
 
@@ -279,9 +303,9 @@ namespace Trapl.Semantics
             else if (!codeCall.children[0].outputType.IsResolved())
             {
                 functType = new TypeFunct();
-                functType.returnType = new TypeUnconstrained();
+                functType.returnType = new TypePlaceholder();
                 for (var i = 0; i < codeCall.children.Count - 1; i++)
-                    functType.argumentTypes.Add(new TypeUnconstrained());
+                    functType.argumentTypes.Add(new TypePlaceholder());
                 codeCall.children[0].outputType = functType;
                 this.appliedAnyRule = true;
             }
