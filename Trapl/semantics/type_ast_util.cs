@@ -7,7 +7,7 @@ namespace Trapl.Semantics
 {
     public static class TypeASTUtil
     {
-        public static Type Resolve(Infrastructure.Session session, Grammar.ASTNode node)
+        public static Type Resolve(Infrastructure.Session session, Grammar.ASTNode node, bool mustBeResolved)
         {
             if (!IsTypeNode(node.kind))
                 throw new InternalException("node is not a Type");
@@ -31,11 +31,55 @@ namespace Trapl.Semantics
                 }
                 else
                 {
-                    // Find a matching TopDecl.
-                    var matchingTopDecl = TopDeclFinder.FindStruct(session, nameASTNode);
+                    var structType = new TypeStruct();
+                    structType.nameInference.pathASTNode = nameASTNode.Child(0);
+                    structType.nameInference.template = TemplateASTUtil.ResolveTemplateFromName(session, nameASTNode, mustBeResolved);
 
-                    // Build a Type with the matching TopDecl's struct.
-                    resolvedType = new TypeStruct((DefStruct)matchingTopDecl.def);
+                    // Find structs with the given name.
+                    structType.potentialStructs = session.structDecls.GetDeclsClone(nameASTNode.Child(0));
+                    if (structType.potentialStructs.Count == 0)
+                    {
+                        session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
+                            "'" + PathASTUtil.GetString(nameASTNode.Child(0)) + "' " +
+                            "is not declared", nameASTNode.Child(0).Span());
+                        throw new CheckException();
+                    }
+
+                    if (mustBeResolved)
+                        structType.nameInference.template.unconstrained = false;
+
+                    resolvedType = structType;
+
+                    if (structType.nameInference.template.IsFullyResolved())
+                    {
+                        // Filter structs by template compatibility.
+                        structType.potentialStructs =
+                            structType.potentialStructs.FindAll(d => d.template.IsMatch(structType.nameInference.template));
+
+                        if (structType.potentialStructs.Count == 0)
+                        {
+                            session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
+                                "no '" + PathASTUtil.GetString(nameASTNode.Child(0)) + "' declaration " +
+                                "accepts this template", nameASTNode.Span());
+                            throw new CheckException();
+                        }
+                        else if (structType.potentialStructs.Count > 1)
+                        {
+                            session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
+                                "multiple '" + PathASTUtil.GetString(nameASTNode.Child(0)) + "' " +
+                                "declarations accept this template", nameASTNode.Span());
+                            throw new CheckException();
+                        }
+
+                        // Ask the declaration to resolve itself.
+                        structType.potentialStructs[0].Resolve(session);
+                    }
+                    else if (mustBeResolved)
+                    {
+                        session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
+                            "type must be fully resolved", nameASTNode.Span());
+                        throw new CheckException();
+                    }
                 }
             }
             else if (node.kind == Grammar.ASTNodeKind.TupleType)
@@ -44,7 +88,7 @@ namespace Trapl.Semantics
                 foreach (var elemNode in node.EnumerateChildren())
                 {
                     if (IsTypeNode(elemNode.kind))
-                        tupleType.elementTypes.Add(Resolve(session, elemNode));
+                        tupleType.elementTypes.Add(Resolve(session, elemNode, mustBeResolved));
                 }
                 resolvedType = tupleType;
             }

@@ -40,7 +40,7 @@ namespace Trapl.Semantics
     }
 
 
-    public class CodeName
+    public class NameInference
     {
         public Grammar.ASTNode pathASTNode;
         public Template template;
@@ -79,13 +79,13 @@ namespace Trapl.Semantics
 
     public class CodeNodeFunct : CodeNode
     {
-        public CodeName nameInference = new CodeName();
-        public List<DefFunct> potentialFuncts = new List<DefFunct>();
+        public NameInference nameInference = new NameInference();
+        public List<DeclFunct> potentialFuncts = new List<DeclFunct>();
         public override string GetDebugString(Infrastructure.Session session)
         {
             if (potentialFuncts.Count == 0) return "NO FUNCT";
             else if (potentialFuncts.Count > 1) return "AMBIGUOUS FUNCT";
-            else return NameASTUtil.GetString(potentialFuncts[0].topDecl.nameASTNode);
+            else return NameASTUtil.GetString(potentialFuncts[0].nameASTNode);
         }
     }
 

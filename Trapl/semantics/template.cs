@@ -11,7 +11,7 @@ namespace Trapl.Semantics
         public abstract class Parameter
         {
             public virtual bool IsResolved() { return false; }
-            public virtual bool IsExactMatch(Parameter other) { return false; }
+            public virtual bool IsMatch(Parameter other) { return false; }
             public virtual string GetString(Infrastructure.Session session) { return "???"; }
         }
 
@@ -23,17 +23,17 @@ namespace Trapl.Semantics
 
             public override bool IsResolved()
             {
-                return !(type is TypeUnconstrained);
+                return type.IsResolved();
             }
 
 
-            public override bool IsExactMatch(Parameter other)
+            public override bool IsMatch(Parameter other)
             {
                 var otherType = (other as ParameterType);
                 if (otherType == null)
                     return false;
 
-                return this.type.IsSame(otherType.type);
+                return this.type.IsMatch(otherType.type);
             }
 
 
@@ -72,9 +72,7 @@ namespace Trapl.Semantics
 
             for (var i = 0; i < this.parameters.Count; i++)
             {
-                if (this.parameters[i].IsResolved() &&
-                    other.parameters[i].IsResolved() &&
-                    !this.parameters[i].IsExactMatch(other.parameters[i]))
+                if (!this.parameters[i].IsMatch(other.parameters[i]))
                     return false;
             }
 

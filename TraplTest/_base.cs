@@ -49,10 +49,10 @@ namespace TraplTest
 
         protected bool CheckLocalType(Trapl.Infrastructure.Session session, string varName, string typeName)
         {
-            var functs = Trapl.Semantics.TopDeclFinder.FindFunctsNamed(session,
+            var functs = session.functDecls.GetDeclsClone(
                 Trapl.Grammar.ASTParser.ParseName(session,
                     Trapl.Grammar.Tokenizer.Tokenize(session,
-                        Trapl.Infrastructure.Unit.MakeFromString("test"))));
+                        Trapl.Infrastructure.Unit.MakeFromString("test"))).Child(0));
 
             if (functs.Count != 1)
                 Assert.Inconclusive();
@@ -65,11 +65,11 @@ namespace TraplTest
                     Trapl.Grammar.Tokenizer.Tokenize(session,
                         Trapl.Infrastructure.Unit.MakeFromString(typeName)));
 
-            var local = ((Trapl.Semantics.DefFunct)functs[0].def).body.localVariables.Find(v => Trapl.Semantics.PathASTUtil.Compare(v.pathASTNode, varNameASTNode.Child(0)));
+            var local = ((Trapl.Semantics.DeclFunct)functs[0]).body.localVariables.Find(v => Trapl.Semantics.PathASTUtil.Compare(v.pathASTNode, varNameASTNode.Child(0)));
             if (local == null)
                 return true;
 
-            var type = Trapl.Semantics.TypeASTUtil.Resolve(session, typeASTNode);
+            var type = Trapl.Semantics.TypeASTUtil.Resolve(session, typeASTNode, true);
 
             return local.type.IsSame(type);
         }

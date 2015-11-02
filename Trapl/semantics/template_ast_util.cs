@@ -5,7 +5,7 @@ namespace Trapl.Semantics
 {
     public static class TemplateASTUtil
     {
-        public static Template ResolveTemplate(Infrastructure.Session session, Grammar.ASTNode templateASTNode)
+        public static Template ResolveTemplate(Infrastructure.Session session, Grammar.ASTNode templateASTNode, bool mustBeResolved)
         {
             if (templateASTNode == null)
             {
@@ -21,19 +21,19 @@ namespace Trapl.Semantics
 
             foreach (var param in templateASTNode.EnumerateChildren())
             {
-                templ.parameters.Add(ResolveParameter(session, param));
+                templ.parameters.Add(ResolveParameter(session, param, mustBeResolved));
             }
 
             return templ;
         }
 
 
-        public static Template ResolveTemplateFromName(Infrastructure.Session session, Grammar.ASTNode nameASTNode)
+        public static Template ResolveTemplateFromName(Infrastructure.Session session, Grammar.ASTNode nameASTNode, bool mustBeResolved)
         {
             if (nameASTNode.kind != Grammar.ASTNodeKind.Name)
                 throw new InternalException("node is not a Name");
 
-            return ResolveTemplate(session, GetTemplateNodeOrNull(nameASTNode));
+            return ResolveTemplate(session, GetTemplateNodeOrNull(nameASTNode), mustBeResolved);
         }
 
 
@@ -49,7 +49,7 @@ namespace Trapl.Semantics
         }
 
 
-        private static Template.Parameter ResolveParameter(Infrastructure.Session session, Grammar.ASTNode paramASTNode)
+        private static Template.Parameter ResolveParameter(Infrastructure.Session session, Grammar.ASTNode paramASTNode, bool mustBeResolved)
         {
             if (paramASTNode.kind != Grammar.ASTNodeKind.TemplateParameter)
                 throw new InternalException("node is not a TemplateParameter");
@@ -58,7 +58,7 @@ namespace Trapl.Semantics
             if (contentsASTNode.kind == Grammar.ASTNodeKind.Type)
             {
                 var param = new Template.ParameterType();
-                param.type = TypeASTUtil.Resolve(session, contentsASTNode);
+                param.type = TypeASTUtil.Resolve(session, contentsASTNode, mustBeResolved);
                 return param;
             }
             else

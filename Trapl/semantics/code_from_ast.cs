@@ -79,14 +79,14 @@ namespace Trapl.Semantics
             local.declSpan = astNode.Child(0).Span();
 
             local.pathASTNode = astNode.Child(0).Child(0);
-            local.template = TemplateASTUtil.ResolveTemplateFromName(this.session, astNode.Child(0));
+            local.template = TemplateASTUtil.ResolveTemplateFromName(this.session, astNode.Child(0), true);
             local.template.unconstrained = false;
 
             local.type = new TypeUnconstrained();
             if (astNode.ChildNumber() >= 2 &&
                 TypeASTUtil.IsTypeNode(astNode.Child(1).kind))
             {
-                local.type = TypeASTUtil.Resolve(this.session, astNode.Child(1));
+                local.type = TypeASTUtil.Resolve(this.session, astNode.Child(1), false);
             }
 
             this.localVariables.Add(local);
@@ -135,7 +135,7 @@ namespace Trapl.Semantics
         {
             var code = new CodeNodeStructLiteral();
             code.span = astNode.Span();
-            code.outputType = TypeASTUtil.Resolve(session, astNode.Child(0));
+            code.outputType = TypeASTUtil.Resolve(session, astNode.Child(0), false);
 
             return code;
         }
@@ -143,7 +143,7 @@ namespace Trapl.Semantics
 
         private CodeNode ParseName(Grammar.ASTNode astNode)
         {
-            var templ = TemplateASTUtil.ResolveTemplateFromName(this.session, astNode);
+            var templ = TemplateASTUtil.ResolveTemplateFromName(this.session, astNode, false);
 
             var localIndex = this.localVariables.FindLastIndex(
                 loc => (
@@ -172,14 +172,14 @@ namespace Trapl.Semantics
                 }
             }
 
-            var isFunct = TopDeclFinder.IsFunct(this.session, astNode);
-            if (isFunct)
+            var functList = session.functDecls.GetDeclsClone(astNode.Child(0));
+            if (functList.Count > 0)
             {
                 var code = new CodeNodeFunct();
                 code.span = astNode.Span();
                 code.nameInference.pathASTNode = astNode.Child(0);
-                code.nameInference.template = TemplateASTUtil.ResolveTemplateFromName(this.session, astNode);
-                code.potentialFuncts = TopDeclFinder.FindFunctsNamed(this.session, astNode).ConvertAll(d => (DefFunct)d.def);
+                code.nameInference.template = templ;
+                code.potentialFuncts = functList;
                 code.outputType = new TypeUnconstrained();
 
                 return code;

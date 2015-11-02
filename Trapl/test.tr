@@ -6,16 +6,29 @@ Fruit<Apple> {}
 Fruit<Banana> {}
 Fruit<Orange> {}
 
-
-make_apple() -> Fruit<Apple> {}
-
-take<Fruit<Apple>>(a: Fruit<Apple>) {}
 take<Apple>(a: Apple) {}
+take<Banana>(b: Banana) {}
+take<Orange>(b: Orange) {}
+take<Fruit<Apple>>(a: Fruit<Apple>) {}
 take<Fruit<Banana>>(a: Fruit<Banana>) {}
-
 
 test()
 {
-	let b: Fruit<_>;
+	let a: Apple;
+	let b: Banana;
+	let c: Orange;
+
+	take(a);
 	take(b);
+	take(c);
+
+	let fn: Fruit;
+	let fa: Fruit<Apple>;
+	let fb: Fruit<Banana>;
+
+	take(fn);
+	take(fa);
+
+	let fu;
+	take::<Fruit>(fu);
 }

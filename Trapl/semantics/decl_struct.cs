@@ -5,7 +5,7 @@ using Trapl.Diagnostics;
 
 namespace Trapl.Semantics
 {
-    public class DefStruct : Def
+    public class DeclStruct : Decl
     {
         public class Field
         {
@@ -22,17 +22,18 @@ namespace Trapl.Semantics
 
 
         public List<Field> fields = new List<Field>();
+        public bool resolving = false;
 
 
-        public DefStruct(TopDecl topDecl) : base(topDecl)
+        public DeclStruct()
         {
 
         }
 
 
-        public DefStruct Clone()
+        public DeclStruct Clone()
         {
-            var def = (DefStruct)this.MemberwiseClone();
+            var def = (DeclStruct)this.MemberwiseClone();
             def.fields = new List<Field>();
             foreach (var field in this.fields)
                 def.fields.Add(field.Clone());
@@ -40,14 +41,26 @@ namespace Trapl.Semantics
         }
 
 
-        public void Resolve(Infrastructure.Session session, TopDecl topDecl, Grammar.ASTNode defNode)
+        public override void Resolve(Infrastructure.Session session)
         {
-            foreach (var fieldNode in defNode.EnumerateChildren())
+            if (this.resolved)
+                return;
+
+            if (this.resolving)
+            {
+                session.diagn.Add(MessageKind.Error, MessageCode.StructRecursion,
+                    "infinite struct recursion", this.nameASTNode.Span());
+                throw new Semantics.CheckException();
+            }
+
+            this.resolving = true;
+
+            foreach (var fieldNode in this.defASTNode.EnumerateChildren())
             {
                 if (fieldNode.kind != Grammar.ASTNodeKind.StructField)
-                    throw new InternalException("node is not a StructFieldDecl");
+                    throw new InternalException("node is not a StructField");
 
-                var field = new DefStruct.Field();
+                var field = new DeclStruct.Field();
                 field.nameASTNode = fieldNode.Child(0);
                 field.declSpan = fieldNode.Span();
 
@@ -64,13 +77,14 @@ namespace Trapl.Semantics
 
                 try
                 {
-                    //session.diagn.PushContext(new MessageContext("while resolving type '" + ASTTypeUtil.GetString(fieldNode.Child(1)) + "'", fieldNode.GetOriginalSpan()));
-                    field.type = TypeASTUtil.Resolve(session, fieldNode.Child(1));
+                    field.type = TypeASTUtil.Resolve(session, fieldNode.Child(1), true);
                     fields.Add(field);
                 }
                 catch (Semantics.CheckException) { }
-                finally { /*session.diagn.PopContext();*/ }
             }
+
+            this.resolved = true;
+            this.resolving = false;
         }
 
 

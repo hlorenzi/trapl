@@ -25,60 +25,82 @@ namespace Trapl.Infrastructure
         public void AddUnit(Unit unit)
         {
             var tokenCollection = Grammar.Tokenizer.Tokenize(this, unit);
-            var topDeclNodes = Grammar.ASTParser.Parse(this, tokenCollection);
+            var declNodes = Grammar.ASTParser.Parse(this, tokenCollection);
 
-            foreach (var topDeclNode in topDeclNodes)
-            {
-                this.topDecls.Add(Semantics.TopDeclASTConverter.Convert(this, topDeclNode));
-            }
+            foreach (var declNode in declNodes)
+                Semantics.DeclASTConverter.AddToDecls(this, declNode);
         }
 
 
         public void Resolve()
         {
-            var topDeclsToResolve = new List<Semantics.TopDecl>(this.topDecls);
-            foreach (var topDecl in topDeclsToResolve)
-            {
-                topDecl.ResolveTemplate(this);
-            }
+            if (this.diagn.ContainsErrors())
+                return;
 
-            topDeclsToResolve = new List<Semantics.TopDecl>(this.topDecls);
-            foreach (var topDecl in topDeclsToResolve)
+            this.structDecls.ForEach(decl =>
             {
-                topDecl.Resolve(this);
-            }
+                try { decl.ResolveTemplate(this); }
+                catch (Semantics.CheckException) { }
+            });
 
-            topDeclsToResolve = new List<Semantics.TopDecl>(this.topDecls);
-            foreach (var topDecl in topDeclsToResolve)
+            if (this.diagn.ContainsErrors())
+                return;
+
+            this.functDecls.ForEach(decl =>
             {
-                topDecl.ResolveBody(this);
-            }
+                try { decl.ResolveTemplate(this); }
+                catch (Semantics.CheckException) { }
+            });
+
+            if (this.diagn.ContainsErrors())
+                return;
+
+            this.structDecls.ForEach(decl => decl.Resolve(this));
+
+            if (this.diagn.ContainsErrors())
+                return;
+
+            this.functDecls.ForEach(decl => decl.Resolve(this));
+
+            if (this.diagn.ContainsErrors())
+                return;
+
+            this.functDecls.ForEach(decl => decl.ResolveBody(this));
         }
 
 
         public Diagnostics.Collection diagn = new Diagnostics.Collection();
-        public List<Semantics.TopDecl> topDecls = new List<Semantics.TopDecl>();
+        public DeclList<Semantics.DeclStruct> structDecls = new DeclList<Semantics.DeclStruct>();
+        public DeclList<Semantics.DeclFunct> functDecls = new DeclList<Semantics.DeclFunct>();
 
 
         public void PrintDefs()
         {
-            foreach (var topDecl in this.topDecls)
+            foreach (var decl in this.structDecls.Enumerate())
             {
                 Console.ForegroundColor = ConsoleColor.White;
-                    //(topDecl.synthesized ? ConsoleColor.Cyan :
-                    //(topDecl.generic ? ConsoleColor.Yellow : ConsoleColor.White));
-                Console.Out.WriteLine("TOPDECL " +
-                    //(topDecl.synthesized ? "SYNTHESIZED TOPDECL " :
-                    //(topDecl.generic ? "GENERIC TOPDECL " : "TOPDECL ")) +
-                    topDecl.GetString(this));
+                Console.Out.WriteLine("STRUCT " + decl.GetString(this));
                 Console.ResetColor();
 
-                /*if (topDecl.generic)
-                    Console.Out.WriteLine("  generic, unresolved");
-                else*/ if (topDecl.def == null)
+                if (!decl.resolved)
                     Console.Out.WriteLine("  unresolved");
                 else
-                    topDecl.def.PrintToConsole(this, 1);
+                    decl.PrintToConsole(this, 1);
+
+                Console.Out.WriteLine();
+            }
+
+
+            foreach (var decl in this.functDecls.Enumerate())
+            {
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Out.WriteLine("FUNCT " + decl.GetString(this));
+                Console.ResetColor();
+
+                if (!decl.resolved)
+                    Console.Out.WriteLine("  unresolved");
+                else
+                    decl.PrintToConsole(this, 1);
 
                 Console.Out.WriteLine();
             }

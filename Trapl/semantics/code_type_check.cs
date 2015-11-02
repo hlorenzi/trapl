@@ -55,17 +55,11 @@ namespace Trapl.Semantics
         }
 
 
-        private bool IsResolved(Type type)
-        {
-            return !(type is TypeUnconstrained);
-        }
-
-
         private void CheckUnresolvedLocals()
         {
             foreach (var loc in this.body.localVariables)
             {
-                if (!IsResolved(loc.type))
+                if (!loc.type.IsResolved())
                 {
                     session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
                         "cannot infer type for '" +
@@ -108,8 +102,8 @@ namespace Trapl.Semantics
                 session.diagn.AddInnerToLast(MessageKind.Info, MessageCode.Info,
                     "ambiguous between the following declarations" +
                     (codeFunct.potentialFuncts.Count > 2 ? " and other " + (codeFunct.potentialFuncts.Count - 2) : ""),
-                    codeFunct.potentialFuncts[0].topDecl.nameASTNode.Span(),
-                    codeFunct.potentialFuncts[1].topDecl.nameASTNode.Span());
+                    codeFunct.potentialFuncts[0].nameASTNode.Span(),
+                    codeFunct.potentialFuncts[1].nameASTNode.Span());
             }
             else if (codeFunct.potentialFuncts.Count == 0)
             {
@@ -137,12 +131,23 @@ namespace Trapl.Semantics
                 return;
 
             var functType = codeCall.children[0].outputType as TypeFunct;
+
             if (functType == null)
+            {
+                if (codeCall.children[0].outputType.IsResolved())
+                {
+                    session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
+                        "'" + codeCall.children[0].outputType.GetString(this.session) + "' " +
+                        "is not callable",
+                        codeCall.children[0].span);
+                }
+
                 return;
+            }
 
             for (var i = 0; i < codeCall.children.Count - 1; i++)
             {
-                if (IsResolved(functType.argumentTypes[i]) &&
+                if (functType.argumentTypes[i].IsResolved() &&
                     !functType.argumentTypes[i].IsSame(codeCall.children[i + 1].outputType))
                 {
                     session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,

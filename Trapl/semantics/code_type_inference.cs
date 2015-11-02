@@ -62,22 +62,25 @@ namespace Trapl.Semantics
         }
 
 
-        private bool IsResolved(Type type)
-        {
-            return !(type is TypeUnconstrained);
-        }
-
-
         private void TryInference(Type typeFrom, ref Type typeTo)
         {
-            if (typeTo is TypeUnconstrained &&
-                !(typeFrom is TypeUnconstrained))
+            if (typeTo is TypeUnconstrained && !(typeFrom is TypeUnconstrained))
             {
                 this.appliedAnyRule = true;
                 typeTo = typeFrom;
             }
-            else if (typeTo is TypeFunct &&
-                typeFrom is TypeFunct)
+            else if (typeTo is TypeStruct && typeFrom is TypeStruct)
+            {
+                var structTo = (TypeStruct)typeTo;
+                var structFrom = (TypeStruct)typeFrom;
+
+                if (structTo.potentialStructs.Count > 1 && structFrom.potentialStructs.Count == 1)
+                {
+                    TryTemplateInference(structFrom.nameInference.template, ref structTo.nameInference.template);
+                    typeTo = typeFrom;
+                }
+            }
+            else if (typeTo is TypeFunct && typeFrom is TypeFunct)
             {
                 var functTo = (TypeFunct)typeTo;
                 var functFrom = (TypeFunct)typeFrom;
@@ -95,8 +98,7 @@ namespace Trapl.Semantics
 
                 typeTo = functTo;
             }
-            else if (typeTo is TypeTuple &&
-                typeFrom is TypeTuple)
+            else if (typeTo is TypeTuple && typeFrom is TypeTuple)
             {
                 var tupleTo = (TypeTuple)typeTo;
                 var tupleFrom = (TypeTuple)typeFrom;
@@ -112,6 +114,32 @@ namespace Trapl.Semantics
                 }
 
                 typeTo = tupleTo;
+            }
+        }
+
+
+        private void TryTemplateInference(Template fromTemplate, ref Template toTemplate)
+        {
+            if (toTemplate.unconstrained)
+            {
+                if (!fromTemplate.unconstrained)
+                {
+                    toTemplate = fromTemplate;
+                    this.appliedAnyRule = true;
+                }
+            }
+            else if (toTemplate.parameters.Count == fromTemplate.parameters.Count)
+            {
+                for (int i = 0; i < toTemplate.parameters.Count; i++)
+                {
+                    if (toTemplate.parameters[i] is Template.ParameterType &&
+                        fromTemplate.parameters[i] is Template.ParameterType)
+                    {
+                        var param = (Template.ParameterType)toTemplate.parameters[i];
+                        TryInference(((Template.ParameterType)fromTemplate.parameters[i]).type, ref param.type);
+                        toTemplate.parameters[i] = param;
+                    }
+                }
             }
         }
 
@@ -167,7 +195,7 @@ namespace Trapl.Semantics
                 for (int i = codeFunct.potentialFuncts.Count - 1; i >= 0; i--)
                 {
                     var def = codeFunct.potentialFuncts[i];
-                    if (!def.topDecl.template.IsMatch(codeFunct.nameInference.template))
+                    if (!def.template.IsMatch(codeFunct.nameInference.template))
                     {
                         codeFunct.potentialFuncts.RemoveAt(i);
                         this.appliedAnyRule = true;
@@ -178,16 +206,13 @@ namespace Trapl.Semantics
                 if (functType != null)
                 {
                     // Disregard functs whose return types don't match.
-                    if (IsResolved(functType.returnType))
+                    for (int i = codeFunct.potentialFuncts.Count - 1; i >= 0; i--)
                     {
-                        for (int i = codeFunct.potentialFuncts.Count - 1; i >= 0; i--)
+                        var def = codeFunct.potentialFuncts[i];
+                        if (!def.returnType.IsMatch(functType.returnType))
                         {
-                            var def = codeFunct.potentialFuncts[i];
-                            if (!def.returnType.IsSame(functType.returnType))
-                            {
-                                codeFunct.potentialFuncts.RemoveAt(i);
-                                this.appliedAnyRule = true;
-                            }
+                            codeFunct.potentialFuncts.RemoveAt(i);
+                            this.appliedAnyRule = true;
                         }
                     }
 
@@ -208,8 +233,7 @@ namespace Trapl.Semantics
                         var def = codeFunct.potentialFuncts[i];
                         for (int arg = 0; arg < functType.argumentTypes.Count; arg++)
                         {
-                            if (IsResolved(functType.argumentTypes[arg]) &&
-                                !def.arguments[arg].type.IsSame(functType.argumentTypes[arg]))
+                            if (!def.arguments[arg].type.IsMatch(functType.argumentTypes[arg]))
                             {
                                 codeFunct.potentialFuncts.RemoveAt(i);
                                 this.appliedAnyRule = true;
@@ -252,7 +276,7 @@ namespace Trapl.Semantics
                     }
                 }
             }
-            else
+            else if (!codeCall.children[0].outputType.IsResolved())
             {
                 functType = new TypeFunct();
                 functType.returnType = new TypeUnconstrained();
