@@ -26,8 +26,10 @@ namespace Trapl.Semantics
         private void Check()
         {
             this.CheckUnresolvedLocals();
+            this.PerformCheck(CheckControlLet, this.body.code);
             this.PerformCheck(CheckAssignment, this.body.code);
             this.PerformCheck(CheckDereference, this.body.code);
+            this.PerformCheck(CheckStructLiteralInitializers, this.body.code);
             this.PerformCheck(CheckFunctResolution, this.body.code);
             this.PerformCheck(CheckCallArguments, this.body.code);
         }
@@ -72,6 +74,24 @@ namespace Trapl.Semantics
             }
         }
 
+        private void CheckControlLet(CodeNode code)
+        {
+            var codeLet = code as CodeNodeControlLet;
+            if (codeLet == null)
+                return;
+
+            if (codeLet.children.Count == 1 &&
+                codeLet.localIndex >= 0 &&
+                DoesMismatch(this.body.localVariables[codeLet.localIndex].type, codeLet.children[0].outputType))
+            {
+                session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
+                    "assigning '" + codeLet.children[0].outputType.GetString(session) + "' " +
+                    "to '" + this.body.localVariables[codeLet.localIndex].type.GetString(session) + "'",
+                    codeLet.children[0].span,
+                    this.body.localVariables[codeLet.localIndex].declSpan);
+            }
+        }
+
 
         private void CheckAssignment(CodeNode code)
         {
@@ -96,12 +116,35 @@ namespace Trapl.Semantics
             if (codeDereference == null)
                 return;
 
-            if (!(codeDereference.children[0].outputType is TypeReference))
+            if (!(codeDereference.children[0].outputType is TypeReference) &&
+                !codeDereference.children[0].outputType.IsError())
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.CannotDereference,
                     "cannot dereference '" +
                     codeDereference.children[0].outputType.GetString(session) + "'",
                     codeDereference.children[0].span);
+            }
+        }
+
+
+        private void CheckStructLiteralInitializers(CodeNode code)
+        {
+            var codeStructLiteral = code as CodeNodeStructLiteral;
+            if (codeStructLiteral == null)
+                return;
+
+            var structType = (TypeStruct)codeStructLiteral.outputType;
+
+            for (int i = 0; i < codeStructLiteral.children.Count; i++)
+            {
+                if (DoesMismatch(structType.potentialStructs[0].fields[i].type, codeStructLiteral.children[i].outputType))
+                {
+                    session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
+                        "'" + codeStructLiteral.children[i].outputType.GetString(this.session) +
+                        "' initializer for '" + structType.potentialStructs[0].fields[i].type.GetString(this.session) +
+                        "' field",
+                        codeStructLiteral.children[i].span);
+                }
             }
         }
 
@@ -154,7 +197,8 @@ namespace Trapl.Semantics
 
             if (functType == null)
             {
-                if (codeCall.children[0].outputType.IsResolved())
+                if (codeCall.children[0].outputType.IsResolved() &&
+                    !codeCall.children[0].outputType.IsError())
                 {
                     session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
                         "'" + codeCall.children[0].outputType.GetString(this.session) + "' " +
@@ -168,7 +212,7 @@ namespace Trapl.Semantics
             for (var i = 0; i < codeCall.children.Count - 1; i++)
             {
                 if (functType.argumentTypes[i].IsResolved() &&
-                    !functType.argumentTypes[i].IsSame(codeCall.children[i + 1].outputType))
+                    DoesMismatch(functType.argumentTypes[i], codeCall.children[i + 1].outputType))
                 {
                     session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
                         "passing '" + codeCall.children[i + 1].outputType.GetString(this.session) +

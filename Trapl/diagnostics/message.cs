@@ -28,7 +28,8 @@ namespace Trapl.Diagnostics
         InferenceFailed,
         IncompatibleTypes,
         CannotAddress,
-        CannotDereference
+        CannotDereference,
+        CannotAccess
     }
 
 

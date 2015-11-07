@@ -11,6 +11,12 @@ namespace Trapl.Semantics
         }
 
 
+        public virtual bool IsError()
+        {
+            return false;
+        }
+
+
         public virtual bool IsSame(Type other)
         {
             return false;
@@ -34,6 +40,12 @@ namespace Trapl.Semantics
         public override bool IsResolved()
         {
             return false;
+        }
+
+
+        public override bool IsError()
+        {
+            return true;
         }
 
 
@@ -112,7 +124,7 @@ namespace Trapl.Semantics
 
     public class TypeStruct : Type
     {
-        public NameInference nameInference = new NameInference();
+        public Name nameInference = new Name();
         public List<DeclStruct> potentialStructs = new List<DeclStruct>();
 
 

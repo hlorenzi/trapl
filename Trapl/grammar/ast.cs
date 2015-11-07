@@ -12,7 +12,7 @@ namespace Trapl.Grammar
         TraitDecl, TraitMemberDecl,
         Name, Path, Identifier,
         Type, TupleType, FunctType,
-        NumberLiteral, BooleanLiteral, StructLiteral, MemberInit,
+        NumberLiteral, BooleanLiteral, StructLiteral, StructFieldInit,
         TemplateList, TemplateVariadicList,
         TemplateParameter, TypeParameter, GenericTypeParameter,
         Block,

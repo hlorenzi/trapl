@@ -28,8 +28,10 @@ namespace Trapl.Semantics
                     continue;
 
                 var arg = new Variable();
-                arg.pathASTNode = argNode.Child(0).Child(0);
-                arg.template = TemplateASTUtil.ResolveTemplateFromName(session, argNode.Child(0), true);
+                arg.name = new Name(
+                    argNode.Child(0).Span(),
+                    argNode.Child(0).Child(0),
+                    TemplateASTUtil.ResolveTemplateFromName(session, argNode.Child(0), true));
                 arg.declSpan = argNode.Span();
 
                 try
@@ -63,7 +65,7 @@ namespace Trapl.Semantics
             if (this.bodyResolved)
                 return;
 
-            session.diagn.PushContext(new MessageContext("in funct '" + GetString(session) + "'", pathASTNode.Span()));
+            session.diagn.PushContext(new MessageContext("in funct '" + GetString(session) + "'", this.nameASTNode.Span()));
             try
             {
                 body = CodeASTConverter.Convert(
@@ -81,14 +83,17 @@ namespace Trapl.Semantics
 
         public override void PrintToConsole(Session session, int indentLevel)
         {
-            for (int i = 0; i < this.body.localVariables.Count; i++)
+            if (this.body != null)
             {
-                Console.Out.WriteLine(
-                    "  " +
-                    (i < this.arguments.Count ? "PARAM " : "LOCAL ") +
-                    i + " = " +
-                    this.body.localVariables[i].GetString(session) + ": " +
-                    this.body.localVariables[i].type.GetString(session));
+                for (int i = 0; i < this.body.localVariables.Count; i++)
+                {
+                    Console.Out.WriteLine(
+                        "  " +
+                        (i < this.arguments.Count ? "PARAM " : "LOCAL ") +
+                        i + " = " +
+                        this.body.localVariables[i].GetString(session) + ": " +
+                        this.body.localVariables[i].type.GetString(session));
+                }
             }
 
             Console.Out.WriteLine(
@@ -96,7 +101,8 @@ namespace Trapl.Semantics
 
             Console.Out.WriteLine();
 
-            this.body.code.PrintDebugRecursive(session, 1, 1);
+            if (this.body != null)
+                this.body.code.PrintDebugRecursive(session, 1, 1);
         }
     }
 }

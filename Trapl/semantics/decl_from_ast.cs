@@ -10,20 +10,20 @@ namespace Trapl.Semantics
                 var decl = new DeclStruct();
                 decl.declASTNode = declASTNode;
                 decl.nameASTNode = declASTNode.Child(0);
-                decl.pathASTNode = declASTNode.Child(0).Child(0);
+                decl.name.pathASTNode = declASTNode.Child(0).Child(0);
                 decl.defASTNode = declASTNode.Child(1);
                 decl.templateASTNode = TemplateASTUtil.GetTemplateNodeOrNull(declASTNode.Child(0));
-                session.structDecls.Add(decl.pathASTNode, decl);
+                session.structDecls.Add(decl.name.pathASTNode, decl);
             }
             else if (declASTNode.ChildIs(1, Grammar.ASTNodeKind.FunctDecl))
             {
                 var decl = new DeclFunct();
                 decl.declASTNode = declASTNode;
                 decl.nameASTNode = declASTNode.Child(0);
-                decl.pathASTNode = declASTNode.Child(0).Child(0);
+                decl.name.pathASTNode = declASTNode.Child(0).Child(0);
                 decl.defASTNode = declASTNode.Child(1);
                 decl.templateASTNode = TemplateASTUtil.GetTemplateNodeOrNull(declASTNode.Child(0));
-                session.functDecls.Add(decl.pathASTNode, decl);
+                session.functDecls.Add(decl.name.pathASTNode, decl);
             }
             else
                 throw new InternalException("unreachable");

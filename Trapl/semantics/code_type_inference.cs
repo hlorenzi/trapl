@@ -30,10 +30,13 @@ namespace Trapl.Semantics
         {
             var ruleList = new List<RuleDelegate>
             {
+                InferTypeControlLet,
                 InferTypeLocal,
                 InferTypeAssignment,
                 InferTypeAddress,
                 InferTypeDereference,
+                InferFieldAccess,
+                InferStructLiteralInitializers,
                 InferFunctTemplate,
                 InferCall
             };
@@ -151,6 +154,21 @@ namespace Trapl.Semantics
             }
         }
 
+        private void InferTypeControlLet(CodeNode code)
+        {
+            var codeLet = code as CodeNodeControlLet;
+            if (codeLet == null)
+                return;
+
+            if (codeLet.localIndex >= 0 && codeLet.children.Count == 1)
+            {
+                var initializerType = codeLet.children[0].outputType;
+                TryInference(this.body.localVariables[codeLet.localIndex].type, ref initializerType);
+                TryInference(initializerType, ref this.body.localVariables[codeLet.localIndex].type);
+                codeLet.children[0].outputType = initializerType;
+            }
+        }
+
 
         private void InferTypeLocal(CodeNode code)
         {
@@ -207,6 +225,67 @@ namespace Trapl.Semantics
         }
 
 
+        private void InferFieldAccess(CodeNode code)
+        {
+            var codeAccess = code as CodeNodeAccess;
+            if (codeAccess == null)
+                return;
+
+            if (codeAccess.structAccessed != null)
+                return;
+
+            if (!codeAccess.children[0].outputType.IsResolved() ||
+                codeAccess.children[0].outputType.IsError() ||
+                codeAccess.outputType.IsError())
+                return;
+
+            var structType = (codeAccess.children[0].outputType as TypeStruct);
+            if (structType == null)
+            {
+                this.session.diagn.Add(MessageKind.Error, MessageCode.CannotAccess,
+                    "'" + codeAccess.children[0].outputType.GetString(session) + "' is not a struct",
+                    codeAccess.children[0].span);
+                codeAccess.outputType = new TypeError();
+                return;
+            }
+
+            if (structType.potentialStructs.Count != 1)
+                return;
+
+            var fieldIndex = structType.potentialStructs[0].FindField(codeAccess.pathASTNode, codeAccess.template);
+            if (fieldIndex >= 0)
+            {
+                codeAccess.structAccessed = structType.potentialStructs[0];
+                codeAccess.fieldIndexAccessed = fieldIndex;
+                codeAccess.outputType = structType.potentialStructs[0].fields[fieldIndex].type;
+                this.appliedAnyRule = true;
+                return;
+            }
+
+            this.session.diagn.Add(MessageKind.Error, MessageCode.CannotAccess,
+                "no field '" + PathASTUtil.GetString(codeAccess.pathASTNode) + "' in " +
+                "'" + codeAccess.children[0].outputType.GetString(session) + "'",
+                codeAccess.pathASTNode.Span(),
+                codeAccess.children[0].span);
+            codeAccess.outputType = new TypeError();
+        }
+
+
+        private void InferStructLiteralInitializers(CodeNode code)
+        {
+            var codeStructLiteral = code as CodeNodeStructLiteral;
+            if (codeStructLiteral == null)
+                return;
+
+            var structType = (TypeStruct)codeStructLiteral.outputType;
+
+            for (int i = 0; i < codeStructLiteral.children.Count; i++)
+            {
+                TryInference(structType.potentialStructs[0].fields[i].type, ref codeStructLiteral.children[i].outputType);
+            }
+        }
+
+
         private void InferFunctTemplate(CodeNode code)
         {
             var codeFunct = code as CodeNodeFunct;
@@ -218,8 +297,8 @@ namespace Trapl.Semantics
                 // Disregard functs whose templates don't match.
                 for (int i = codeFunct.potentialFuncts.Count - 1; i >= 0; i--)
                 {
-                    var def = codeFunct.potentialFuncts[i];
-                    if (!def.template.IsMatch(codeFunct.nameInference.template))
+                    var decl = codeFunct.potentialFuncts[i];
+                    if (!decl.name.template.IsMatch(codeFunct.nameInference.template))
                     {
                         codeFunct.potentialFuncts.RemoveAt(i);
                         this.appliedAnyRule = true;

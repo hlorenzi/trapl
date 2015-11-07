@@ -40,13 +40,6 @@ namespace Trapl.Semantics
     }
 
 
-    public class NameInference
-    {
-        public Grammar.ASTNode pathASTNode;
-        public Template template;
-    }
-
-
     public class CodeNodeSequence : CodeNode
     {
     }
@@ -54,7 +47,8 @@ namespace Trapl.Semantics
 
     public class CodeNodeControlLet : CodeNode
     {
-        public Variable local;
+        public int localIndex = -1;
+        public override string GetDebugString(Infrastructure.Session session) { return "LOCAL " + localIndex; }
     }
 
 
@@ -72,7 +66,7 @@ namespace Trapl.Semantics
 
     public class CodeNodeFunct : CodeNode
     {
-        public NameInference nameInference = new NameInference();
+        public Name nameInference = new Name();
         public List<DeclFunct> potentialFuncts = new List<DeclFunct>();
         public override string GetDebugString(Infrastructure.Session session)
         {
@@ -83,8 +77,30 @@ namespace Trapl.Semantics
     }
 
 
+    public class CodeNodeNumberLiteral : CodeNode
+    {
+        public string numberStr;
+    }
+
+
     public class CodeNodeStructLiteral : CodeNode
     {
+    }
+
+
+    public class CodeNodeAccess : CodeNode
+    {
+        public Grammar.ASTNode pathASTNode;
+        public Template template;
+        public DeclStruct structAccessed;
+        public int fieldIndexAccessed = -1;
+
+        public override string GetDebugString(Infrastructure.Session session)
+        {
+            return "FIELD " +
+                (structAccessed == null ? "???" : structAccessed.GetString(session)) + "." +
+                PathASTUtil.GetString(pathASTNode) + template.GetString(session);
+        }
     }
 
 

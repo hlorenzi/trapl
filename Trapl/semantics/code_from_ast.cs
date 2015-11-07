@@ -60,6 +60,8 @@ namespace Trapl.Semantics
                 return this.ParseBinaryOp(astNode);
             else if (astNode.kind == Grammar.ASTNodeKind.UnaryOp)
                 return this.ParseUnaryOp(astNode);
+            else if (astNode.kind == Grammar.ASTNodeKind.NumberLiteral)
+                return this.ParseNumberLiteral(astNode);
             else if (astNode.kind == Grammar.ASTNodeKind.StructLiteral)
                 return this.ParseStructLiteral(astNode);
             else if (astNode.kind == Grammar.ASTNodeKind.Name)
@@ -78,18 +80,31 @@ namespace Trapl.Semantics
             var local = new Variable();
             local.declSpan = astNode.Child(0).Span();
 
-            local.pathASTNode = astNode.Child(0).Child(0);
-            local.template = TemplateASTUtil.ResolveTemplateFromName(this.session, astNode.Child(0), true);
-            local.template.unconstrained = false;
+            local.name = new Name(
+                astNode.Child(0).Span(),
+                astNode.Child(0).Child(0),
+                TemplateASTUtil.ResolveTemplateFromName(this.session, astNode.Child(0), true));
 
+            var curChild = 1;
+
+            // Parse type annotation, if there is one.
             local.type = new TypePlaceholder();
-            if (astNode.ChildNumber() >= 2 &&
-                TypeASTUtil.IsTypeNode(astNode.Child(1).kind))
+            if (astNode.ChildNumber() > curChild &&
+                TypeASTUtil.IsTypeNode(astNode.Child(curChild).kind))
             {
-                local.type = TypeASTUtil.Resolve(this.session, astNode.Child(1), false);
+                local.type = TypeASTUtil.Resolve(this.session, astNode.Child(curChild), false);
+                curChild++;
             }
 
+            code.localIndex = this.localVariables.Count;
             this.localVariables.Add(local);
+
+            // Parse initializer expression, if there is one.
+            if (astNode.ChildNumber() > curChild)
+            {
+                code.children.Add(this.ParseExpression(astNode.Child(curChild)));
+                curChild++;
+            }
 
             return code;
         }
@@ -120,6 +135,26 @@ namespace Trapl.Semantics
                 code.children.Add(this.ParseExpression(astNode.Child(1)));
                 code.children.Add(this.ParseExpression(astNode.Child(2)));
                 code.outputType = new TypeTuple();
+
+                return code;
+            }
+            else if (op == ".")
+            {
+                var code = new CodeNodeAccess();
+                code.span = astNode.Span();
+
+                code.children.Add(this.ParseExpression(astNode.Child(1)));
+                code.outputType = new TypePlaceholder();
+
+                if (!astNode.ChildIs(2, Grammar.ASTNodeKind.Name))
+                {
+                    this.session.diagn.Add(MessageKind.Error, MessageCode.Expected,
+                        "expected a field name", astNode.Child(2).Span());
+                    throw new CheckException();
+                }
+
+                code.pathASTNode = astNode.Child(2).Child(0);
+                code.template = TemplateASTUtil.ResolveTemplateFromName(this.session, astNode.Child(2), true);
 
                 return code;
             }
@@ -155,11 +190,96 @@ namespace Trapl.Semantics
         }
 
 
+        private CodeNode ParseNumberLiteral(Grammar.ASTNode astNode)
+        {
+            var code = new CodeNodeNumberLiteral();
+            code.span = astNode.Span();
+            code.numberStr = astNode.GetExcerpt();
+            code.outputType = new TypePlaceholder();
+
+            return code;
+        }
+
+
         private CodeNode ParseStructLiteral(Grammar.ASTNode astNode)
         {
             var code = new CodeNodeStructLiteral();
             code.span = astNode.Span();
-            code.outputType = TypeASTUtil.Resolve(session, astNode.Child(0), false);
+            code.outputType = TypeASTUtil.Resolve(session, astNode.Child(0), true);
+
+            var structType = (code.outputType as TypeStruct);
+            if (structType == null)
+            {
+                this.session.diagn.Add(MessageKind.Error, MessageCode.Expected,
+                    "expected a struct name", astNode.Child(0).Span());
+                throw new CheckException();
+            }
+
+            var initChildIndices = new int[structType.potentialStructs[0].fields.Count];
+            for (int i = 0; i < structType.potentialStructs[0].fields.Count; i++)
+            {
+                initChildIndices[i] = -1;
+                code.children.Add(null);
+            }
+
+            var hadErrors = false;
+            for (int i = 1; i < astNode.ChildNumber(); i++)
+            {
+                var fieldInit = astNode.Child(i);
+                var fieldPathASTNode = fieldInit.Child(0).Child(0);
+                var fieldTemplate = TemplateASTUtil.ResolveTemplateFromName(this.session, fieldInit.Child(0), true);
+
+                var fieldIndex = structType.potentialStructs[0].FindField(fieldPathASTNode, fieldTemplate);
+                if (fieldIndex < 0)
+                {
+                    this.session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
+                        "no field '" + NameASTUtil.GetString(fieldInit.Child(0)) + "' " +
+                        "in '" + structType.GetString(this.session) + "'", fieldInit.Child(0).Span());
+                    continue;
+                }
+
+                if (initChildIndices[fieldIndex] >= 0)
+                {
+                    this.session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
+                        "duplicate initializer for field '" + NameASTUtil.GetString(fieldInit.Child(0)) + "'",
+                        fieldInit.Child(0).Span(), astNode.Child(initChildIndices[fieldIndex]).Child(0).Span());
+                    continue;
+                }
+
+                initChildIndices[fieldIndex] = i;
+
+                try
+                {
+                    var initExpr = this.ParseExpression(astNode.Child(i).Child(1));
+                    code.children[fieldIndex] = initExpr;
+                }
+                catch (CheckException) { hadErrors = true; }
+            }
+
+            var firstNotInitialized = -1;
+            var numNotInitialized = 0;
+            for (int i = 0; i < initChildIndices.Length; i++)
+            {
+                if (initChildIndices[i] < 0)
+                {
+                    if (firstNotInitialized < 0)
+                        firstNotInitialized = i;
+                    numNotInitialized++;
+                }
+            }
+
+            if (numNotInitialized > 0)
+            {
+                this.session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
+                    "missing initializer" + (numNotInitialized > 1 ? "s" : "") + " for field '" +
+                    structType.potentialStructs[0].fields[firstNotInitialized].name.GetString(this.session) +
+                    "'" + (numNotInitialized == 1 ? "" : (" and other " + (numNotInitialized - 1))),
+                    astNode.Span());
+                throw new CheckException();
+            }
+
+            if (hadErrors)
+                throw new CheckException();
 
             return code;
         }
@@ -170,9 +290,7 @@ namespace Trapl.Semantics
             var templ = TemplateASTUtil.ResolveTemplateFromName(this.session, astNode, false);
 
             var localIndex = this.localVariables.FindLastIndex(
-                loc => (
-                PathASTUtil.Compare(loc.pathASTNode, astNode.Child(0)) &&
-                loc.template.IsMatch(templ)));
+                loc => loc.name.Compare(astNode.Child(0), templ));
 
             if (localIndex >= 0)
             {

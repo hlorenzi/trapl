@@ -34,42 +34,33 @@ namespace Trapl.Infrastructure
 
         public void Resolve()
         {
-            if (this.diagn.ContainsErrors())
-                return;
-
+            if (this.diagn.ContainsErrors()) return;
             this.structDecls.ForEach(decl =>
             {
                 try { decl.ResolveTemplate(this); }
                 catch (Semantics.CheckException) { }
             });
 
-            if (this.diagn.ContainsErrors())
-                return;
-
+            if (this.diagn.ContainsErrors()) return;
             this.functDecls.ForEach(decl =>
             {
                 try { decl.ResolveTemplate(this); }
                 catch (Semantics.CheckException) { }
             });
 
-            if (this.diagn.ContainsErrors())
-                return;
-
+            if (this.diagn.ContainsErrors()) return;
             this.structDecls.ForEach(decl => decl.Resolve(this));
 
-            if (this.diagn.ContainsErrors())
-                return;
-
+            if (this.diagn.ContainsErrors()) return;
             this.functDecls.ForEach(decl => decl.Resolve(this));
 
-            if (this.diagn.ContainsErrors())
-                return;
-
+            if (this.diagn.ContainsErrors()) return;
             this.functDecls.ForEach(decl => decl.ResolveBody(this));
         }
 
 
         public Diagnostics.Collection diagn = new Diagnostics.Collection();
+
         public DeclList<Semantics.DeclStruct> structDecls = new DeclList<Semantics.DeclStruct>();
         public DeclList<Semantics.DeclFunct> functDecls = new DeclList<Semantics.DeclFunct>();
 

@@ -10,7 +10,8 @@ namespace Trapl.Semantics
             if (templateASTNode == null)
             {
                 var noTempl = new Template();
-                noTempl.unconstrained = true;
+                if (!mustBeResolved)
+                    noTempl.unconstrained = true;
                 return noTempl;
             }
 

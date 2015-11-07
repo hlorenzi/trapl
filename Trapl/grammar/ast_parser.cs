@@ -660,7 +660,7 @@ namespace Trapl.Grammar
 
             while (this.CurrentIsNot(TokenKind.BraceClose))
             {
-                var member = new ASTNode(ASTNodeKind.MemberInit);
+                var member = new ASTNode(ASTNodeKind.StructFieldInit);
                 member.AddChild(this.ParseName(false));
                 this.Match(TokenKind.Colon, MessageCode.Expected, "expected ':'");
                 member.AddChild(ParseExpression());

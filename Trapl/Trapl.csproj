@@ -51,6 +51,7 @@
     <Compile Include="infrastructure\decl_list.cs" />
     <Compile Include="main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="semantics\name.cs" />
     <Compile Include="semantics\name_ast_util.cs" />
     <Compile Include="semantics\path_ast_util.cs" />
     <Compile Include="semantics\template_ast_util.cs" />

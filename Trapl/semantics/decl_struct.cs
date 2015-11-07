@@ -9,7 +9,7 @@ namespace Trapl.Semantics
     {
         public class Field
         {
-            public Grammar.ASTNode nameASTNode;
+            public Name name;
             public Type type;
             public Diagnostics.Span declSpan;
 
@@ -41,6 +41,17 @@ namespace Trapl.Semantics
         }
 
 
+        public int FindField(Grammar.ASTNode pathASTNode, Template template)
+        {
+            for (int i = 0; i < this.fields.Count; i++)
+            {
+                if (this.fields[i].name.Compare(pathASTNode, template))
+                    return i;
+            }
+            return -1;
+        }
+
+
         public override void Resolve(Infrastructure.Session session)
         {
             if (this.resolved)
@@ -61,16 +72,19 @@ namespace Trapl.Semantics
                     throw new InternalException("node is not a StructField");
 
                 var field = new DeclStruct.Field();
-                field.nameASTNode = fieldNode.Child(0);
+                field.name = new Name(
+                    fieldNode.Child(0).Span(),
+                    fieldNode.Child(0).Child(0),
+                    TemplateASTUtil.ResolveTemplateFromName(session, fieldNode.Child(0), true));
                 field.declSpan = fieldNode.Span();
 
                 for (int i = 0; i < fields.Count; i++)
                 {
-                    if (PathASTUtil.Compare(fields[i].nameASTNode.Child(0), field.nameASTNode.Child(0)))
+                    if (fields[i].name.Compare(field.name))
                     {
                         session.diagn.Add(MessageKind.Error, MessageCode.DuplicateDecl,
-                            "duplicate field '" + PathASTUtil.GetString(field.nameASTNode.Child(0)) + "'",
-                            field.nameASTNode.Span(), fields[i].nameASTNode.Span());
+                            "duplicate field '" + field.name.GetString(session) + "'",
+                            field.name.span, fields[i].name.span);
                         break;
                     }
                 }
@@ -90,12 +104,12 @@ namespace Trapl.Semantics
 
         public override void PrintToConsole(Infrastructure.Session session, int indentLevel)
         {
-            foreach (var member in this.fields)
+            foreach (var field in this.fields)
             {
                 Console.Out.WriteLine(
                     new string(' ', indentLevel * 2) +
-                    PathASTUtil.GetString(member.nameASTNode.Child(0)) + ": " +
-                    member.type.GetString(session));
+                    field.name.GetString(session) + ": " +
+                    field.type.GetString(session));
             }
         }
     }

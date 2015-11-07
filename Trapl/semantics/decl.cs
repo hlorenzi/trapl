@@ -8,9 +8,8 @@ namespace Trapl.Semantics
         public Grammar.ASTNode declASTNode;
 
         public Grammar.ASTNode nameASTNode;
-        public Grammar.ASTNode pathASTNode;
         public Grammar.ASTNode templateASTNode;
-        public Template template;
+        public Name name = new Name();
 
         public Grammar.ASTNode defASTNode;
 
@@ -20,7 +19,7 @@ namespace Trapl.Semantics
 
         public void ResolveTemplate(Infrastructure.Session session)
         {
-            this.template = TemplateASTUtil.ResolveTemplate(session, this.templateASTNode, true);
+            this.name.template = TemplateASTUtil.ResolveTemplate(session, this.templateASTNode, true);
         }
 
 
@@ -32,10 +31,13 @@ namespace Trapl.Semantics
 
         public string GetString(Infrastructure.Session session)
         {
-            return PathASTUtil.GetString(this.pathASTNode) +
-                (template == null ? "<?>" : template.GetString(session));
+            return PathASTUtil.GetString(this.name.pathASTNode) +
+                (this.name.template == null ? "<?>" : this.name.template.GetString(session));
         }
 
-        public virtual void PrintToConsole(Infrastructure.Session session, int indentLevel) { }
+        public virtual void PrintToConsole(Infrastructure.Session session, int indentLevel)
+        {
+
+        }
     }
 }

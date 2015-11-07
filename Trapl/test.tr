@@ -1,20 +1,15 @@
-Apple {}
+Apple { x: Banana }
 Banana {}
-Orange {}
+Orange { }
 
 Vec<Apple> {}
 Vec<Banana> {}
 
-push<Apple>(v: Vec<Apple>, e: Apple) {}
-push<Banana>(v: Vec<Banana>, e: Banana) {}
+push<Apple>(v: &Vec<Apple>, e: Apple) {}
+push<Banana>(v: &Vec<Banana>, e: Banana) {}
 
 test()
 {
 	let a;
-	let ra;
-	let rra;
-
-	push(Vec::<_> {}, a);
-	ra = &a;
-	rra = &ra;
+	let z = Apple { x: a };
 }

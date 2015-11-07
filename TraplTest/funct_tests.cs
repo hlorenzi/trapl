@@ -74,16 +74,21 @@ namespace TraplTest
 
                 "let a; a = Apple {}",
                 "let b; b = Banana {}",
+                "let a = Apple {}",
+                "let b = Banana {}",
 
                 "let a; a = get_apple()",
                 "let b; b = get_banana()",
                 "let n; n = get_nothing()",
+                "let a = get_apple()",
+                "let b = get_banana()",
+                "let n = get_nothing()",
                 "let a; let z; z = Apple {}; a = z",
 
-                "let a: Apple; let ra; ra = &a",
-                "let b: Banana; let rb; rb = &b",
-                "let a; let ra: &Apple; ra = &a",
-                "let b; let rb: &Banana; rb = &b",
+                "let a: Apple; let ra = &a",
+                "let b: Banana; let rb = &b",
+                "let a; let ra: &Apple = &a",
+                "let b; let rb: &Banana = &b",
                 "let a: Apple; let ra; a = @ra",
                 "let b: Banana; let rb; b = @rb",
                 "let a; let ra: &Apple; a = @ra",
@@ -118,8 +123,8 @@ namespace TraplTest
                 "let a: Apple; let la; push(la, a)",
                 "let b: Banana; let lb; push(lb, b)",
 
-                "let a: Apple; let ra: &Apple; ra = &&a",
-                "let a: Apple; let ra: &Apple; a = @@a"
+                "let a: Apple; let ra: &Apple = &&a",
+                "let a: Apple; let ra: &Apple = @@a"
             );
         }
     }

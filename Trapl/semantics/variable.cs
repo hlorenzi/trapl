@@ -3,8 +3,7 @@ namespace Trapl.Semantics
 {
     public class Variable
     {
-        public Grammar.ASTNode pathASTNode;
-        public Template template;
+        public Name name;
         public Type type;
         public Diagnostics.Span declSpan;
 
@@ -14,15 +13,14 @@ namespace Trapl.Semantics
 
         public Variable(Grammar.ASTNode pathASTNode, Type type, Diagnostics.Span declSpan)
         {
-            this.pathASTNode = pathASTNode;
-            this.template = new Template();
+            this.name = new Name(pathASTNode.Span(), pathASTNode, new Template());
             this.type = type;
             this.declSpan = declSpan;
         }
 
         public string GetString(Infrastructure.Session session)
         {
-            return PathASTUtil.GetString(this.pathASTNode) + this.template.GetString(session);
+            return this.name.GetString(session);
         }
     }
 }

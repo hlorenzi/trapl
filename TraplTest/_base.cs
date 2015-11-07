@@ -65,7 +65,8 @@ namespace TraplTest
                     Trapl.Grammar.Tokenizer.Tokenize(session,
                         Trapl.Infrastructure.Unit.MakeFromString(typeName)));
 
-            var local = ((Trapl.Semantics.DeclFunct)functs[0]).body.localVariables.Find(v => Trapl.Semantics.PathASTUtil.Compare(v.pathASTNode, varNameASTNode.Child(0)));
+            var local = functs[0].body.localVariables.Find(
+                v => v.name.Compare(varNameASTNode.Child(0), new Trapl.Semantics.Template()));
             if (local == null)
                 return true;
 

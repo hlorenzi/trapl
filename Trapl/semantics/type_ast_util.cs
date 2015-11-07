@@ -27,6 +27,13 @@ namespace Trapl.Semantics
                 // Check if it is a placeholder type.
                 if (onlyName == "_")
                 {
+                    if (mustBeResolved)
+                    {
+                        session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
+                            "type must be fully resolved", nameASTNode.Child(0).Span());
+                        throw new CheckException();
+                    }
+
                     resolvedType = new TypePlaceholder();
                 }
                 else
@@ -40,7 +47,7 @@ namespace Trapl.Semantics
                     if (structType.potentialStructs.Count == 0)
                     {
                         session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
-                            "'" + PathASTUtil.GetString(nameASTNode.Child(0)) + "' " +
+                            "type '" + PathASTUtil.GetString(nameASTNode.Child(0)) + "' " +
                             "is not declared", nameASTNode.Child(0).Span());
                         throw new CheckException();
                     }
@@ -54,7 +61,7 @@ namespace Trapl.Semantics
                     {
                         // Filter structs by template compatibility.
                         structType.potentialStructs =
-                            structType.potentialStructs.FindAll(d => d.template.IsMatch(structType.nameInference.template));
+                            structType.potentialStructs.FindAll(d => d.name.template.IsMatch(structType.nameInference.template));
 
                         if (structType.potentialStructs.Count == 0)
                         {
