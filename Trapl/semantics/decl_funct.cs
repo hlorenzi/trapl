@@ -31,7 +31,7 @@ namespace Trapl.Semantics
                 arg.name = new Name(
                     argNode.Child(0).Span(),
                     argNode.Child(0).Child(0),
-                    TemplateASTUtil.ResolveTemplateFromName(session, argNode.Child(0), true));
+                    UtilASTTemplate.ResolveTemplateFromName(session, argNode.Child(0), true));
                 arg.declSpan = argNode.Span();
 
                 try

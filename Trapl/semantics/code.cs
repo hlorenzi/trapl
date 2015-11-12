@@ -48,7 +48,7 @@ namespace Trapl.Semantics
     public class CodeNodeControlLet : CodeNode
     {
         public int localIndex = -1;
-        public override string GetDebugString(Infrastructure.Session session) { return "LOCAL " + localIndex; }
+        public override string GetDebugString(Infrastructure.Session session) { return "LOCAL (" + localIndex + ")"; }
     }
 
 
@@ -60,7 +60,7 @@ namespace Trapl.Semantics
     public class CodeNodeLocal : CodeNode
     {
         public int localIndex = -1;
-        public override string GetDebugString(Infrastructure.Session session) { return "LOCAL " + localIndex; }
+        public override string GetDebugString(Infrastructure.Session session) { return "LOCAL (" + localIndex + ")"; }
     }
 
 
@@ -72,14 +72,21 @@ namespace Trapl.Semantics
         {
             if (potentialFuncts.Count == 0) return "NO FUNCT";
             else if (potentialFuncts.Count > 1) return "AMBIGUOUS FUNCT";
-            else return NameASTUtil.GetString(potentialFuncts[0].nameASTNode);
+            else return UtilASTName.GetString(potentialFuncts[0].nameASTNode);
         }
     }
 
 
-    public class CodeNodeNumberLiteral : CodeNode
+    public class CodeNodeBooleanLiteral : CodeNode
     {
-        public string numberStr;
+        public bool value;
+    }
+
+
+    public class CodeNodeIntegerLiteral : CodeNode
+    {
+        public string value;
+        public override string GetDebugString(Infrastructure.Session session) { return "VALUE (" + value + ")"; }
     }
 
 
@@ -99,7 +106,7 @@ namespace Trapl.Semantics
         {
             return "FIELD " +
                 (structAccessed == null ? "???" : structAccessed.GetString(session)) + "." +
-                PathASTUtil.GetString(pathASTNode) + template.GetString(session);
+                UtilASTPath.GetString(pathASTNode) + template.GetString(session);
         }
     }
 

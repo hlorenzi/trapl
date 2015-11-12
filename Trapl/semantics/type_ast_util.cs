@@ -40,14 +40,14 @@ namespace Trapl.Semantics
                 {
                     var structType = new TypeStruct();
                     structType.nameInference.pathASTNode = nameASTNode.Child(0);
-                    structType.nameInference.template = TemplateASTUtil.ResolveTemplateFromName(session, nameASTNode, mustBeResolved);
+                    structType.nameInference.template = UtilASTTemplate.ResolveTemplateFromName(session, nameASTNode, mustBeResolved);
 
                     // Find structs with the given name.
                     structType.potentialStructs = session.structDecls.GetDeclsClone(nameASTNode.Child(0));
                     if (structType.potentialStructs.Count == 0)
                     {
                         session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
-                            "type '" + PathASTUtil.GetString(nameASTNode.Child(0)) + "' " +
+                            "type '" + UtilASTPath.GetString(nameASTNode.Child(0)) + "' " +
                             "is not declared", nameASTNode.Child(0).Span());
                         throw new CheckException();
                     }
@@ -66,14 +66,14 @@ namespace Trapl.Semantics
                         if (structType.potentialStructs.Count == 0)
                         {
                             session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
-                                "no '" + PathASTUtil.GetString(nameASTNode.Child(0)) + "' declaration " +
+                                "no '" + UtilASTPath.GetString(nameASTNode.Child(0)) + "' declaration " +
                                 "accepts this template", nameASTNode.Span());
                             throw new CheckException();
                         }
                         else if (structType.potentialStructs.Count > 1)
                         {
                             session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
-                                "multiple '" + PathASTUtil.GetString(nameASTNode.Child(0)) + "' " +
+                                "multiple '" + UtilASTPath.GetString(nameASTNode.Child(0)) + "' " +
                                 "declarations accept this template", nameASTNode.Span());
                             throw new CheckException();
                         }

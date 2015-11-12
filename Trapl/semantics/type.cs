@@ -131,6 +131,13 @@ namespace Trapl.Semantics
         public TypeStruct() { }
 
 
+        public TypeStruct(DeclStruct decl)
+        {
+            this.nameInference = new Name(new Diagnostics.Span(), decl.name.pathASTNode, decl.name.template);
+            this.potentialStructs.Add(decl);
+        }
+
+
         public override bool IsResolved()
         {
             return this.potentialStructs.Count == 1;
@@ -153,6 +160,15 @@ namespace Trapl.Semantics
         }
 
 
+        public bool IsStruct(DeclStruct decl)
+        {
+            if (this.potentialStructs.Count != 1)
+                return false;
+
+            return (this.potentialStructs[0] == decl);
+        }
+
+
         public override bool IsMatch(Type other)
         {
             if (other is TypePlaceholder)
@@ -162,7 +178,7 @@ namespace Trapl.Semantics
             if (otherStruct == null)
                 return false;
 
-            if (!PathASTUtil.Compare(this.nameInference.pathASTNode, otherStruct.nameInference.pathASTNode))
+            if (!UtilASTPath.Compare(this.nameInference.pathASTNode, otherStruct.nameInference.pathASTNode))
                 return false;
 
             return (this.nameInference.template.IsMatch(otherStruct.nameInference.template));
@@ -171,7 +187,7 @@ namespace Trapl.Semantics
 
         public override string GetString(Infrastructure.Session session)
         {
-            return PathASTUtil.GetString(nameInference.pathASTNode) +
+            return UtilASTPath.GetString(nameInference.pathASTNode) +
                 nameInference.template.GetString(session);
         }
     }

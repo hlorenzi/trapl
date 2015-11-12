@@ -52,9 +52,9 @@
     <Compile Include="main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="semantics\name.cs" />
-    <Compile Include="semantics\name_ast_util.cs" />
-    <Compile Include="semantics\path_ast_util.cs" />
-    <Compile Include="semantics\template_ast_util.cs" />
+    <Compile Include="semantics\util_ast_name.cs" />
+    <Compile Include="semantics\util_ast_path.cs" />
+    <Compile Include="semantics\util_ast_template.cs" />
     <Compile Include="semantics\decl_from_ast.cs" />
     <Compile Include="semantics\code_from_ast.cs" />
     <Compile Include="semantics\code_type_check.cs" />
@@ -71,6 +71,7 @@
     <Compile Include="infrastructure\unit.cs" />
     <Compile Include="grammar\ast_parser.cs" />
     <Compile Include="grammar\ast.cs" />
+    <Compile Include="semantics\util_ast_number.cs" />
     <Compile Include="semantics\variable.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -1,15 +1,22 @@
-Apple { x: Banana }
-Banana {}
-Orange { }
+struct Apple { x: Banana }
+struct Banana { }
+struct Orange { }
 
-Vec<Apple> {}
-Vec<Banana> {}
+struct Vec<Apple> {}
+struct Vec<Banana> {}
 
-push<Apple>(v: &Vec<Apple>, e: Apple) {}
-push<Banana>(v: &Vec<Banana>, e: Banana) {}
+fn push<Apple>(v: &Vec<Apple>, e: Apple) {}
+fn push<Banana>(v: &Vec<Banana>, e: Banana) {}
 
-test()
+fn test()
 {
-	let a;
-	let z = Apple { x: a };
+	let a = 0;
+	let b = 0xff;
+	let c = 0b1110;
+}
+
+trait Iterator<Self>
+{
+	fn iterate(),
+	fn current() -> Self
 }

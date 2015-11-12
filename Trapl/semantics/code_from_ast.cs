@@ -60,6 +60,8 @@ namespace Trapl.Semantics
                 return this.ParseBinaryOp(astNode);
             else if (astNode.kind == Grammar.ASTNodeKind.UnaryOp)
                 return this.ParseUnaryOp(astNode);
+            else if (astNode.kind == Grammar.ASTNodeKind.BooleanLiteral)
+                return this.ParseBooleanLiteral(astNode);
             else if (astNode.kind == Grammar.ASTNodeKind.NumberLiteral)
                 return this.ParseNumberLiteral(astNode);
             else if (astNode.kind == Grammar.ASTNodeKind.StructLiteral)
@@ -83,7 +85,7 @@ namespace Trapl.Semantics
             local.name = new Name(
                 astNode.Child(0).Span(),
                 astNode.Child(0).Child(0),
-                TemplateASTUtil.ResolveTemplateFromName(this.session, astNode.Child(0), true));
+                UtilASTTemplate.ResolveTemplateFromName(this.session, astNode.Child(0), true));
 
             var curChild = 1;
 
@@ -154,7 +156,7 @@ namespace Trapl.Semantics
                 }
 
                 code.pathASTNode = astNode.Child(2).Child(0);
-                code.template = TemplateASTUtil.ResolveTemplateFromName(this.session, astNode.Child(2), true);
+                code.template = UtilASTTemplate.ResolveTemplateFromName(this.session, astNode.Child(2), true);
 
                 return code;
             }
@@ -190,12 +192,23 @@ namespace Trapl.Semantics
         }
 
 
+        private CodeNode ParseBooleanLiteral(Grammar.ASTNode astNode)
+        {
+            var code = new CodeNodeBooleanLiteral();
+            code.span = astNode.Span();
+            code.value = (astNode.GetExcerpt() == "true");
+            code.outputType = new TypeStruct(this.session.primitiveBool);
+
+            return code;
+        }
+
+
         private CodeNode ParseNumberLiteral(Grammar.ASTNode astNode)
         {
-            var code = new CodeNodeNumberLiteral();
+            var code = new CodeNodeIntegerLiteral();
             code.span = astNode.Span();
-            code.numberStr = astNode.GetExcerpt();
-            code.outputType = new TypePlaceholder();
+            code.value = UtilASTNumber.ParseNumberValue(astNode);
+            code.outputType = UtilASTNumber.ParseNumberType(this.session, astNode);
 
             return code;
         }
@@ -227,13 +240,13 @@ namespace Trapl.Semantics
             {
                 var fieldInit = astNode.Child(i);
                 var fieldPathASTNode = fieldInit.Child(0).Child(0);
-                var fieldTemplate = TemplateASTUtil.ResolveTemplateFromName(this.session, fieldInit.Child(0), true);
+                var fieldTemplate = UtilASTTemplate.ResolveTemplateFromName(this.session, fieldInit.Child(0), true);
 
                 var fieldIndex = structType.potentialStructs[0].FindField(fieldPathASTNode, fieldTemplate);
                 if (fieldIndex < 0)
                 {
                     this.session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
-                        "no field '" + NameASTUtil.GetString(fieldInit.Child(0)) + "' " +
+                        "no field '" + UtilASTName.GetString(fieldInit.Child(0)) + "' " +
                         "in '" + structType.GetString(this.session) + "'", fieldInit.Child(0).Span());
                     continue;
                 }
@@ -241,7 +254,7 @@ namespace Trapl.Semantics
                 if (initChildIndices[fieldIndex] >= 0)
                 {
                     this.session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
-                        "duplicate initializer for field '" + NameASTUtil.GetString(fieldInit.Child(0)) + "'",
+                        "duplicate initializer for field '" + UtilASTName.GetString(fieldInit.Child(0)) + "'",
                         fieldInit.Child(0).Span(), astNode.Child(initChildIndices[fieldIndex]).Child(0).Span());
                     continue;
                 }
@@ -287,7 +300,7 @@ namespace Trapl.Semantics
 
         private CodeNode ParseName(Grammar.ASTNode astNode)
         {
-            var templ = TemplateASTUtil.ResolveTemplateFromName(this.session, astNode, false);
+            var templ = UtilASTTemplate.ResolveTemplateFromName(this.session, astNode, false);
 
             var localIndex = this.localVariables.FindLastIndex(
                 loc => loc.name.Compare(astNode.Child(0), templ));
@@ -316,7 +329,7 @@ namespace Trapl.Semantics
             }
 
             session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredIdentifier,
-                "'" + PathASTUtil.GetString(astNode.Child(0)) + "' is not declared",
+                "'" + UtilASTPath.GetString(astNode.Child(0)) + "' is not declared",
                 astNode.Span());
             throw new CheckException();
         }

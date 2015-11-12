@@ -32,7 +32,7 @@ namespace Trapl.Semantics
         public bool Compare(Name other)
         {
             return
-                PathASTUtil.Compare(this.pathASTNode, other.pathASTNode) &&
+                UtilASTPath.Compare(this.pathASTNode, other.pathASTNode) &&
                 this.template.IsMatch(other.template);
         }
 
@@ -40,14 +40,14 @@ namespace Trapl.Semantics
         public bool Compare(Grammar.ASTNode pathASTNode, Template template)
         {
             return
-                PathASTUtil.Compare(this.pathASTNode, pathASTNode) &&
+                UtilASTPath.Compare(this.pathASTNode, pathASTNode) &&
                 this.template.IsMatch(template);
         }
 
 
         public string GetString(Infrastructure.Session session)
         {
-            return PathASTUtil.GetString(this.pathASTNode) + this.template.GetString(session);
+            return UtilASTPath.GetString(this.pathASTNode) + this.template.GetString(session);
         }
     }
 }

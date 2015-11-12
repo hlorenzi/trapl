@@ -9,12 +9,12 @@ namespace TraplTest
         [TestMethod]
         public void TestFunctHeaders()
         {
-            ContainsNoError(Compile("test() {}"));
-            ContainsNoError(Compile("test() -> () {}"));
-            ContainsNoError(Compile("test(x: ()) -> () {}"));
+            ContainsNoError(Compile("fn test() {}"));
+            ContainsNoError(Compile("fn test() -> () {}"));
+            ContainsNoError(Compile("fn test(x: ()) -> () {}"));
 
-            ContainsErrors(Compile("error_ret() -> UnknownType {}"));
-            ContainsErrors(Compile("error_arg(x: UnknownType) {}"));
+            ContainsErrors(Compile("fn error_ret() -> UnknownType {}"));
+            ContainsErrors(Compile("fn error_arg(x: UnknownType) {}"));
         }
 
 
@@ -22,32 +22,32 @@ namespace TraplTest
         public void TestTypeInference()
         {
             var supportCode =
-                "Apple {}" +
-                "Banana {}" +
+                "struct Apple {}" +
+                "struct Banana {}" +
 
-                "List<Apple> {}" +
-                "List<Banana> {}" +
+                "struct List<Apple> {}" +
+                "struct List<Banana> {}" +
 
-                "Queue<Apple> {}" +
-                "Queue<Banana> {}" +
+                "struct Queue<Apple> {}" +
+                "struct Queue<Banana> {}" +
 
-                "get_nothing() {}" +
-                "get_apple() -> Apple { Apple {} }" +
-                "get_banana() -> Banana { Banana {} }" +
+                "fn get_nothing() {}" +
+                "fn get_apple() -> Apple { Apple {} }" +
+                "fn get_banana() -> Banana { Banana {} }" +
 
-                "take<Apple>(a: Apple) {}" +
-                "take<Banana>(b: Banana) {}" +
+                "fn take<Apple>(a: Apple) {}" +
+                "fn take<Banana>(b: Banana) {}" +
 
-                "push<Apple>(list: List<Apple>, item: Apple) {}" +
-                "push<Banana>(list: List<Banana>, item: Banana) {}" +
-                "push<Apple>(queue: Queue<Apple>, item: Apple) {}" +
-                "push<Banana>(queue: Queue<Banana>, item: Banana) {}";
+                "fn push<Apple>(list: List<Apple>, item: Apple) {}" +
+                "fn push<Banana>(list: List<Banana>, item: Banana) {}" +
+                "fn push<Apple>(queue: Queue<Apple>, item: Apple) {}" +
+                "fn push<Banana>(queue: Queue<Banana>, item: Banana) {}";
 
             ForEach
             (
                 (str) =>
                 {
-                    var session = Compile(supportCode + "test() {" + str + "}");
+                    var session = Compile(supportCode + "fn test() {" + str + "}");
 
                     if (session.diagn.ContainsErrors())
                         session.diagn.PrintToConsole(session);
@@ -112,7 +112,7 @@ namespace TraplTest
             (
                 (str) =>
                 {
-                    var session = Compile(supportCode + "test() {" + str + "}");
+                    var session = Compile(supportCode + "fn test() {" + str + "}");
 
                     Assert.IsTrue(session.diagn.ContainsErrors());
                 },

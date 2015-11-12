@@ -3,7 +3,7 @@
 
 namespace Trapl.Semantics
 {
-    public static class TemplateASTUtil
+    public static class UtilASTTemplate
     {
         public static Template ResolveTemplate(Infrastructure.Session session, Grammar.ASTNode templateASTNode, bool mustBeResolved)
         {

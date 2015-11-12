@@ -8,8 +8,8 @@ namespace Trapl.Grammar
     {
         Error,
         DoubleHash, HashColon, ColonHash,
-        Identifier, Number, Boolean,
-        KeywordFunct, KeywordStruct, KeywordTrait, KeywordGen,
+        Identifier, Number, NumberPrefix, NumberSuffix, BooleanTrue, BooleanFalse,
+        KeywordFn, KeywordStruct, KeywordTrait, KeywordGen,
         KeywordLet, KeywordNew, KeywordIf, KeywordElse, KeywordWhile, KeywordReturn,
         BraceOpen, BraceClose, ParenOpen, ParenClose,
         Period, Comma, Colon, Semicolon, Arrow, DoubleColon, TriplePeriod,

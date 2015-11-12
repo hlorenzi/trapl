@@ -54,7 +54,7 @@ namespace Trapl.Semantics
 
         public override void Resolve(Infrastructure.Session session)
         {
-            if (this.resolved)
+            if (this.resolved || this.primitive)
                 return;
 
             if (this.resolving)
@@ -75,7 +75,7 @@ namespace Trapl.Semantics
                 field.name = new Name(
                     fieldNode.Child(0).Span(),
                     fieldNode.Child(0).Child(0),
-                    TemplateASTUtil.ResolveTemplateFromName(session, fieldNode.Child(0), true));
+                    UtilASTTemplate.ResolveTemplateFromName(session, fieldNode.Child(0), true));
                 field.declSpan = fieldNode.Span();
 
                 for (int i = 0; i < fields.Count; i++)

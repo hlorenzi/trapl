@@ -26,6 +26,14 @@ namespace TraplTest
         }
 
 
+        protected Trapl.Infrastructure.Session ParseTokens(string sourceStr)
+        {
+            var session = new Trapl.Infrastructure.Session();
+            Trapl.Grammar.Tokenizer.Tokenize(session, Trapl.Infrastructure.Unit.MakeFromString(sourceStr));
+            return session;
+        }
+
+
         protected Trapl.Infrastructure.Session ParseGrammar(string sourceStr)
         {
             var session = new Trapl.Infrastructure.Session();

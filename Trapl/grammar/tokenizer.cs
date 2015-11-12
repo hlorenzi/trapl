@@ -30,11 +30,18 @@ namespace Trapl.Grammar
 
                 var span = new Span(unit, index, index + match.representation.Length);
 
+                // Signal errors.
                 if (match.kind == TokenKind.Error)
+                {
                     session.diagn.Add(MessageKind.Error, MessageCode.UnexpectedChar, "unexpected character", span);
-
+                }
+                // Check number format correctness.
+                else if (match.kind == TokenKind.Number)
+                {
+                    CheckNumberValidity(session, match.representation, span);
+                }
                 // Skip line comments.
-                if (match.kind == TokenKind.DoubleHash)
+                else if (match.kind == TokenKind.DoubleHash)
                 {
                     while (index < unit.Length() && unit[index] != '\n')
                         index++;
@@ -56,7 +63,7 @@ namespace Trapl.Grammar
                                 break;
                         }
                         else if (unit[index] == '#' && unit[index + 1] == ':')
-                        { 
+                        {
                             nesting++;
                             index += 2;
                         }
@@ -167,7 +174,7 @@ namespace Trapl.Grammar
         {
             var keywords = new List<TokenMatch>
             {
-                new TokenMatch("funct", TokenKind.KeywordFunct),
+                new TokenMatch("fn", TokenKind.KeywordFn),
                 new TokenMatch("struct", TokenKind.KeywordStruct),
                 new TokenMatch("trait", TokenKind.KeywordTrait),
                 new TokenMatch("gen", TokenKind.KeywordGen),
@@ -177,8 +184,8 @@ namespace Trapl.Grammar
                 new TokenMatch("else", TokenKind.KeywordElse),
                 new TokenMatch("while", TokenKind.KeywordWhile),
                 new TokenMatch("return", TokenKind.KeywordReturn),
-                new TokenMatch("true", TokenKind.Boolean),
-                new TokenMatch("false", TokenKind.Boolean)
+                new TokenMatch("true", TokenKind.BooleanTrue),
+                new TokenMatch("false", TokenKind.BooleanFalse)
             };
 
 
@@ -218,6 +225,59 @@ namespace Trapl.Grammar
             }
 
             return null;
+        }
+
+
+        private static void CheckNumberValidity(Infrastructure.Session session, string numStr, Diagnostics.Span span)
+        {
+            var possibleDigits = new char[] {
+                '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                'a', 'b', 'c', 'd', 'e', 'f' };
+
+            var index = 0;
+            var numBase = 10;
+
+            if (numStr.StartsWith("0b"))
+            {
+                numBase = 2;
+                index += 2;
+            }
+            else if (numStr.StartsWith("0o"))
+            {
+                numBase = 8;
+                index += 2;
+            }
+            else if (numStr.StartsWith("0x"))
+            {
+                numBase = 16;
+                index += 2;
+            }
+
+            while (index < numStr.Length)
+            {
+                var c = numStr[index];
+                index++;
+
+                if (c == '_')
+                    continue;
+
+                var isValid = false;
+                for (int d = 0; d < numBase; d++)
+                {
+                    if (c == possibleDigits[d] || c == char.ToUpper(possibleDigits[d]))
+                    {
+                        isValid = true;
+                        break;
+                    }
+                }
+
+                if (!isValid)
+                {
+                    session.diagn.Add(MessageKind.Error, MessageCode.InvalidFormat,
+                        "invalid number", span);
+                    return;
+                }
+            }
         }
 
 

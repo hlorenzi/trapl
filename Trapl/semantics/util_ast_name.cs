@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 
 namespace Trapl.Semantics
 {
-    public static class NameASTUtil
+    public static class UtilASTName
     {
         public static string GetString(Grammar.ASTNode name)
         {
             if (name.kind != Grammar.ASTNodeKind.Name)
                 throw new InvalidOperationException("node is not a Name");
 
-            var result = PathASTUtil.GetString(name.Child(0));
+            var result = UtilASTPath.GetString(name.Child(0));
             if (name.ChildIs(1, Grammar.ASTNodeKind.TemplateList))
                 result += GetStringRecursive(name.Child(1));
 

@@ -11,6 +11,7 @@ namespace Trapl.Infrastructure
         public Session()
         {
             this.diagn = new Diagnostics.Collection();
+            Semantics.DeclASTConverter.AddPrimitives(this);
         }
 
 
@@ -63,6 +64,19 @@ namespace Trapl.Infrastructure
 
         public DeclList<Semantics.DeclStruct> structDecls = new DeclList<Semantics.DeclStruct>();
         public DeclList<Semantics.DeclFunct> functDecls = new DeclList<Semantics.DeclFunct>();
+        public Semantics.DeclStruct primitiveBool;
+        public Semantics.DeclStruct primitiveInt;
+        public Semantics.DeclStruct primitiveInt8;
+        public Semantics.DeclStruct primitiveInt16;
+        public Semantics.DeclStruct primitiveInt32;
+        public Semantics.DeclStruct primitiveInt64;
+        public Semantics.DeclStruct primitiveUInt;
+        public Semantics.DeclStruct primitiveUInt8;
+        public Semantics.DeclStruct primitiveUInt16;
+        public Semantics.DeclStruct primitiveUInt32;
+        public Semantics.DeclStruct primitiveUInt64;
+        public Semantics.DeclStruct primitiveFloat32;
+        public Semantics.DeclStruct primitiveFloat64;
 
 
         public void PrintDefs()

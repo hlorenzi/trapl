@@ -158,7 +158,7 @@ namespace Trapl.Semantics
             if (codeFunct.potentialFuncts.Count > 1)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
-                    "cannot infer which '" + PathASTUtil.GetString(codeFunct.nameInference.pathASTNode) +
+                    "cannot infer which '" + UtilASTPath.GetString(codeFunct.nameInference.pathASTNode) +
                     "' declaration to use",
                     codeFunct.span);
                 session.diagn.AddInnerToLast(MessageKind.Info, MessageCode.Info,
@@ -172,14 +172,14 @@ namespace Trapl.Semantics
                 if (codeFunct.nameInference.template.IsFullyResolved())
                 {
                     session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
-                        "no '" + PathASTUtil.GetString(codeFunct.nameInference.pathASTNode) +
+                        "no '" + UtilASTPath.GetString(codeFunct.nameInference.pathASTNode) +
                         "' declaration accepts this template",
                         codeFunct.span);
                 }
                 else
                 {
                     session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
-                        "cannot infer which '" + PathASTUtil.GetString(codeFunct.nameInference.pathASTNode) +
+                        "cannot infer which '" + UtilASTPath.GetString(codeFunct.nameInference.pathASTNode) +
                         "' declaration to use",
                         codeFunct.span);
                 }

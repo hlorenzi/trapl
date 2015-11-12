@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Trapl.Semantics
 {
-    public static class PathASTUtil
+    public static class UtilASTPath
     {
         public static bool Compare(Grammar.ASTNode path1, Grammar.ASTNode path2)
         {

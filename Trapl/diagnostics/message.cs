@@ -16,6 +16,7 @@ namespace Trapl.Diagnostics
         Info,
 
         UnexpectedChar,
+        InvalidFormat,
         Expected,
         UnmatchedElse,
 

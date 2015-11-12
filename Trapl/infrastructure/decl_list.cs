@@ -17,7 +17,7 @@ namespace Trapl.Infrastructure
             if (pathASTNode.kind != Grammar.ASTNodeKind.Path)
                 throw new Semantics.InternalException("node is not a Path");
 
-            var pathIndex = pathList.FindIndex(p => Semantics.PathASTUtil.Compare(p, pathASTNode));
+            var pathIndex = pathList.FindIndex(p => Semantics.UtilASTPath.Compare(p, pathASTNode));
             if (pathIndex < 0)
             {
                 pathList.Add(pathASTNode);
@@ -37,7 +37,7 @@ namespace Trapl.Infrastructure
             if (pathASTNode.kind != Grammar.ASTNodeKind.Path)
                 throw new Semantics.InternalException("node is not a Path");
 
-            var pathIndex = pathList.FindIndex(p => Semantics.PathASTUtil.Compare(p, pathASTNode));
+            var pathIndex = pathList.FindIndex(p => Semantics.UtilASTPath.Compare(p, pathASTNode));
             if (pathIndex < 0)
                 return new List<T>();
 

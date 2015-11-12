@@ -263,7 +263,7 @@ namespace Trapl.Semantics
             }
 
             this.session.diagn.Add(MessageKind.Error, MessageCode.CannotAccess,
-                "no field '" + PathASTUtil.GetString(codeAccess.pathASTNode) + "' in " +
+                "no field '" + UtilASTPath.GetString(codeAccess.pathASTNode) + "' in " +
                 "'" + codeAccess.children[0].outputType.GetString(session) + "'",
                 codeAccess.pathASTNode.Span(),
                 codeAccess.children[0].span);

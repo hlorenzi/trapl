@@ -15,11 +15,12 @@ namespace Trapl.Semantics
 
         public bool resolved;
         public bool bodyResolved;
+        public bool primitive;
 
 
         public void ResolveTemplate(Infrastructure.Session session)
         {
-            this.name.template = TemplateASTUtil.ResolveTemplate(session, this.templateASTNode, true);
+            this.name.template = UtilASTTemplate.ResolveTemplate(session, this.templateASTNode, true);
         }
 
 
@@ -31,7 +32,7 @@ namespace Trapl.Semantics
 
         public string GetString(Infrastructure.Session session)
         {
-            return PathASTUtil.GetString(this.name.pathASTNode) +
+            return UtilASTPath.GetString(this.name.pathASTNode) +
                 (this.name.template == null ? "<?>" : this.name.template.GetString(session));
         }
 
