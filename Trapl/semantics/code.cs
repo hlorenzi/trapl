@@ -13,7 +13,7 @@ namespace Trapl.Semantics
     }
 
 
-    public class CodeNode
+    public abstract class CodeNode
     {
         public Diagnostics.Span span;
         public List<CodeNode> children = new List<CodeNode>();

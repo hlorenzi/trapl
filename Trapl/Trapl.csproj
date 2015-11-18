@@ -43,6 +43,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="dataflow\code.cs" />
+    <Compile Include="dataflow\code_from_semantics.cs" />
     <Compile Include="diagnostics\message.cs" />
     <Compile Include="diagnostics\collection.cs" />
     <Compile Include="diagnostics\span.cs" />

@@ -10,7 +10,8 @@ namespace Trapl.Infrastructure
         public List<Variable> arguments = new List<Variable>();
         public Type returnType;
 
-        public Semantics.CodeBody body;
+        public Semantics.CodeBody semanticBody;
+        public Dataflow.CodeBody dataflowBody;
 
 
         public DeclFunct() { }
@@ -67,14 +68,18 @@ namespace Trapl.Infrastructure
             session.diagn.PushContext(new MessageContext("in funct '" + GetString(session) + "'", this.nameASTNode.Span()));
             try
             {
-                body = Semantics.CodeASTConverter.Convert(
+                semanticBody = Semantics.CodeASTConverter.Convert(
                     session, 
                     this.defASTNode.ChildWithKind(Grammar.ASTNodeKind.FunctBody).Child(0),
                     new List<Variable>(this.arguments),
                     returnType);
 
-                Semantics.CodeTypeInferenceAnalyzer.Analyze(session, body);
-                Semantics.CodeTypeChecker.Check(session, body);
+                Semantics.CodeTypeInferenceAnalyzer.Analyze(session, semanticBody);
+                Semantics.CodeTypeChecker.Check(session, semanticBody);
+
+                dataflowBody = Dataflow.CodeSemanticConverter.Convert(
+                    session,
+                    semanticBody);
             }
             finally { session.diagn.PopContext(); }
         }
@@ -82,16 +87,16 @@ namespace Trapl.Infrastructure
 
         public override void PrintToConsole(Session session, int indentLevel)
         {
-            if (this.body != null)
+            if (this.semanticBody != null)
             {
-                for (int i = 0; i < this.body.localVariables.Count; i++)
+                for (int i = 0; i < this.semanticBody.localVariables.Count; i++)
                 {
                     Console.Out.WriteLine(
                         "  " +
                         (i < this.arguments.Count ? "PARAM " : "LOCAL ") +
                         i + " = " +
-                        this.body.localVariables[i].GetString(session) + ": " +
-                        this.body.localVariables[i].type.GetString(session));
+                        this.semanticBody.localVariables[i].GetString(session) + ": " +
+                        this.semanticBody.localVariables[i].type.GetString(session));
                 }
             }
 
@@ -100,8 +105,13 @@ namespace Trapl.Infrastructure
 
             Console.Out.WriteLine();
 
-            if (this.body != null)
-                this.body.code.PrintDebugRecursive(session, 1, 1);
+            if (this.semanticBody != null)
+                this.semanticBody.code.PrintDebugRecursive(session, 1, 1);
+
+            Console.Out.WriteLine();
+
+            if (this.dataflowBody != null)
+                this.dataflowBody.PrintDebug(session, 1);
         }
     }
 }

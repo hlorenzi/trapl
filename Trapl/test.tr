@@ -12,20 +12,20 @@ fn Apple::new() -> Apple { }
 
 fn test() -> Bool
 {
-	let a = Apple::new();
-	let b = Apple::new();
-
-	a = b;
-	a.x = b.x;
-	a = b.x;
-	a.x = b;
+	let x = 0;
 
 	{
-		let a: Int;
-		a = 123;
 	};
 
-	a = b;
+	{
+	};
+
+	{
+		{
+			let y = 0;
+			x = y;
+		}
+	}
 }
 
 trait Iterator<Self>
