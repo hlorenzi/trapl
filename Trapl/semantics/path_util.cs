@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace Trapl.Semantics
 {
-    public static class UtilASTPath
+    public static class PathUtil
     {
         public static bool Compare(Grammar.ASTNode path1, Grammar.ASTNode path2)
         {
@@ -29,7 +26,7 @@ namespace Trapl.Semantics
         }
 
 
-        public static string GetString(Grammar.ASTNode path)
+        public static string GetDisplayString(Grammar.ASTNode path)
         {
             if (path.kind != Grammar.ASTNodeKind.Path)
                 throw new InvalidOperationException("node is not a Path");

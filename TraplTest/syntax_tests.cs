@@ -17,6 +17,8 @@ namespace TraplTest
             ContainsNoError(ParseGrammar("struct Test { x: A, y: B }"));
             ContainsNoError(ParseGrammar("struct Test { x: A, y: B, }"));
             ContainsNoError(ParseGrammar("struct Test1 { x: A } struct Test2 { x: B }"));
+            ContainsNoError(ParseGrammar("struct Test::Test { x: A, y: B }"));
+            ContainsNoError(ParseGrammar("struct Test::Test::Test { x: A, y: B }"));
             ContainsNoError(ParseGrammar("struct Test<T> { x: A, y: B }"));
             ContainsNoError(ParseGrammar("struct Test::<T> { x: A, y: B }"));
             ContainsNoError(ParseGrammar("struct Test::Test<T> { x: A, y: B }"));
@@ -31,6 +33,8 @@ namespace TraplTest
             ContainsNoError(ParseGrammar("fn test(x: A, y: B,) { }"));
             ContainsNoError(ParseGrammar("fn test(x: A, y: B) -> C { }"));
             ContainsNoError(ParseGrammar("fn test(x: A, y: B,) -> C { }"));
+            ContainsNoError(ParseGrammar("fn Test::test(x: A, y: B) -> C { }"));
+            ContainsNoError(ParseGrammar("fn Test::Test::test(x: A, y: B) -> C { }"));
             ContainsNoError(ParseGrammar("fn test<T>(x: A, y: B) -> C { }"));
             ContainsNoError(ParseGrammar("fn test::<T>(x: A, y: B) -> C { }"));
             ContainsNoError(ParseGrammar("fn Test::test<T>(x: A, y: B) -> C { }"));

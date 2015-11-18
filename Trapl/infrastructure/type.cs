@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 
-namespace Trapl.Semantics
+namespace Trapl.Infrastructure
 {
     public abstract class Type
     {
@@ -178,7 +178,7 @@ namespace Trapl.Semantics
             if (otherStruct == null)
                 return false;
 
-            if (!UtilASTPath.Compare(this.nameInference.pathASTNode, otherStruct.nameInference.pathASTNode))
+            if (!Semantics.PathUtil.Compare(this.nameInference.pathASTNode, otherStruct.nameInference.pathASTNode))
                 return false;
 
             return (this.nameInference.template.IsMatch(otherStruct.nameInference.template));
@@ -187,7 +187,7 @@ namespace Trapl.Semantics
 
         public override string GetString(Infrastructure.Session session)
         {
-            return UtilASTPath.GetString(nameInference.pathASTNode) +
+            return Semantics.PathUtil.GetDisplayString(nameInference.pathASTNode) +
                 nameInference.template.GetString(session);
         }
     }

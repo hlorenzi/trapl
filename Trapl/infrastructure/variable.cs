@@ -1,5 +1,5 @@
 ﻿
-namespace Trapl.Semantics
+namespace Trapl.Infrastructure
 {
     public class Variable
     {

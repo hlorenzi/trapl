@@ -74,11 +74,11 @@ namespace TraplTest
                         Trapl.Infrastructure.Unit.MakeFromString(typeName)));
 
             var local = functs[0].body.localVariables.Find(
-                v => v.name.Compare(varNameASTNode.Child(0), new Trapl.Semantics.Template()));
+                v => v.name.Compare(varNameASTNode.Child(0), new Trapl.Infrastructure.Template()));
             if (local == null)
                 return true;
 
-            var type = Trapl.Semantics.TypeASTUtil.Resolve(session, typeASTNode, true);
+            var type = Trapl.Semantics.TypeUtil.ResolveFromAST(session, typeASTNode, true);
 
             return local.type.IsSame(type);
         }

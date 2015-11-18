@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Trapl.Infrastructure;
 
 
 namespace Trapl.Semantics
@@ -8,6 +9,7 @@ namespace Trapl.Semantics
     {
         public CodeNode code;
         public List<Variable> localVariables = new List<Variable>();
+        public Infrastructure.Type returnType;
     }
 
 
@@ -15,7 +17,7 @@ namespace Trapl.Semantics
     {
         public Diagnostics.Span span;
         public List<CodeNode> children = new List<CodeNode>();
-        public Type outputType;
+        public Infrastructure.Type outputType;
 
 
         public virtual string GetDebugString(Infrastructure.Session session) { return ""; }
@@ -52,6 +54,21 @@ namespace Trapl.Semantics
     }
 
 
+    public class CodeNodeControlIf : CodeNode
+    {
+    }
+
+
+    public class CodeNodeControlWhile : CodeNode
+    {
+    }
+
+
+    public class CodeNodeControlReturn : CodeNode
+    {
+    }
+
+
     public class CodeNodeAssign : CodeNode
     {
     }
@@ -72,7 +89,7 @@ namespace Trapl.Semantics
         {
             if (potentialFuncts.Count == 0) return "NO FUNCT";
             else if (potentialFuncts.Count > 1) return "AMBIGUOUS FUNCT";
-            else return UtilASTName.GetString(potentialFuncts[0].nameASTNode);
+            else return NameUtil.GetDisplayString(potentialFuncts[0].nameASTNode);
         }
     }
 
@@ -106,7 +123,7 @@ namespace Trapl.Semantics
         {
             return "FIELD " +
                 (structAccessed == null ? "???" : structAccessed.GetString(session)) + "." +
-                UtilASTPath.GetString(pathASTNode) + template.GetString(session);
+                PathUtil.GetDisplayString(pathASTNode) + template.GetString(session);
         }
     }
 

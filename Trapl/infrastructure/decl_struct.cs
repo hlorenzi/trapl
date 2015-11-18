@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Trapl.Diagnostics;
 
 
-namespace Trapl.Semantics
+namespace Trapl.Infrastructure
 {
     public class DeclStruct : Decl
     {
@@ -61,7 +61,7 @@ namespace Trapl.Semantics
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.StructRecursion,
                     "infinite struct recursion", this.nameASTNode.Span());
-                throw new Semantics.CheckException();
+                throw new CheckException();
             }
 
             this.resolving = true;
@@ -75,7 +75,7 @@ namespace Trapl.Semantics
                 field.name = new Name(
                     fieldNode.Child(0).Span(),
                     fieldNode.Child(0).Child(0),
-                    UtilASTTemplate.ResolveTemplateFromName(session, fieldNode.Child(0), true));
+                    Semantics.TemplateUtil.ResolveFromNameAST(session, fieldNode.Child(0), true));
                 field.declSpan = fieldNode.Span();
 
                 for (int i = 0; i < fields.Count; i++)
@@ -91,10 +91,10 @@ namespace Trapl.Semantics
 
                 try
                 {
-                    field.type = TypeASTUtil.Resolve(session, fieldNode.Child(1), true);
+                    field.type = Semantics.TypeUtil.ResolveFromAST(session, fieldNode.Child(1), true);
                     fields.Add(field);
                 }
-                catch (Semantics.CheckException) { }
+                catch (CheckException) { }
             }
 
             this.resolved = true;

@@ -1,11 +1,11 @@
-﻿using Trapl.Diagnostics;
+﻿using Trapl.Infrastructure;
 
 
 namespace Trapl.Semantics
 {
-    public static class UtilASTTemplate
+    public static class TemplateUtil
     {
-        public static Template ResolveTemplate(Infrastructure.Session session, Grammar.ASTNode templateASTNode, bool mustBeResolved)
+        public static Template ResolveFromTemplateAST(Infrastructure.Session session, Grammar.ASTNode templateASTNode, bool mustBeResolved)
         {
             if (templateASTNode == null)
             {
@@ -29,16 +29,16 @@ namespace Trapl.Semantics
         }
 
 
-        public static Template ResolveTemplateFromName(Infrastructure.Session session, Grammar.ASTNode nameASTNode, bool mustBeResolved)
+        public static Template ResolveFromNameAST(Infrastructure.Session session, Grammar.ASTNode nameASTNode, bool mustBeResolved)
         {
             if (nameASTNode.kind != Grammar.ASTNodeKind.Name)
                 throw new InternalException("node is not a Name");
 
-            return ResolveTemplate(session, GetTemplateNodeOrNull(nameASTNode), mustBeResolved);
+            return ResolveFromTemplateAST(session, GetTemplateASTOrNull(nameASTNode), mustBeResolved);
         }
 
 
-        public static Grammar.ASTNode GetTemplateNodeOrNull(Grammar.ASTNode node)
+        public static Grammar.ASTNode GetTemplateASTOrNull(Grammar.ASTNode node)
         {
             if (node.kind != Grammar.ASTNodeKind.Name)
                 throw new InternalException("node is not a Name");
@@ -59,7 +59,7 @@ namespace Trapl.Semantics
             if (contentsASTNode.kind == Grammar.ASTNodeKind.Type)
             {
                 var param = new Template.ParameterType();
-                param.type = TypeASTUtil.Resolve(session, contentsASTNode, mustBeResolved);
+                param.type = TypeUtil.ResolveFromAST(session, contentsASTNode, mustBeResolved);
                 return param;
             }
             else

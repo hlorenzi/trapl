@@ -11,7 +11,7 @@ namespace Trapl.Infrastructure
         public Session()
         {
             this.diagn = new Diagnostics.Collection();
-            Semantics.DeclASTConverter.AddPrimitives(this);
+            DeclASTConverter.AddPrimitives(this);
         }
 
 
@@ -28,8 +28,11 @@ namespace Trapl.Infrastructure
             var tokenCollection = Grammar.Tokenizer.Tokenize(this, unit);
             var declNodes = Grammar.ASTParser.Parse(this, tokenCollection);
 
+            //foreach (var decl in declNodes)
+            //    decl.PrintDebugRecursive(0, 0);
+
             foreach (var declNode in declNodes)
-                Semantics.DeclASTConverter.AddToDecls(this, declNode);
+                DeclASTConverter.AddToDecls(this, declNode);
         }
 
 
@@ -39,14 +42,14 @@ namespace Trapl.Infrastructure
             this.structDecls.ForEach(decl =>
             {
                 try { decl.ResolveTemplate(this); }
-                catch (Semantics.CheckException) { }
+                catch (CheckException) { }
             });
 
             if (this.diagn.ContainsErrors()) return;
             this.functDecls.ForEach(decl =>
             {
                 try { decl.ResolveTemplate(this); }
-                catch (Semantics.CheckException) { }
+                catch (CheckException) { }
             });
 
             if (this.diagn.ContainsErrors()) return;
@@ -62,27 +65,30 @@ namespace Trapl.Infrastructure
 
         public Diagnostics.Collection diagn = new Diagnostics.Collection();
 
-        public DeclList<Semantics.DeclStruct> structDecls = new DeclList<Semantics.DeclStruct>();
-        public DeclList<Semantics.DeclFunct> functDecls = new DeclList<Semantics.DeclFunct>();
-        public Semantics.DeclStruct primitiveBool;
-        public Semantics.DeclStruct primitiveInt;
-        public Semantics.DeclStruct primitiveInt8;
-        public Semantics.DeclStruct primitiveInt16;
-        public Semantics.DeclStruct primitiveInt32;
-        public Semantics.DeclStruct primitiveInt64;
-        public Semantics.DeclStruct primitiveUInt;
-        public Semantics.DeclStruct primitiveUInt8;
-        public Semantics.DeclStruct primitiveUInt16;
-        public Semantics.DeclStruct primitiveUInt32;
-        public Semantics.DeclStruct primitiveUInt64;
-        public Semantics.DeclStruct primitiveFloat32;
-        public Semantics.DeclStruct primitiveFloat64;
+        public DeclList<DeclStruct> structDecls = new DeclList<DeclStruct>();
+        public DeclList<DeclFunct> functDecls = new DeclList<DeclFunct>();
+        public DeclStruct primitiveBool;
+        public DeclStruct primitiveInt;
+        public DeclStruct primitiveInt8;
+        public DeclStruct primitiveInt16;
+        public DeclStruct primitiveInt32;
+        public DeclStruct primitiveInt64;
+        public DeclStruct primitiveUInt;
+        public DeclStruct primitiveUInt8;
+        public DeclStruct primitiveUInt16;
+        public DeclStruct primitiveUInt32;
+        public DeclStruct primitiveUInt64;
+        public DeclStruct primitiveFloat32;
+        public DeclStruct primitiveFloat64;
 
 
         public void PrintDefs()
         {
             foreach (var decl in this.structDecls.Enumerate())
             {
+                if (decl.primitive)
+                    continue;
+
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.Out.WriteLine("STRUCT " + decl.GetString(this));
                 Console.ResetColor();
@@ -98,6 +104,9 @@ namespace Trapl.Infrastructure
 
             foreach (var decl in this.functDecls.Enumerate())
             {
+                if (decl.primitive)
+                    continue;
+
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.Out.WriteLine("FUNCT " + decl.GetString(this));
                 Console.ResetColor();

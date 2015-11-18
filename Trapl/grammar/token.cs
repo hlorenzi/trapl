@@ -10,7 +10,7 @@ namespace Trapl.Grammar
         DoubleHash, HashColon, ColonHash,
         Identifier, Number, NumberPrefix, NumberSuffix, BooleanTrue, BooleanFalse,
         KeywordFn, KeywordStruct, KeywordTrait, KeywordGen,
-        KeywordLet, KeywordNew, KeywordIf, KeywordElse, KeywordWhile, KeywordReturn,
+        KeywordLet, KeywordIf, KeywordElse, KeywordWhile, KeywordReturn,
         BraceOpen, BraceClose, ParenOpen, ParenClose,
         Period, Comma, Colon, Semicolon, Arrow, DoubleColon, TriplePeriod,
         Equal, Plus, Minus, Asterisk, Slash, PercentSign,

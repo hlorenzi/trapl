@@ -8,11 +8,24 @@ struct Vec<Banana> {}
 fn push<Apple>(v: &Vec<Apple>, e: Apple) {}
 fn push<Banana>(v: &Vec<Banana>, e: Banana) {}
 
-fn test()
+fn Apple::new() -> Apple { }
+
+fn test() -> Bool
 {
-	let a = 0;
-	let b = 0xff;
-	let c = 0b1110;
+	let a = Apple::new();
+	let b = Apple::new();
+
+	a = b;
+	a.x = b.x;
+	a = b.x;
+	a.x = b;
+
+	{
+		let a: Int;
+		a = 123;
+	};
+
+	a = b;
 }
 
 trait Iterator<Self>

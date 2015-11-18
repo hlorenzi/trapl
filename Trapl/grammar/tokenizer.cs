@@ -179,7 +179,6 @@ namespace Trapl.Grammar
                 new TokenMatch("trait", TokenKind.KeywordTrait),
                 new TokenMatch("gen", TokenKind.KeywordGen),
                 new TokenMatch("let", TokenKind.KeywordLet),
-                new TokenMatch("new", TokenKind.KeywordNew),
                 new TokenMatch("if", TokenKind.KeywordIf),
                 new TokenMatch("else", TokenKind.KeywordElse),
                 new TokenMatch("while", TokenKind.KeywordWhile),
@@ -230,53 +229,12 @@ namespace Trapl.Grammar
 
         private static void CheckNumberValidity(Infrastructure.Session session, string numStr, Diagnostics.Span span)
         {
-            var possibleDigits = new char[] {
-                '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-                'a', 'b', 'c', 'd', 'e', 'f' };
-
-            var index = 0;
-            var numBase = 10;
-
-            if (numStr.StartsWith("0b"))
+            string prefix, value, suffix;
+            Grammar.Number.GetParts(numStr, out prefix, out value, out suffix);
+            if (!Grammar.Number.Validate(prefix, value, suffix))
             {
-                numBase = 2;
-                index += 2;
-            }
-            else if (numStr.StartsWith("0o"))
-            {
-                numBase = 8;
-                index += 2;
-            }
-            else if (numStr.StartsWith("0x"))
-            {
-                numBase = 16;
-                index += 2;
-            }
-
-            while (index < numStr.Length)
-            {
-                var c = numStr[index];
-                index++;
-
-                if (c == '_')
-                    continue;
-
-                var isValid = false;
-                for (int d = 0; d < numBase; d++)
-                {
-                    if (c == possibleDigits[d] || c == char.ToUpper(possibleDigits[d]))
-                    {
-                        isValid = true;
-                        break;
-                    }
-                }
-
-                if (!isValid)
-                {
-                    session.diagn.Add(MessageKind.Error, MessageCode.InvalidFormat,
-                        "invalid number", span);
-                    return;
-                }
+                session.diagn.Add(MessageKind.Error, MessageCode.InvalidFormat,
+                    "invalid number", span);
             }
         }
 

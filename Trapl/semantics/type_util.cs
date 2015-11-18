@@ -1,13 +1,12 @@
-﻿using System.Collections.Generic;
-using Trapl.Diagnostics;
-using System;
+﻿using Trapl.Diagnostics;
+using Trapl.Infrastructure;
 
 
 namespace Trapl.Semantics
 {
-    public static class TypeASTUtil
+    public static class TypeUtil
     {
-        public static Type Resolve(Infrastructure.Session session, Grammar.ASTNode node, bool mustBeResolved)
+        public static Type ResolveFromAST(Infrastructure.Session session, Grammar.ASTNode node, bool mustBeResolved)
         {
             if (!IsTypeNode(node.kind))
                 throw new InternalException("node is not a Type");
@@ -40,14 +39,14 @@ namespace Trapl.Semantics
                 {
                     var structType = new TypeStruct();
                     structType.nameInference.pathASTNode = nameASTNode.Child(0);
-                    structType.nameInference.template = UtilASTTemplate.ResolveTemplateFromName(session, nameASTNode, mustBeResolved);
+                    structType.nameInference.template = TemplateUtil.ResolveFromNameAST(session, nameASTNode, mustBeResolved);
 
                     // Find structs with the given name.
                     structType.potentialStructs = session.structDecls.GetDeclsClone(nameASTNode.Child(0));
                     if (structType.potentialStructs.Count == 0)
                     {
                         session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
-                            "type '" + UtilASTPath.GetString(nameASTNode.Child(0)) + "' " +
+                            "type '" + PathUtil.GetDisplayString(nameASTNode.Child(0)) + "' " +
                             "is not declared", nameASTNode.Child(0).Span());
                         throw new CheckException();
                     }
@@ -66,14 +65,14 @@ namespace Trapl.Semantics
                         if (structType.potentialStructs.Count == 0)
                         {
                             session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
-                                "no '" + UtilASTPath.GetString(nameASTNode.Child(0)) + "' declaration " +
+                                "no '" + PathUtil.GetDisplayString(nameASTNode.Child(0)) + "' declaration " +
                                 "accepts this template", nameASTNode.Span());
                             throw new CheckException();
                         }
                         else if (structType.potentialStructs.Count > 1)
                         {
                             session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
-                                "multiple '" + UtilASTPath.GetString(nameASTNode.Child(0)) + "' " +
+                                "multiple '" + PathUtil.GetDisplayString(nameASTNode.Child(0)) + "' " +
                                 "declarations accept this template", nameASTNode.Span());
                             throw new CheckException();
                         }
@@ -95,7 +94,7 @@ namespace Trapl.Semantics
                 foreach (var elemNode in node.EnumerateChildren())
                 {
                     if (IsTypeNode(elemNode.kind))
-                        tupleType.elementTypes.Add(Resolve(session, elemNode, mustBeResolved));
+                        tupleType.elementTypes.Add(ResolveFromAST(session, elemNode, mustBeResolved));
                 }
                 resolvedType = tupleType;
             }
@@ -121,7 +120,7 @@ namespace Trapl.Semantics
         }
 
 
-        public static string GetString(Grammar.ASTNode typeNode)
+        public static string GetDisplayString(Grammar.ASTNode typeNode)
         {
             var result = "";
             var prefix = "";

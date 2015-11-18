@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Trapl.Semantics
+namespace Trapl.Infrastructure
 {
     public class Name
     {
@@ -32,7 +32,7 @@ namespace Trapl.Semantics
         public bool Compare(Name other)
         {
             return
-                UtilASTPath.Compare(this.pathASTNode, other.pathASTNode) &&
+                Semantics.PathUtil.Compare(this.pathASTNode, other.pathASTNode) &&
                 this.template.IsMatch(other.template);
         }
 
@@ -40,14 +40,14 @@ namespace Trapl.Semantics
         public bool Compare(Grammar.ASTNode pathASTNode, Template template)
         {
             return
-                UtilASTPath.Compare(this.pathASTNode, pathASTNode) &&
+                Semantics.PathUtil.Compare(this.pathASTNode, pathASTNode) &&
                 this.template.IsMatch(template);
         }
 
 
         public string GetString(Infrastructure.Session session)
         {
-            return UtilASTPath.GetString(this.pathASTNode) + this.template.GetString(session);
+            return Semantics.PathUtil.GetDisplayString(this.pathASTNode) + this.template.GetString(session);
         }
     }
 }

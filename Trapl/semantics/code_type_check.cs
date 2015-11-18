@@ -1,4 +1,5 @@
 ﻿using Trapl.Diagnostics;
+using Trapl.Infrastructure;
 
 
 namespace Trapl.Semantics
@@ -27,11 +28,14 @@ namespace Trapl.Semantics
         {
             this.CheckUnresolvedLocals();
             this.PerformCheck(CheckControlLet, this.body.code);
+            this.PerformCheck(CheckControlIf, this.body.code);
+            this.PerformCheck(CheckControlWhile, this.body.code);
             this.PerformCheck(CheckAssignment, this.body.code);
             this.PerformCheck(CheckDereference, this.body.code);
             this.PerformCheck(CheckStructLiteralInitializers, this.body.code);
             this.PerformCheck(CheckFunctResolution, this.body.code);
             this.PerformCheck(CheckCallArguments, this.body.code);
+            this.PerformCheck(CheckControlReturn, this.body.code);
         }
 
 
@@ -74,6 +78,7 @@ namespace Trapl.Semantics
             }
         }
 
+
         private void CheckControlLet(CodeNode code)
         {
             var codeLet = code as CodeNodeControlLet;
@@ -89,6 +94,55 @@ namespace Trapl.Semantics
                     "to '" + this.body.localVariables[codeLet.localIndex].type.GetString(session) + "'",
                     codeLet.children[0].span,
                     this.body.localVariables[codeLet.localIndex].declSpan);
+            }
+        }
+
+
+        private void CheckControlIf(CodeNode code)
+        {
+            var codeIf = code as CodeNodeControlIf;
+            if (codeIf == null)
+                return;
+
+            if (DoesMismatch(new TypeStruct(this.session.primitiveBool), codeIf.children[0].outputType))
+            {
+                //codeIf.children[0].outputType = new TypeError();
+                session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
+                    "'" + codeIf.children[0].outputType.GetString(session) + "' as condition",
+                    codeIf.children[0].span);
+            }
+        }
+
+
+        private void CheckControlWhile(CodeNode code)
+        {
+            var codeWhile = code as CodeNodeControlWhile;
+            if (codeWhile == null)
+                return;
+
+            if (DoesMismatch(new TypeStruct(this.session.primitiveBool), codeWhile.children[0].outputType))
+            {
+                //codeWhile.children[0].outputType = new TypeError();
+                session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
+                    "'" + codeWhile.children[0].outputType.GetString(session) + "' as condition",
+                    codeWhile.children[0].span);
+            }
+        }
+
+
+        private void CheckControlReturn(CodeNode code)
+        {
+            var codeReturn = code as CodeNodeControlReturn;
+            if (codeReturn == null)
+                return;
+
+            if (DoesMismatch(this.body.returnType, codeReturn.children[0].outputType))
+            {
+                //codeWhile.children[0].outputType = new TypeError();
+                session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
+                    "passing '" + codeReturn.children[0].outputType.GetString(session) + "' " +
+                    "to '" + this.body.returnType.GetString(session) + "' return type",
+                    codeReturn.children[0].span);
             }
         }
 
@@ -158,7 +212,7 @@ namespace Trapl.Semantics
             if (codeFunct.potentialFuncts.Count > 1)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
-                    "cannot infer which '" + UtilASTPath.GetString(codeFunct.nameInference.pathASTNode) +
+                    "cannot infer which '" + PathUtil.GetDisplayString(codeFunct.nameInference.pathASTNode) +
                     "' declaration to use",
                     codeFunct.span);
                 session.diagn.AddInnerToLast(MessageKind.Info, MessageCode.Info,
@@ -172,14 +226,14 @@ namespace Trapl.Semantics
                 if (codeFunct.nameInference.template.IsFullyResolved())
                 {
                     session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredTemplate,
-                        "no '" + UtilASTPath.GetString(codeFunct.nameInference.pathASTNode) +
+                        "no '" + PathUtil.GetDisplayString(codeFunct.nameInference.pathASTNode) +
                         "' declaration accepts this template",
                         codeFunct.span);
                 }
                 else
                 {
                     session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
-                        "cannot infer which '" + UtilASTPath.GetString(codeFunct.nameInference.pathASTNode) +
+                        "cannot infer which '" + PathUtil.GetDisplayString(codeFunct.nameInference.pathASTNode) +
                         "' declaration to use",
                         codeFunct.span);
                 }

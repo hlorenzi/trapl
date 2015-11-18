@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+
 
 namespace Trapl.Infrastructure
 {
@@ -15,9 +12,9 @@ namespace Trapl.Infrastructure
         public void Add(Grammar.ASTNode pathASTNode, T contents)
         {
             if (pathASTNode.kind != Grammar.ASTNodeKind.Path)
-                throw new Semantics.InternalException("node is not a Path");
+                throw new InternalException("node is not a Path");
 
-            var pathIndex = pathList.FindIndex(p => Semantics.UtilASTPath.Compare(p, pathASTNode));
+            var pathIndex = pathList.FindIndex(p => Semantics.PathUtil.Compare(p, pathASTNode));
             if (pathIndex < 0)
             {
                 pathList.Add(pathASTNode);
@@ -35,9 +32,9 @@ namespace Trapl.Infrastructure
         public List<T> GetDeclsClone(Grammar.ASTNode pathASTNode)
         {
             if (pathASTNode.kind != Grammar.ASTNodeKind.Path)
-                throw new Semantics.InternalException("node is not a Path");
+                throw new InternalException("node is not a Path");
 
-            var pathIndex = pathList.FindIndex(p => Semantics.UtilASTPath.Compare(p, pathASTNode));
+            var pathIndex = pathList.FindIndex(p => Semantics.PathUtil.Compare(p, pathASTNode));
             if (pathIndex < 0)
                 return new List<T>();
 

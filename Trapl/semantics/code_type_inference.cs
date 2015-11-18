@@ -1,5 +1,6 @@
-﻿using Trapl.Diagnostics;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Trapl.Diagnostics;
+using Trapl.Infrastructure;
 
 
 namespace Trapl.Semantics
@@ -38,7 +39,8 @@ namespace Trapl.Semantics
                 InferFieldAccess,
                 InferStructLiteralInitializers,
                 InferFunctTemplate,
-                InferCall
+                InferCall,
+                InferReturnType
             };
 
             this.appliedAnyRule = false;
@@ -263,7 +265,7 @@ namespace Trapl.Semantics
             }
 
             this.session.diagn.Add(MessageKind.Error, MessageCode.CannotAccess,
-                "no field '" + UtilASTPath.GetString(codeAccess.pathASTNode) + "' in " +
+                "no field '" + PathUtil.GetDisplayString(codeAccess.pathASTNode) + "' in " +
                 "'" + codeAccess.children[0].outputType.GetString(session) + "'",
                 codeAccess.pathASTNode.Span(),
                 codeAccess.children[0].span);
@@ -388,6 +390,16 @@ namespace Trapl.Semantics
                 codeCall.children[0].outputType = functType;
                 this.appliedAnyRule = true;
             }
+        }
+
+
+        private void InferReturnType(CodeNode code)
+        {
+            var codeReturn = code as CodeNodeControlReturn;
+            if (codeReturn == null)
+                return;
+
+            TryInference(this.body.returnType, ref codeReturn.outputType);
         }
     }
 }

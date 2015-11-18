@@ -1,7 +1,5 @@
-﻿using Trapl.Diagnostics;
-
-
-namespace Trapl.Semantics
+﻿
+namespace Trapl.Infrastructure
 {
     public class Decl
     {
@@ -20,7 +18,7 @@ namespace Trapl.Semantics
 
         public void ResolveTemplate(Infrastructure.Session session)
         {
-            this.name.template = UtilASTTemplate.ResolveTemplate(session, this.templateASTNode, true);
+            this.name.template = Semantics.TemplateUtil.ResolveFromTemplateAST(session, this.templateASTNode, true);
         }
 
 
@@ -32,7 +30,7 @@ namespace Trapl.Semantics
 
         public string GetString(Infrastructure.Session session)
         {
-            return UtilASTPath.GetString(this.name.pathASTNode) +
+            return Semantics.PathUtil.GetDisplayString(this.name.pathASTNode) +
                 (this.name.template == null ? "<?>" : this.name.template.GetString(session));
         }
 

@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using Trapl.Diagnostics;
-using Trapl.Infrastructure;
 
 
-namespace Trapl.Semantics
+namespace Trapl.Infrastructure
 {
     public class DeclFunct : Decl
     {
         public List<Variable> arguments = new List<Variable>();
         public Type returnType;
 
-        public CodeBody body;
+        public Semantics.CodeBody body;
 
 
         public DeclFunct() { }
@@ -31,15 +30,15 @@ namespace Trapl.Semantics
                 arg.name = new Name(
                     argNode.Child(0).Span(),
                     argNode.Child(0).Child(0),
-                    UtilASTTemplate.ResolveTemplateFromName(session, argNode.Child(0), true));
+                    Semantics.TemplateUtil.ResolveFromNameAST(session, argNode.Child(0), true));
                 arg.declSpan = argNode.Span();
 
                 try
                 {
-                    arg.type = TypeASTUtil.Resolve(session, argNode.Child(1), true);
+                    arg.type = Semantics.TypeUtil.ResolveFromAST(session, argNode.Child(1), true);
                     this.arguments.Add(arg);
                 }
-                catch (Semantics.CheckException) { }
+                catch (CheckException) { }
             }
 
 
@@ -51,9 +50,9 @@ namespace Trapl.Semantics
 
                 try
                 {
-                    this.returnType = TypeASTUtil.Resolve(session, retNode.Child(0), true);
+                    this.returnType = Semantics.TypeUtil.ResolveFromAST(session, retNode.Child(0), true);
                 }
-                catch (Semantics.CheckException) { }
+                catch (CheckException) { }
             }
 
             this.resolved = true;
@@ -68,14 +67,14 @@ namespace Trapl.Semantics
             session.diagn.PushContext(new MessageContext("in funct '" + GetString(session) + "'", this.nameASTNode.Span()));
             try
             {
-                body = CodeASTConverter.Convert(
+                body = Semantics.CodeASTConverter.Convert(
                     session, 
                     this.defASTNode.ChildWithKind(Grammar.ASTNodeKind.FunctBody).Child(0),
                     new List<Variable>(this.arguments),
                     returnType);
 
-                CodeTypeInferenceAnalyzer.Analyze(session, body);
-                CodeTypeChecker.Check(session, body);
+                Semantics.CodeTypeInferenceAnalyzer.Analyze(session, body);
+                Semantics.CodeTypeChecker.Check(session, body);
             }
             finally { session.diagn.PopContext(); }
         }

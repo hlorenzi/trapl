@@ -1,5 +1,5 @@
 ﻿
-namespace Trapl.Semantics
+namespace Trapl.Infrastructure
 {
     public static class DeclASTConverter
     {
@@ -12,7 +12,7 @@ namespace Trapl.Semantics
                 decl.nameASTNode = declASTNode.Child(0);
                 decl.name.pathASTNode = declASTNode.Child(0).Child(0);
                 decl.defASTNode = declASTNode.Child(1);
-                decl.templateASTNode = UtilASTTemplate.GetTemplateNodeOrNull(declASTNode.Child(0));
+                decl.templateASTNode = Semantics.TemplateUtil.GetTemplateASTOrNull(declASTNode.Child(0));
                 session.structDecls.Add(decl.name.pathASTNode, decl);
             }
             else if (declASTNode.ChildIs(1, Grammar.ASTNodeKind.FunctDecl))
@@ -22,11 +22,14 @@ namespace Trapl.Semantics
                 decl.nameASTNode = declASTNode.Child(0);
                 decl.name.pathASTNode = declASTNode.Child(0).Child(0);
                 decl.defASTNode = declASTNode.Child(1);
-                decl.templateASTNode = UtilASTTemplate.GetTemplateNodeOrNull(declASTNode.Child(0));
+                decl.templateASTNode = Semantics.TemplateUtil.GetTemplateASTOrNull(declASTNode.Child(0));
                 session.functDecls.Add(decl.name.pathASTNode, decl);
             }
+            else if (declASTNode.ChildIs(1, Grammar.ASTNodeKind.TraitDecl))
+            {
+            }
             else
-                ;// throw new InternalException("unreachable");
+                throw new InternalException("unreachable");
         }
 
 

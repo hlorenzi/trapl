@@ -72,6 +72,7 @@ namespace Trapl.Grammar
         private TokenCollection tokenColl;
         private List<ASTNode> topDeclNodes;
         private Infrastructure.Session session;
+        private Stack<bool> insideCondition;
 
 
         private ASTParser(Infrastructure.Session session, TokenCollection tokenColl)
@@ -80,6 +81,8 @@ namespace Trapl.Grammar
             this.tokenColl = tokenColl;
             this.topDeclNodes = new List<ASTNode>();
             this.session = session;
+            this.insideCondition = new Stack<bool>();
+            this.insideCondition.Push(false);
         }
 
 
@@ -497,7 +500,9 @@ namespace Trapl.Grammar
             var node = new ASTNode(ASTNodeKind.ControlIf);
             node.AddSpan(this.Current().span);
             this.Match(TokenKind.KeywordIf, MessageCode.Expected, "expected 'if'");
+            this.insideCondition.Push(true);
             node.AddChild(this.ParseExpression());
+            this.insideCondition.Pop();
             node.AddChild(this.ParseBlock());
             if (this.CurrentIs(TokenKind.KeywordElse))
             {
@@ -513,7 +518,9 @@ namespace Trapl.Grammar
             var node = new ASTNode(ASTNodeKind.ControlWhile);
             node.AddSpan(this.Current().span);
             this.Match(TokenKind.KeywordWhile, MessageCode.Expected, "expected 'while'");
+            this.insideCondition.Push(true);
             node.AddChild(this.ParseExpression());
+            this.insideCondition.Pop();
             node.AddChild(this.ParseBlock());
             return node;
         }
@@ -685,7 +692,7 @@ namespace Trapl.Grammar
         private ASTNode ParseStructLiteral()
         {
             var targetNode = this.ParseLeafExpression();
-            if (this.CurrentIsNot(TokenKind.BraceOpen))
+            if (this.CurrentIsNot(TokenKind.BraceOpen) || this.insideCondition.Peek())
                 return targetNode;
 
             if (targetNode.kind != ASTNodeKind.Name)
@@ -729,7 +736,9 @@ namespace Trapl.Grammar
             else if (this.CurrentIs(TokenKind.ParenOpen))
             {
                 var parenOpenSpan = this.Advance().span;
+                this.insideCondition.Push(false);
                 var node = this.ParseExpression();
+                this.insideCondition.Pop();
                 node.AddSpan(parenOpenSpan.Merge(this.Current().span));
                 this.Match(TokenKind.ParenClose, MessageCode.Expected, "expected ')'");
                 return node;

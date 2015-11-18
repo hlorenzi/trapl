@@ -1,7 +1,7 @@
 ﻿using System;
 
 
-namespace Trapl.Semantics
+namespace Trapl.Infrastructure
 {
     public class InternalException : Exception
     {
