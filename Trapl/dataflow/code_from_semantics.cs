@@ -52,8 +52,14 @@ namespace Trapl.Dataflow
                 return ConvertControlLet((Semantics.CodeNodeControlLet)node, entrySegment);
             else if (node is Semantics.CodeNodeAssign)
                 return ConvertAssignment((Semantics.CodeNodeAssign)node, entrySegment);
+            else if (node is Semantics.CodeNodeAddress)
+                return ConvertAddress((Semantics.CodeNodeAddress)node, entrySegment);
+            else if (node is Semantics.CodeNodeCall)
+                return ConvertCall((Semantics.CodeNodeCall)node, entrySegment);
             else if (node is Semantics.CodeNodeLocal)
                 return ConvertLocal((Semantics.CodeNodeLocal)node, entrySegment);
+            else if (node is Semantics.CodeNodeFunct)
+                return ConvertFunct((Semantics.CodeNodeFunct)node, entrySegment);
             else if (node is Semantics.CodeNodeIntegerLiteral)
                 return ConvertIntegerLiteral((Semantics.CodeNodeIntegerLiteral)node, entrySegment);
             else
@@ -89,14 +95,36 @@ namespace Trapl.Dataflow
         }
 
 
+        private int ConvertCall(Semantics.CodeNodeCall node, int entrySegment)
+        {
+            for (int i = node.children.Count - 1; i >= 0; i--)
+            {
+                entrySegment = Convert(node.children[i], entrySegment);
+            }
+
+            AddNode(entrySegment, new CodeNodeCall());
+            return entrySegment;
+        }
+
+
         private int ConvertAssignment(Semantics.CodeNodeAssign node, int entrySegment)
         {
             inLhsContext.Push(true);
-            int lhsExitSegment = Convert(node.children[0], entrySegment);
+            entrySegment = Convert(node.children[0], entrySegment);
             inLhsContext.Pop();
-            int rhsExitSegment = Convert(node.children[1], lhsExitSegment);
-            AddNode(rhsExitSegment, new CodeNodeAssign());
-            return rhsExitSegment;
+            entrySegment = Convert(node.children[1], entrySegment);
+            AddNode(entrySegment, new CodeNodeAssign());
+            return entrySegment;
+        }
+
+
+        private int ConvertAddress(Semantics.CodeNodeAddress node, int entrySegment)
+        {
+            inLhsContext.Push(true);
+            entrySegment = Convert(node.children[0], entrySegment);
+            inLhsContext.Pop();
+            AddNode(entrySegment, new CodeNodeAddress());
+            return entrySegment;
         }
 
 
@@ -107,6 +135,13 @@ namespace Trapl.Dataflow
             else
                 AddNode(entrySegment, new CodeNodePushLocalValue(node.localIndex));
 
+            return entrySegment;
+        }
+
+
+        private int ConvertFunct(Semantics.CodeNodeFunct node, int entrySegment)
+        {
+            AddNode(entrySegment, new CodeNodePushFunct(node.potentialFuncts[0]));
             return entrySegment;
         }
 

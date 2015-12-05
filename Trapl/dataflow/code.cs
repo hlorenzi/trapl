@@ -97,6 +97,24 @@ namespace Trapl.Dataflow
     }
 
 
+    public class CodeNodePushFunct : CodeNode
+    {
+        public Infrastructure.DeclFunct funct;
+
+
+        public CodeNodePushFunct(Infrastructure.DeclFunct funct)
+        {
+            this.funct = funct;
+        }
+
+
+        public override string GetDebugString(Infrastructure.Session session)
+        {
+            return funct.GetString(session);
+        }
+    }
+
+
     public class CodeNodePushNumberLiteral : CodeNode
     {
         public string value;

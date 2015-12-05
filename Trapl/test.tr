@@ -18,6 +18,9 @@ fn test() -> Bool
 	};
 
 	{
+		let v;
+		let a;
+		push::<Apple>(&v, a);
 	};
 
 	{
