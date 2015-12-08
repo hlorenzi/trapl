@@ -11,7 +11,7 @@ namespace Trapl.Semantics
             var analyzer = new RoutineASTParser(session, routine);
 
             var entrySegment = analyzer.routine.CreateSegment();
-            entrySegment = analyzer.ParseBlock(astNode, new StorageAccess(0), entrySegment);
+            entrySegment = analyzer.ParseBlock(astNode, new StorageAccess(0, new Span()), entrySegment);
             routine.AddInstruction(entrySegment, new InstructionEnd());
         }
 
@@ -48,21 +48,35 @@ namespace Trapl.Semantics
 
         private int ParseBlock(Grammar.ASTNode astNode, StorageAccess outputReg, int entrySegment)
         {
-            for (int i = 0; i < astNode.ChildNumber(); i++)
+            // Generate a dummy void store if there are no subexpressions.
+            if (astNode.ChildNumber() == 0)
             {
-                try
+                this.routine.AddInstruction(entrySegment,
+                    new InstructionCopy(
+                        outputReg,
+                        new SourceOperandTupleLiteral(astNode.Span())));
+            }
+            // Or else, parse subexpressions and return the last one.
+            else
+            {
+                for (int i = 0; i < astNode.ChildNumber(); i++)
                 {
-                    var exprOutputReg = outputReg;
+                    try
+                    {
+                        var exprOutputReg = outputReg;
 
-                    if (i < astNode.ChildNumber() - 1)
-                        exprOutputReg = new StorageAccess(this.routine.CreateRegister(new TypePlaceholder()));
+                        if (i < astNode.ChildNumber() - 1)
+                            exprOutputReg = new StorageAccess(
+                                this.routine.CreateRegister(new TypePlaceholder()),
+                                new Span());
 
-                    entrySegment = this.ParseExpression(
-                        astNode.Child(i), exprOutputReg, entrySegment);
-                }
-                catch (CheckException)
-                {
+                        entrySegment = this.ParseExpression(
+                            astNode.Child(i), exprOutputReg, entrySegment);
+                    }
+                    catch (CheckException)
+                    {
 
+                    }
                 }
             }
 
@@ -76,7 +90,7 @@ namespace Trapl.Semantics
 
             entrySegment = this.ParseExpression(
                 astNode.Child(0),
-                new StorageAccess(conditionRegIndex),
+                new StorageAccess(conditionRegIndex, astNode.Child(0).Span()),
                 entrySegment);
 
             var instBranch = new InstructionBranch(conditionRegIndex, -1, -1);
@@ -145,14 +159,14 @@ namespace Trapl.Semantics
             this.routine.AddInstruction(entrySegment,
                 new InstructionCopy(
                     outputReg,
-                    new SourceOperandTupleLiteral()));
+                    new SourceOperandTupleLiteral(astNode.Span())));
 
             // Parse init expression, if there is one.
             if (astNode.ChildNumber() > curChild)
             {
                 entrySegment = this.ParseExpression(
                     astNode.Child(curChild),
-                    new StorageAccess(registerIndex),
+                    new StorageAccess(registerIndex, binding.name.span),
                     entrySegment);
             }
 
@@ -169,13 +183,15 @@ namespace Trapl.Semantics
                     var bindingIndex = GetBindingIndex(astNode.Child(1), true);
 
                     entrySegment = ParseExpression(astNode.Child(2),
-                        new StorageAccess(this.routine.bindings[bindingIndex].registerIndex),
+                        new StorageAccess(
+                            this.routine.bindings[bindingIndex].registerIndex,
+                            astNode.Child(1).Span()),
                         entrySegment);
 
                     this.routine.AddInstruction(entrySegment,
                         new InstructionCopy(
                             outputReg,
-                            new SourceOperandTupleLiteral()));
+                            new SourceOperandTupleLiteral(astNode.Span())));
 
                     return entrySegment;
                 }
@@ -190,7 +206,7 @@ namespace Trapl.Semantics
             this.routine.AddInstruction(entrySegment,
                 new InstructionCopy(
                     outputReg,
-                    new SourceOperandNumberLiteral(astNode.GetExcerpt())));
+                    new SourceOperandNumberLiteral(astNode.GetExcerpt(), astNode.Span())));
 
             return entrySegment;
         }
@@ -205,7 +221,10 @@ namespace Trapl.Semantics
                     new InstructionCopy(
                         outputReg,
                         new SourceOperandRegister(
-                            new StorageAccess(this.routine.bindings[bindingIndex].registerIndex))));
+                            new StorageAccess(
+                                this.routine.bindings[bindingIndex].registerIndex,
+                                astNode.Span()),
+                            astNode.Span())));
 
                 return entrySegment;
             }

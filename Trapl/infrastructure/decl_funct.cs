@@ -89,7 +89,7 @@ namespace Trapl.Infrastructure
                     this.defASTNode.ChildWithKind(Grammar.ASTNodeKind.FunctBody).Child(0));
 
                 Semantics.RoutineTypeInferencer.DoInference(session, routine);
-                //Semantics.CodeTypeChecker.Check(session, routine);
+                Semantics.RoutineTypeChecker.Check(session, routine);
             }
             finally { session.diagn.PopContext(); }
         }

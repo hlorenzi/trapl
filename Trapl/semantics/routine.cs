@@ -95,11 +95,13 @@ namespace Trapl.Semantics
     {
         public int registerIndex;
         public List<int> fieldAccesses = new List<int>();
+        public Diagnostics.Span span;
 
 
-        public StorageAccess(int registerIndex)
+        public StorageAccess(int registerIndex, Diagnostics.Span span)
         {
             this.registerIndex = registerIndex;
+            this.span = span;
         }
 
 
@@ -112,6 +114,9 @@ namespace Trapl.Semantics
 
     public abstract class SourceOperand
     {
+        public Diagnostics.Span span;
+
+
         public abstract string GetString(Infrastructure.Session session);
 
 
@@ -133,9 +138,10 @@ namespace Trapl.Semantics
         public StorageAccess access;
 
 
-        public SourceOperandRegister(StorageAccess access)
+        public SourceOperandRegister(StorageAccess access, Diagnostics.Span span)
         {
             this.access = access;
+            this.span = span;
         }
 
 
@@ -164,9 +170,10 @@ namespace Trapl.Semantics
         public string value;
 
 
-        public SourceOperandNumberLiteral(string value)
+        public SourceOperandNumberLiteral(string value, Diagnostics.Span span)
         {
             this.value = value;
+            this.span = span;
         }
 
 
@@ -195,9 +202,9 @@ namespace Trapl.Semantics
         public List<SourceOperand> elementSources = new List<SourceOperand>();
 
 
-        public SourceOperandTupleLiteral()
+        public SourceOperandTupleLiteral(Diagnostics.Span span)
         {
-
+            this.span = span;
         }
 
 

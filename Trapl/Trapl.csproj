@@ -58,7 +58,7 @@
     <Compile Include="semantics\template_util.cs" />
     <Compile Include="infrastructure\decl_from_ast.cs" />
     <Compile Include="semantics\routine_parser.cs" />
-    <Compile Include="semantics\code_type_check.cs" />
+    <Compile Include="semantics\routine_type_checker.cs" />
     <Compile Include="semantics\routine_type_inferencer.cs" />
     <Compile Include="infrastructure\template.cs" />
     <Compile Include="infrastructure\decl_funct.cs" />

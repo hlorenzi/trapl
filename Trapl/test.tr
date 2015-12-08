@@ -1,7 +1,7 @@
 fn test(z: Int) -> Bool
 {
-	let x;
-	x = 0;
-
-	let y = 0;
+	let x: Bool;
+	x = 123;
+	x = {};
+	x = { let y: (Int, Int); y = 246; y }
 }
