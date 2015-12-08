@@ -1,38 +1,11 @@
-struct Apple { x: Banana }
-struct Banana { }
-struct Orange { }
-
-struct Vec<Apple> {}
-struct Vec<Banana> {}
-
-fn push<Apple>(v: &Vec<Apple>, e: Apple) {}
-fn push<Banana>(v: &Vec<Banana>, e: Banana) {}
-
-fn Apple::new() -> Apple { }
-
-fn test() -> Bool
+fn test(z: Int) -> Bool
 {
-	let x = 0;
-
+	if z
 	{
-	};
-
-	{
-		let v;
-		let a;
-		push::<Apple>(&v, a);
-	};
-
-	{
-		{
-			let y = 0;
-			x = y;
-		}
+		z =
+		if z
+			{ z = 2 }
 	}
-}
-
-trait Iterator<Self>
-{
-	fn iterate(),
-	fn current() -> Self
+	else
+		{ z = 1 }
 }

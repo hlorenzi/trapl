@@ -1,4 +1,4 @@
-﻿using Trapl.Diagnostics;
+﻿/*using Trapl.Diagnostics;
 using Trapl.Infrastructure;
 
 
@@ -6,7 +6,7 @@ namespace Trapl.Semantics
 {
     public class CodeTypeChecker
     {
-        public static void Check(Infrastructure.Session session, CodeBody body)
+        public static void Check(Infrastructure.Session session, Routine body)
         {
             var checker = new CodeTypeChecker(session, body);
             checker.Check();
@@ -14,10 +14,10 @@ namespace Trapl.Semantics
 
 
         private Infrastructure.Session session;
-        private CodeBody body;
+        private Routine body;
 
 
-        private CodeTypeChecker(Infrastructure.Session session, CodeBody body)
+        private CodeTypeChecker(Infrastructure.Session session, Routine body)
         {
             this.session = session;
             this.body = body;
@@ -39,10 +39,10 @@ namespace Trapl.Semantics
         }
 
 
-        private delegate void RuleDelegate(CodeNode code);
+        private delegate void RuleDelegate(Instruction code);
 
 
-        private void PerformCheck(RuleDelegate rule, CodeNode node)
+        private void PerformCheck(RuleDelegate rule, Instruction node)
         {
             rule(node);
             foreach (var child in node.children)
@@ -64,7 +64,7 @@ namespace Trapl.Semantics
 
         private void CheckUnresolvedLocals()
         {
-            foreach (var loc in this.body.localVariables)
+            foreach (var loc in this.body.registers)
             {
                 if (!loc.type.IsResolved())
                 {
@@ -79,7 +79,7 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckControlLet(CodeNode code)
+        private void CheckControlLet(Instruction code)
         {
             var codeLet = code as CodeNodeControlLet;
             if (codeLet == null)
@@ -87,18 +87,18 @@ namespace Trapl.Semantics
 
             if (codeLet.children.Count == 1 &&
                 codeLet.localIndex >= 0 &&
-                DoesMismatch(this.body.localVariables[codeLet.localIndex].type, codeLet.children[0].outputType))
+                DoesMismatch(this.body.registers[codeLet.localIndex].type, codeLet.children[0].outputType))
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
                     "assigning '" + codeLet.children[0].outputType.GetString(session) + "' " +
-                    "to '" + this.body.localVariables[codeLet.localIndex].type.GetString(session) + "'",
+                    "to '" + this.body.registers[codeLet.localIndex].type.GetString(session) + "'",
                     codeLet.children[0].span,
-                    this.body.localVariables[codeLet.localIndex].declSpan);
+                    this.body.registers[codeLet.localIndex].declSpan);
             }
         }
 
 
-        private void CheckControlIf(CodeNode code)
+        private void CheckControlIf(Instruction code)
         {
             var codeIf = code as CodeNodeControlIf;
             if (codeIf == null)
@@ -114,7 +114,7 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckControlWhile(CodeNode code)
+        private void CheckControlWhile(Instruction code)
         {
             var codeWhile = code as CodeNodeControlWhile;
             if (codeWhile == null)
@@ -130,7 +130,7 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckControlReturn(CodeNode code)
+        private void CheckControlReturn(Instruction code)
         {
             var codeReturn = code as CodeNodeControlReturn;
             if (codeReturn == null)
@@ -147,7 +147,7 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckAssignment(CodeNode code)
+        private void CheckAssignment(Instruction code)
         {
             var codeAssign = code as CodeNodeAssign;
             if (codeAssign == null)
@@ -164,7 +164,7 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckDereference(CodeNode code)
+        private void CheckDereference(Instruction code)
         {
             var codeDereference = code as CodeNodeDereference;
             if (codeDereference == null)
@@ -181,7 +181,7 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckStructLiteralInitializers(CodeNode code)
+        private void CheckStructLiteralInitializers(Instruction code)
         {
             var codeStructLiteral = code as CodeNodeStructLiteral;
             if (codeStructLiteral == null)
@@ -203,7 +203,7 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckFunctResolution(CodeNode code)
+        private void CheckFunctResolution(Instruction code)
         {
             var codeFunct = code as CodeNodeFunct;
             if (codeFunct == null)
@@ -241,7 +241,7 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckCallArguments(CodeNode code)
+        private void CheckCallArguments(Instruction code)
         {
             var codeCall = code as CodeNodeCall;
             if (codeCall == null)
@@ -277,3 +277,4 @@ namespace Trapl.Semantics
         }
     }
 }
+*/

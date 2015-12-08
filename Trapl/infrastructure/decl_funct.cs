@@ -7,11 +7,11 @@ namespace Trapl.Infrastructure
 {
     public class DeclFunct : Decl
     {
-        public List<Variable> arguments = new List<Variable>();
+        public List<StorageLocation> arguments = new List<StorageLocation>();
         public Type returnType;
 
-        public Semantics.CodeBody semanticBody;
-        public Dataflow.CodeBody dataflowBody;
+        public Semantics.Routine routine;
+        public int argumentNum;
 
 
         public DeclFunct() { }
@@ -22,28 +22,13 @@ namespace Trapl.Infrastructure
             if (this.resolved)
                 return;
 
-            foreach (var argNode in this.defASTNode.EnumerateChildren())
-            {
-                if (argNode.kind != Grammar.ASTNodeKind.FunctArg)
-                    continue;
 
-                var arg = new Variable();
-                arg.name = new Name(
-                    argNode.Child(0).Span(),
-                    argNode.Child(0).Child(0),
-                    Semantics.TemplateUtil.ResolveFromNameAST(session, argNode.Child(0), true));
-                arg.declSpan = argNode.Span();
-
-                try
-                {
-                    arg.type = Semantics.TypeUtil.ResolveFromAST(session, argNode.Child(1), true);
-                    this.arguments.Add(arg);
-                }
-                catch (CheckException) { }
-            }
+            this.routine = new Semantics.Routine();
 
 
-            returnType = new TypeTuple();
+            var retRegisterIndex = this.routine.CreateRegister(new TypePlaceholder());
+            var retRegister = this.routine.registers[retRegisterIndex];
+
             foreach (var retNode in this.defASTNode.EnumerateChildren())
             {
                 if (retNode.kind != Grammar.ASTNodeKind.FunctReturnType)
@@ -51,10 +36,41 @@ namespace Trapl.Infrastructure
 
                 try
                 {
-                    this.returnType = Semantics.TypeUtil.ResolveFromAST(session, retNode.Child(0), true);
+                    retRegister.type =
+                        Semantics.TypeUtil.ResolveFromAST(session, retNode.Child(0), true);
+                    break;
                 }
                 catch (CheckException) { }
             }
+
+
+            foreach (var argNode in this.defASTNode.EnumerateChildren())
+            {
+                if (argNode.kind != Grammar.ASTNodeKind.FunctArg)
+                    continue;
+
+                var argRegisterIndex = this.routine.CreateRegister(new TypePlaceholder());
+                var argRegister = this.routine.registers[argRegisterIndex];
+
+                var argBindingIndex = this.routine.CreateBinding(argRegisterIndex);
+                var argBinding = this.routine.bindings[argBindingIndex];
+
+                this.argumentNum++;
+
+                argBinding.name = new Name(
+                    argNode.Child(0).Span(),
+                    argNode.Child(0).Child(0),
+                    Semantics.TemplateUtil.ResolveFromNameAST(session, argNode.Child(0), true));
+                argBinding.declSpan = argNode.Span();
+
+                try
+                {
+                    argRegister.type =
+                        Semantics.TypeUtil.ResolveFromAST(session, argNode.Child(1), true);
+                }
+                catch (CheckException) { }
+            }
+
 
             this.resolved = true;
         }
@@ -68,18 +84,13 @@ namespace Trapl.Infrastructure
             session.diagn.PushContext(new MessageContext("in funct '" + GetString(session) + "'", this.nameASTNode.Span()));
             try
             {
-                semanticBody = Semantics.CodeASTConverter.Convert(
+                Semantics.RoutineASTParser.Parse(
                     session, 
-                    this.defASTNode.ChildWithKind(Grammar.ASTNodeKind.FunctBody).Child(0),
-                    new List<Variable>(this.arguments),
-                    returnType);
+                    this.routine,
+                    this.defASTNode.ChildWithKind(Grammar.ASTNodeKind.FunctBody).Child(0));
 
-                Semantics.CodeTypeInferenceAnalyzer.Analyze(session, semanticBody);
-                Semantics.CodeTypeChecker.Check(session, semanticBody);
-
-                dataflowBody = Dataflow.CodeSemanticConverter.Convert(
-                    session,
-                    semanticBody);
+                Semantics.RoutineTypeInferencer.DoInference(session, routine);
+                //Semantics.CodeTypeChecker.Check(session, routine);
             }
             finally { session.diagn.PopContext(); }
         }
@@ -87,31 +98,14 @@ namespace Trapl.Infrastructure
 
         public override void PrintToConsole(Session session, int indentLevel)
         {
-            if (this.semanticBody != null)
-            {
-                for (int i = 0; i < this.semanticBody.localVariables.Count; i++)
-                {
-                    Console.Out.WriteLine(
-                        "  " +
-                        (i < this.arguments.Count ? "PARAM " : "LOCAL ") +
-                        i + " = " +
-                        this.semanticBody.localVariables[i].GetString(session) + ": " +
-                        this.semanticBody.localVariables[i].type.GetString(session));
-                }
-            }
-
-            Console.Out.WriteLine(
-                "  RETURNS " + this.returnType.GetString(session));
+            Console.Out.WriteLine("ARGUMENT NUM = " + this.argumentNum);
 
             Console.Out.WriteLine();
 
-            if (this.semanticBody != null)
-                this.semanticBody.code.PrintDebugRecursive(session, 1, 1);
+            if (this.routine != null)
+                this.routine.Print(session);
 
             Console.Out.WriteLine();
-
-            if (this.dataflowBody != null)
-                this.dataflowBody.PrintDebug(session, 1);
         }
     }
 }

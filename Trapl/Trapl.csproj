@@ -43,8 +43,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="dataflow\code.cs" />
-    <Compile Include="dataflow\code_from_semantics.cs" />
     <Compile Include="diagnostics\message.cs" />
     <Compile Include="diagnostics\collection.cs" />
     <Compile Include="diagnostics\span.cs" />
@@ -59,9 +57,9 @@
     <Compile Include="semantics\path_util.cs" />
     <Compile Include="semantics\template_util.cs" />
     <Compile Include="infrastructure\decl_from_ast.cs" />
-    <Compile Include="semantics\code_from_ast.cs" />
+    <Compile Include="semantics\routine_parser.cs" />
     <Compile Include="semantics\code_type_check.cs" />
-    <Compile Include="semantics\code_type_inference.cs" />
+    <Compile Include="semantics\routine_type_inferencer.cs" />
     <Compile Include="infrastructure\template.cs" />
     <Compile Include="infrastructure\decl_funct.cs" />
     <Compile Include="infrastructure\decl_struct.cs" />
@@ -69,13 +67,13 @@
     <Compile Include="semantics\type_util.cs" />
     <Compile Include="infrastructure\decl.cs" />
     <Compile Include="infrastructure\type.cs" />
-    <Compile Include="semantics\code.cs" />
+    <Compile Include="semantics\routine.cs" />
     <Compile Include="infrastructure\session.cs" />
     <Compile Include="infrastructure\unit.cs" />
     <Compile Include="grammar\ast_parser.cs" />
     <Compile Include="grammar\ast.cs" />
     <Compile Include="semantics\number_util.cs" />
-    <Compile Include="infrastructure\variable.cs" />
+    <Compile Include="infrastructure\storageloc.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
