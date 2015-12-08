@@ -119,13 +119,12 @@ namespace Trapl.Semantics
 
         private int ParseControlLet(Grammar.ASTNode astNode, StorageAccess outputReg, int entrySegment)
         {
+            // Create a new storage location and name binding.
             var registerIndex = this.routine.CreateRegister(new TypePlaceholder());
             var register = this.routine.registers[registerIndex];
 
             var bindingIndex = this.routine.CreateBinding(registerIndex);
             var binding = this.routine.bindings[bindingIndex];
-
-            binding.declSpan = astNode.Child(0).Span();
 
             binding.name = new Name(
                 astNode.Child(0).Span(),
@@ -142,10 +141,20 @@ namespace Trapl.Semantics
                 curChild++;
             }
 
+            // Store a dummy void, as the let expression return value.
             this.routine.AddInstruction(entrySegment,
                 new InstructionCopy(
                     outputReg,
                     new SourceOperandTupleLiteral()));
+
+            // Parse init expression, if there is one.
+            if (astNode.ChildNumber() > curChild)
+            {
+                entrySegment = this.ParseExpression(
+                    astNode.Child(curChild),
+                    new StorageAccess(registerIndex),
+                    entrySegment);
+            }
 
             return entrySegment;
         }

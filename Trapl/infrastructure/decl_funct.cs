@@ -61,7 +61,6 @@ namespace Trapl.Infrastructure
                     argNode.Child(0).Span(),
                     argNode.Child(0).Child(0),
                     Semantics.TemplateUtil.ResolveFromNameAST(session, argNode.Child(0), true));
-                argBinding.declSpan = argNode.Span();
 
                 try
                 {

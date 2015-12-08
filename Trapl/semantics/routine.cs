@@ -87,7 +87,6 @@ namespace Trapl.Semantics
     {
         public int registerIndex;
         public Infrastructure.Name name;
-        public Diagnostics.Span declSpan;
         public bool outOfScope;
     }
 

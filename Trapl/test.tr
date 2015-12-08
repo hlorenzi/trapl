@@ -1,11 +1,7 @@
 fn test(z: Int) -> Bool
 {
-	if z
-	{
-		z =
-		if z
-			{ z = 2 }
-	}
-	else
-		{ z = 1 }
+	let x;
+	x = 0;
+
+	let y = 0;
 }
