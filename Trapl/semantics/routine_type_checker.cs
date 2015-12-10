@@ -26,7 +26,7 @@ namespace Trapl.Semantics
 
         private void Check()
         {
-            this.CheckUnresolvedLocals();
+            this.CheckUnresolvedRegisters();
 
             foreach (var segment in this.routine.segments)
             {
@@ -52,21 +52,38 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckUnresolvedLocals()
+        private void CheckUnresolvedRegisters()
         {
-            foreach (var binding in this.routine.bindings)
+            for (var i = 0; i < this.routine.registers.Count; i++)
             {
-                var register = this.routine.registers[binding.registerIndex];
+                if (this.routine.registers[i].type.IsResolved())
+                    continue;
 
-                if (!register.type.IsResolved())
+                // Find if there is a binding to this register.
+                StorageBinding binding = null;
+                foreach (var b in this.routine.bindings)
+                {
+                    if (b.registerIndex == i)
+                    {
+                        binding = b;
+                        break;
+                    }
+                }
+
+                if (binding != null)
                 {
                     session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
                         "cannot infer type for '" +
                         binding.name.GetString(this.session) + "'",
                         binding.name.span);
-
-                    register.type = new TypeError();
                 }
+                else
+                {
+                    session.diagn.Add(MessageKind.Error, MessageCode.Internal,
+                        "cannot infer type for register #r" + i);
+                }
+
+                this.routine.registers[i].type = new TypeError();
             }
         }
 
@@ -90,7 +107,7 @@ namespace Trapl.Semantics
                 else
                 {
                     session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
-                        "passing '" +
+                        "assigning '" +
                         typeSrc.GetString(session) + "' " +
                         "to '" +
                         typeDest.GetString(session) + "'",

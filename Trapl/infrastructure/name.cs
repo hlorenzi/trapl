@@ -24,6 +24,7 @@ namespace Trapl.Infrastructure
             if (pathASTNode.kind != Grammar.ASTNodeKind.Path)
                 throw new InternalException("node is not a Path");
 
+            this.span = span;
             this.pathASTNode = pathASTNode;
             this.template = template;
         }

@@ -70,6 +70,7 @@ namespace Trapl.Semantics
                 this.appliedAnyRule = true;
                 typeTo = typeFrom;
             }
+
             else if (typeTo is TypeReference && typeFrom is TypeReference)
             {
                 var refTo = (TypeReference)typeTo;
@@ -77,6 +78,7 @@ namespace Trapl.Semantics
                 TryInference(refFrom.referencedType, ref refTo.referencedType);
                 TryInference(refTo.referencedType, ref refFrom.referencedType);
             }
+
             else if (typeTo is TypeStruct && typeFrom is TypeStruct)
             {
                 var structTo = (TypeStruct)typeTo;
@@ -88,6 +90,7 @@ namespace Trapl.Semantics
                     typeTo = typeFrom;
                 }
             }
+
             else if (typeTo is TypeFunct && typeFrom is TypeFunct)
             {
                 var functTo = (TypeFunct)typeTo;
@@ -106,6 +109,7 @@ namespace Trapl.Semantics
 
                 typeTo = functTo;
             }
+
             else if (typeTo is TypeTuple && typeFrom is TypeTuple)
             {
                 var tupleTo = (TypeTuple)typeTo;

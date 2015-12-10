@@ -265,26 +265,30 @@ namespace Trapl.Infrastructure
 
     public class TypeFunct : Type
     {
-        public List<Type> argumentTypes = new List<Type>();
+        public List<Type> argumentTypes = null;
         public Type returnType;
 
 
-        public TypeFunct() { }
+        public TypeFunct(Type returnType)
+        {
+            this.returnType = returnType;
+        }
 
 
         public TypeFunct(DeclFunct f)
         {
-            for (int i = 0; i < f.arguments.Count; i++)
-            {
-                this.argumentTypes.Add(f.arguments[i].type);
-            }
+            this.argumentTypes = new List<Type>();
+
+            for (int i = 0; i < f.argumentTypes.Count; i++)
+                this.argumentTypes.Add(f.argumentTypes[i]);
+
             this.returnType = f.returnType;
         }
 
 
         public override bool IsResolved()
         {
-            if (!this.returnType.IsResolved())
+            if (!this.returnType.IsResolved() || this.argumentTypes == null)
                 return false;
 
             foreach (var arg in this.argumentTypes)
@@ -301,6 +305,9 @@ namespace Trapl.Infrastructure
         {
             var otherf = other as TypeFunct;
             if (otherf == null)
+                return false;
+
+            if (this.argumentTypes == null || otherf.argumentTypes == null)
                 return false;
 
             if (this.argumentTypes.Count != otherf.argumentTypes.Count)
@@ -325,6 +332,9 @@ namespace Trapl.Infrastructure
             if (otherf == null)
                 return false;
 
+            if (this.argumentTypes == null || otherf.argumentTypes == null)
+                return true;
+
             if (this.argumentTypes.Count != otherf.argumentTypes.Count)
                 return false;
 
@@ -341,12 +351,19 @@ namespace Trapl.Infrastructure
         public override string GetString(Infrastructure.Session session)
         {
             var result = "(";
-            for (int i = 0; i < argumentTypes.Count; i++)
+
+            if (this.argumentTypes == null)
+                result += "...";
+            else
             {
-                result += argumentTypes[i].GetString(session);
-                if (i < argumentTypes.Count - 1)
-                    result += ", ";
+                for (int i = 0; i < argumentTypes.Count; i++)
+                {
+                    result += argumentTypes[i].GetString(session);
+                    if (i < argumentTypes.Count - 1)
+                        result += ", ";
+                }
             }
+
             return result + ") -> " + returnType.GetString(session);
         }
     }

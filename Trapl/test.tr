@@ -1,7 +1,15 @@
 fn test(z: Int) -> Bool
 {
-	let x: Bool;
-	x = 123;
-	x = {};
-	x = { let y: (Int, Int); y = 246; y }
+	let y;
+	y = 0;
+	123;
+	let x = add(z, z);
+	add(x, x);
+	246;
+}
+
+
+fn add<Int>(x: Int, y: Int) -> Int
+{
+	add(x, y)
 }

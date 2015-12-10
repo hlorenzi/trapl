@@ -1,4 +1,5 @@
-﻿using Trapl.Diagnostics;
+﻿using System.Collections.Generic;
+using Trapl.Diagnostics;
 using Trapl.Infrastructure;
 
 
@@ -11,7 +12,13 @@ namespace Trapl.Semantics
             var analyzer = new RoutineASTParser(session, routine);
 
             var entrySegment = analyzer.routine.CreateSegment();
-            entrySegment = analyzer.ParseBlock(astNode, new StorageAccess(0, new Span()), entrySegment);
+            var retSource = analyzer.ParseBlock(astNode, ref entrySegment);
+
+            routine.AddInstruction(entrySegment,
+                new InstructionCopy(
+                    new StorageAccess(0, new Span()),
+                    retSource));
+
             routine.AddInstruction(entrySegment, new InstructionEnd());
         }
 
@@ -27,83 +34,68 @@ namespace Trapl.Semantics
         }
 
 
-        private int ParseExpression(Grammar.ASTNode astNode, StorageAccess outputReg, int entrySegment)
+        private SourceOperand ParseExpression(Grammar.ASTNode astNode, ref int entrySegment)
         {
             if (astNode.kind == Grammar.ASTNodeKind.Block)
-                return this.ParseBlock(astNode, outputReg, entrySegment);
+                return this.ParseBlock(astNode, ref entrySegment);
             else if (astNode.kind == Grammar.ASTNodeKind.ControlIf)
-                return this.ParseControlIf(astNode, outputReg, entrySegment);
+                return this.ParseControlIf(astNode, ref entrySegment);
             else if (astNode.kind == Grammar.ASTNodeKind.ControlLet)
-                return this.ParseControlLet(astNode, outputReg, entrySegment);
-            else if (astNode.kind == Grammar.ASTNodeKind.NumberLiteral)
-                return this.ParseNumberLiteral(astNode, outputReg, entrySegment);
+                return this.ParseControlLet(astNode, ref entrySegment);
+            else if (astNode.kind == Grammar.ASTNodeKind.Call)
+                return this.ParseCall(astNode, ref entrySegment);
             else if (astNode.kind == Grammar.ASTNodeKind.BinaryOp)
-                return this.ParseBinaryOp(astNode, outputReg, entrySegment);
+                return this.ParseBinaryOp(astNode, ref entrySegment);
             else if (astNode.kind == Grammar.ASTNodeKind.Name)
-                return this.ParseName(astNode, outputReg, entrySegment);
+                return this.ParseName(astNode, ref entrySegment);
+            else if (astNode.kind == Grammar.ASTNodeKind.NumberLiteral)
+                return this.ParseNumberLiteral(astNode, ref entrySegment);
 
             throw new InternalException("not implemented");
         }
 
 
-        private int ParseBlock(Grammar.ASTNode astNode, StorageAccess outputReg, int entrySegment)
+        private SourceOperand ParseBlock(Grammar.ASTNode astNode, ref int entrySegment)
         {
-            // Generate a dummy void store if there are no subexpressions.
-            if (astNode.ChildNumber() == 0)
+            for (int i = 0; i < astNode.ChildNumber(); i++)
             {
-                this.routine.AddInstruction(entrySegment,
-                    new InstructionCopy(
-                        outputReg,
-                        new SourceOperandTupleLiteral(astNode.Span())));
-            }
-            // Or else, parse subexpressions and return the last one.
-            else
-            {
-                for (int i = 0; i < astNode.ChildNumber(); i++)
+                try
                 {
-                    try
+                    var exprOperand = this.ParseExpression(
+                        astNode.Child(i), ref entrySegment);
+
+                    if (i < astNode.ChildNumber() - 1)
                     {
-                        var exprOutputReg = outputReg;
-
-                        if (i < astNode.ChildNumber() - 1)
-                            exprOutputReg = new StorageAccess(
-                                this.routine.CreateRegister(new TypePlaceholder()),
-                                new Span());
-
-                        entrySegment = this.ParseExpression(
-                            astNode.Child(i), exprOutputReg, entrySegment);
+                        this.routine.AddInstruction(entrySegment,
+                            new InstructionExec(exprOperand));
                     }
-                    catch (CheckException)
-                    {
+                    else
+                        return exprOperand;
+                }
+                catch (CheckException)
+                {
 
-                    }
                 }
             }
 
-            return entrySegment;
+            // This will be reached when the block has no subexpressions,
+            // or when the last subexpression throws an exception.
+            return new SourceOperandTupleLiteral(astNode.Span());
         }
 
 
-        private int ParseControlIf(Grammar.ASTNode astNode, StorageAccess outputReg, int entrySegment)
+        private SourceOperand ParseControlIf(Grammar.ASTNode astNode, ref int entrySegment)
         {
-            var conditionRegIndex = this.routine.CreateRegister(new TypeStruct(this.session.primitiveBool));
+            var conditionSource = this.ParseExpression(astNode.Child(0), ref entrySegment);
 
-            entrySegment = this.ParseExpression(
-                astNode.Child(0),
-                new StorageAccess(conditionRegIndex, astNode.Child(0).Span()),
-                entrySegment);
-
-            var instBranch = new InstructionBranch(conditionRegIndex, -1, -1);
+            var instBranch = new InstructionBranch(conditionSource, -1, -1);
             this.routine.AddInstruction(entrySegment, instBranch);
 
 
             var trueSegment = this.routine.CreateSegment();
             instBranch.trueDestinationSegment = trueSegment;
                 
-            trueSegment = this.ParseBlock(
-                astNode.Child(1),
-                outputReg,
-                trueSegment);
+            this.ParseBlock(astNode.Child(1), ref trueSegment);
 
 
             if (astNode.ChildNumber() == 3)
@@ -111,27 +103,26 @@ namespace Trapl.Semantics
                 var falseSegment = this.routine.CreateSegment();
                 instBranch.falseDestinationSegment = falseSegment;
 
-                falseSegment = this.ParseBlock(
-                    astNode.Child(2),
-                    outputReg,
-                    falseSegment);
+                this.ParseBlock(astNode.Child(2), ref falseSegment);
 
                 var afterSegment = this.routine.CreateSegment();
                 this.routine.AddInstruction(trueSegment, new InstructionGoto(afterSegment));
                 this.routine.AddInstruction(falseSegment, new InstructionGoto(afterSegment));
-                return afterSegment;
+                entrySegment = afterSegment;
             }
             else
             {
                 var afterSegment = this.routine.CreateSegment();
                 this.routine.AddInstruction(trueSegment, new InstructionGoto(afterSegment));
                 instBranch.falseDestinationSegment = afterSegment;
-                return afterSegment;
+                entrySegment = afterSegment;
             }
+
+            return new SourceOperandTupleLiteral(astNode.Span());
         }
 
 
-        private int ParseControlLet(Grammar.ASTNode astNode, StorageAccess outputReg, int entrySegment)
+        private SourceOperand ParseControlLet(Grammar.ASTNode astNode, ref int entrySegment)
         {
             // Create a new storage location and name binding.
             var registerIndex = this.routine.CreateRegister(new TypePlaceholder());
@@ -155,26 +146,50 @@ namespace Trapl.Semantics
                 curChild++;
             }
 
-            // Store a dummy void, as the let expression return value.
-            this.routine.AddInstruction(entrySegment,
-                new InstructionCopy(
-                    outputReg,
-                    new SourceOperandTupleLiteral(astNode.Span())));
-
             // Parse init expression, if there is one.
             if (astNode.ChildNumber() > curChild)
             {
-                entrySegment = this.ParseExpression(
+                var initSource = this.ParseExpression(
                     astNode.Child(curChild),
-                    new StorageAccess(registerIndex, binding.name.span),
-                    entrySegment);
+                    ref entrySegment);
+
+                this.routine.AddInstruction(entrySegment,
+                    new InstructionCopy(
+                        new StorageAccess(registerIndex, astNode.Child(0).Span()),
+                        initSource));
             }
 
-            return entrySegment;
+            return new SourceOperandTupleLiteral(astNode.Span());
+        }
+
+        private SourceOperand ParseCall(Grammar.ASTNode astNode, ref int entrySegment)
+        {
+            // Parse called expression.
+            var calledSource = this.ParseExpression(
+                astNode.Child(0),
+                ref entrySegment);
+
+            // Parse argument expressions.
+            var argumentSources = new List<SourceOperand>();
+
+            for (var i = 1; i < astNode.ChildNumber(); i++)
+            {
+                var argumentSource = this.ParseExpression(
+                    astNode.Child(i),
+                    ref entrySegment);
+
+                argumentSources.Add(argumentSource);
+            }
+
+            // Generate call operand.
+            var callSource = new SourceOperandCall(calledSource, astNode.Span());
+            callSource.argumentSources = argumentSources;
+
+            return callSource;
         }
 
 
-        private int ParseBinaryOp(Grammar.ASTNode astNode, StorageAccess outputReg, int entrySegment)
+        private SourceOperand ParseBinaryOp(Grammar.ASTNode astNode, ref int entrySegment)
         {
             if (astNode.Child(0).GetExcerpt() == "=")
             {
@@ -182,18 +197,17 @@ namespace Trapl.Semantics
                 {
                     var bindingIndex = GetBindingIndex(astNode.Child(1), true);
 
-                    entrySegment = ParseExpression(astNode.Child(2),
-                        new StorageAccess(
-                            this.routine.bindings[bindingIndex].registerIndex,
-                            astNode.Child(1).Span()),
-                        entrySegment);
+                    var source = ParseExpression(astNode.Child(2),
+                        ref entrySegment);
 
                     this.routine.AddInstruction(entrySegment,
                         new InstructionCopy(
-                            outputReg,
-                            new SourceOperandTupleLiteral(astNode.Span())));
+                            new StorageAccess(
+                                this.routine.bindings[bindingIndex].registerIndex,
+                                astNode.Child(1).Span()),
+                            source));
 
-                    return entrySegment;
+                    return new SourceOperandTupleLiteral(astNode.Span());
                 }
             }
 
@@ -201,46 +215,29 @@ namespace Trapl.Semantics
         }
 
 
-        private int ParseNumberLiteral(Grammar.ASTNode astNode, StorageAccess outputReg, int entrySegment)
+        private SourceOperand ParseNumberLiteral(Grammar.ASTNode astNode, ref int entrySegment)
         {
-            this.routine.AddInstruction(entrySegment,
-                new InstructionCopy(
-                    outputReg,
-                    new SourceOperandNumberLiteral(astNode.GetExcerpt(), astNode.Span())));
-
-            return entrySegment;
+            return new SourceOperandNumberLiteral(astNode.GetExcerpt(), astNode.Span());
         }
 
 
-        private int ParseName(Grammar.ASTNode astNode, StorageAccess outputReg, int entrySegment)
+        private SourceOperand ParseName(Grammar.ASTNode astNode, ref int entrySegment)
         {
             var bindingIndex = GetBindingIndex(astNode, false);
             if (bindingIndex >= 0)
             {
-                this.routine.AddInstruction(entrySegment,
-                    new InstructionCopy(
-                        outputReg,
-                        new SourceOperandRegister(
-                            new StorageAccess(
-                                this.routine.bindings[bindingIndex].registerIndex,
-                                astNode.Span()),
-                            astNode.Span())));
-
-                return entrySegment;
+                return new SourceOperandRegister(
+                    new StorageAccess(
+                        this.routine.bindings[bindingIndex].registerIndex,
+                        astNode.Span()),
+                    astNode.Span());
             }
 
-            /*var functList = session.functDecls.GetDeclsClone(astNode.Child(0));
+            var functList = session.functDecls.GetDeclsClone(astNode.Child(0));
             if (functList.Count > 0)
             {
-                var code = new CodeNodeFunct();
-                code.span = astNode.Span();
-                code.nameInference.pathASTNode = astNode.Child(0);
-                code.nameInference.template = templ;
-                code.potentialFuncts = functList;
-                code.outputType = new TypePlaceholder();
-
-                return code;
-            }*/
+                return new SourceOperandFunct(functList, astNode.Span());
+            }
 
             session.diagn.Add(MessageKind.Error, MessageCode.UndeclaredIdentifier,
                 "'" + PathUtil.GetDisplayString(astNode.Child(0)) + "' is not declared",

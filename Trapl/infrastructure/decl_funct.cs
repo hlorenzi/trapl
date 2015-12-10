@@ -7,7 +7,7 @@ namespace Trapl.Infrastructure
 {
     public class DeclFunct : Decl
     {
-        public List<StorageLocation> arguments = new List<StorageLocation>();
+        public List<Type> argumentTypes = new List<Type>();
         public Type returnType;
 
         public Semantics.Routine routine;
@@ -36,7 +36,7 @@ namespace Trapl.Infrastructure
 
                 try
                 {
-                    retRegister.type =
+                    retRegister.type = this.returnType =
                         Semantics.TypeUtil.ResolveFromAST(session, retNode.Child(0), true);
                     break;
                 }
@@ -66,6 +66,8 @@ namespace Trapl.Infrastructure
                 {
                     argRegister.type =
                         Semantics.TypeUtil.ResolveFromAST(session, argNode.Child(1), true);
+
+                    this.argumentTypes.Add(argRegister.type);
                 }
                 catch (CheckException) { }
             }

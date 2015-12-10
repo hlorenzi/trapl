@@ -164,6 +164,52 @@ namespace Trapl.Semantics
     }
 
 
+    public class SourceOperandFunct : SourceOperand
+    {
+        public List<DeclFunct> potentialFuncts = new List<DeclFunct>();
+
+
+        public SourceOperandFunct(List<DeclFunct> potentialFuncts, Diagnostics.Span span)
+        {
+            this.potentialFuncts = potentialFuncts;
+            this.span = span;
+        }
+
+
+        public SourceOperandFunct(DeclFunct funct, Diagnostics.Span span)
+        {
+            this.potentialFuncts.Add(funct);
+            this.span = span;
+        }
+
+
+        public override string GetString(Infrastructure.Session session)
+        {
+            if (this.potentialFuncts.Count > 1)
+                return "ambiguous funct";
+            else if (this.potentialFuncts.Count == 0)
+                return "no funct";
+            else
+                return this.potentialFuncts[0].GetString(session);
+        }
+
+
+        public override Infrastructure.Type GetTypeForInference(Session session, Routine routine)
+        {
+            if (this.potentialFuncts.Count != 1)
+                return new TypeError();
+
+            return new TypeFunct(this.potentialFuncts[0]);
+        }
+
+
+        public override void SetTypeForInference(Session session, Routine routine, Infrastructure.Type type)
+        {
+            
+        }
+    }
+
+
 
     public class SourceOperandNumberLiteral : SourceOperand
     {
@@ -237,12 +283,77 @@ namespace Trapl.Semantics
     }
 
 
+    public class SourceOperandCall : SourceOperand
+    {
+        public SourceOperand calledSource;
+        public List<SourceOperand> argumentSources = new List<SourceOperand>();
+
+
+        public SourceOperandCall(SourceOperand calledSource, Diagnostics.Span span)
+        {
+            this.calledSource = calledSource;
+            this.span = span;
+        }
+
+
+        public override string GetString(Infrastructure.Session session)
+        {
+            var result =
+                "call " + this.calledSource.GetString(session) + " (";
+
+            for (var i = 0; i < this.argumentSources.Count; i++)
+            {
+                result += this.argumentSources[i].GetString(session);
+                if (i < this.argumentSources.Count - 1)
+                    result += ", ";
+            }
+
+            return result + ")";
+        }
+
+
+        public override Infrastructure.Type GetTypeForInference(Session session, Routine routine)
+        {
+            var functType = calledSource.GetTypeForInference(session, routine) as TypeFunct;
+            if (functType == null)
+                return new TypePlaceholder();
+
+            return functType.returnType;
+        }
+
+
+        public override void SetTypeForInference(Session session, Routine routine, Infrastructure.Type type)
+        {
+            calledSource.SetTypeForInference(session, routine, type);
+        }
+    }
+
+
     public abstract class Instruction
     {
         public Diagnostics.Span span;
 
 
         public abstract string GetString(Infrastructure.Session session);
+    }
+
+
+    public class InstructionExec : Instruction
+    {
+        public SourceOperand source;
+
+
+        public InstructionExec(SourceOperand source)
+        {
+            this.source = source;
+        }
+
+
+        public override string GetString(Infrastructure.Session session)
+        {
+            return
+                "exec " + this.source.GetString(session);
+        }
     }
 
 
@@ -303,14 +414,14 @@ namespace Trapl.Semantics
 
     public class InstructionBranch : Instruction
     {
-        public int registerIndex;
+        public SourceOperand conditionSource;
         public int trueDestinationSegment;
         public int falseDestinationSegment;
 
 
-        public InstructionBranch(int registerIndex, int trueDestinationSegment, int falseDestinationSegment)
+        public InstructionBranch(SourceOperand conditionSource, int trueDestinationSegment, int falseDestinationSegment)
         {
-            this.registerIndex = registerIndex;
+            this.conditionSource = conditionSource;
             this.trueDestinationSegment = trueDestinationSegment;
             this.falseDestinationSegment = falseDestinationSegment;
         }
@@ -319,7 +430,7 @@ namespace Trapl.Semantics
         public override string GetString(Infrastructure.Session session)
         {
             return
-                "branch #r" + this.registerIndex +
+                "branch " + this.conditionSource.GetString(session) +
                 " ? #s" + this.trueDestinationSegment +
                 " : #s" + this.falseDestinationSegment;
         }
