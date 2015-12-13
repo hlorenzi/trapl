@@ -9,7 +9,7 @@ namespace Trapl.Semantics
         public static void Check(Infrastructure.Session session, Routine body)
         {
             var checker = new RoutineTypeChecker(session, body);
-            checker.Check();
+            //checker.Check();
         }
 
 
@@ -24,7 +24,7 @@ namespace Trapl.Semantics
         }
 
 
-        private void Check()
+        /*private void Check()
         {
             this.CheckUnresolvedRegisters();
 
@@ -142,6 +142,6 @@ namespace Trapl.Semantics
                         code.source.span);
                 }
             }
-        }
+        }*/
     }
 }

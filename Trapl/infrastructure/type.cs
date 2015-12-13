@@ -269,9 +269,12 @@ namespace Trapl.Infrastructure
         public Type returnType;
 
 
-        public TypeFunct(Type returnType)
+        public TypeFunct(Type returnType, int placeholderArgs)
         {
             this.returnType = returnType;
+            this.argumentTypes = new List<Type>();
+            for (var i = 0; i < placeholderArgs; i++)
+                this.argumentTypes.Add(new TypePlaceholder());
         }
 
 

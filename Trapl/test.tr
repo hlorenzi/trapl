@@ -3,6 +3,11 @@ fn test(z: Int) -> Bool
 	let x;
 	let y;
 	let w = add(x, y);
+
+	if x
+		{ add(x, x) }
+	else
+		{ add(y, y) }
 }
 
 

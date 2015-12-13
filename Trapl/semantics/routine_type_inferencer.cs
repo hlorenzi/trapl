@@ -38,16 +38,16 @@ namespace Trapl.Semantics
                 {
                     foreach (var inst in segment.instructions)
                     {
-                        var instCopy = (inst as InstructionCopy);
+                        /*var instCopy = (inst as InstructionCopy);
                         if (instCopy != null)
-                            ApplyRuleForInstructionCopy(instCopy);
+                            ApplyRuleForInstructionCopy(instCopy);*/
                     }
                 }
             }
         }
 
 
-        private void ApplyRuleForInstructionCopy(InstructionCopy inst)
+        /*private void ApplyRuleForInstructionCopy(InstructionCopy inst)
         {
             if (inst.destination.fieldAccesses.Count > 0)
                 throw new InternalException("not implemented");
@@ -60,7 +60,7 @@ namespace Trapl.Semantics
 
             this.routine.registers[inst.destination.registerIndex].type = destType;
             this.appliedAnyRule |= inst.source.TryInference(this.session, this.routine, srcType);
-        }
+        }*/
 
 
         public static bool TryInference(Session session, Type typeFrom, ref Type typeTo)
