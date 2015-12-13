@@ -307,6 +307,9 @@ namespace Trapl.Infrastructure
             if (otherf == null)
                 return false;
 
+            if (!this.returnType.IsMatch(otherf.returnType))
+                return false;
+
             if (this.argumentTypes == null || otherf.argumentTypes == null)
                 return false;
 
@@ -330,6 +333,9 @@ namespace Trapl.Infrastructure
 
             var otherf = other as TypeFunct;
             if (otherf == null)
+                return false;
+
+            if (!this.returnType.IsMatch(otherf.returnType))
                 return false;
 
             if (this.argumentTypes == null || otherf.argumentTypes == null)

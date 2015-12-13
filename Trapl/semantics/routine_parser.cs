@@ -12,7 +12,7 @@ namespace Trapl.Semantics
             var analyzer = new RoutineASTParser(session, routine);
 
             var entrySegment = analyzer.routine.CreateSegment();
-            var retSource = analyzer.ParseBlock(astNode, ref entrySegment);
+            var retSource = analyzer.ParseBlock(astNode, ref entrySegment, true);
 
             routine.AddInstruction(entrySegment,
                 new InstructionCopy(
@@ -37,7 +37,7 @@ namespace Trapl.Semantics
         private SourceOperand ParseExpression(Grammar.ASTNode astNode, ref int entrySegment)
         {
             if (astNode.kind == Grammar.ASTNodeKind.Block)
-                return this.ParseBlock(astNode, ref entrySegment);
+                return this.ParseBlock(astNode, ref entrySegment, true);
             else if (astNode.kind == Grammar.ASTNodeKind.ControlIf)
                 return this.ParseControlIf(astNode, ref entrySegment);
             else if (astNode.kind == Grammar.ASTNodeKind.ControlLet)
@@ -55,20 +55,16 @@ namespace Trapl.Semantics
         }
 
 
-        private SourceOperand ParseBlock(Grammar.ASTNode astNode, ref int entrySegment)
+        private SourceOperand ParseBlock(Grammar.ASTNode astNode, ref int entrySegment, bool returnsValue)
         {
             for (int i = 0; i < astNode.ChildNumber(); i++)
             {
                 try
                 {
-                    var exprOperand = this.ParseExpression(
-                        astNode.Child(i), ref entrySegment);
+                    var exprOperand = this.ParseExpression(astNode.Child(i), ref entrySegment);
 
-                    if (i < astNode.ChildNumber() - 1)
-                    {
-                        this.routine.AddInstruction(entrySegment,
-                            new InstructionExec(exprOperand));
-                    }
+                    if (!returnsValue || i < astNode.ChildNumber() - 1)
+                        this.routine.AddInstruction(entrySegment, new InstructionExec(exprOperand));
                     else
                         return exprOperand;
                 }
@@ -95,7 +91,7 @@ namespace Trapl.Semantics
             var trueSegment = this.routine.CreateSegment();
             instBranch.trueDestinationSegment = trueSegment;
                 
-            this.ParseBlock(astNode.Child(1), ref trueSegment);
+            this.ParseBlock(astNode.Child(1), ref trueSegment, false);
 
 
             if (astNode.ChildNumber() == 3)
@@ -103,7 +99,7 @@ namespace Trapl.Semantics
                 var falseSegment = this.routine.CreateSegment();
                 instBranch.falseDestinationSegment = falseSegment;
 
-                this.ParseBlock(astNode.Child(2), ref falseSegment);
+                this.ParseBlock(astNode.Child(2), ref falseSegment, false);
 
                 var afterSegment = this.routine.CreateSegment();
                 this.routine.AddInstruction(trueSegment, new InstructionGoto(afterSegment));

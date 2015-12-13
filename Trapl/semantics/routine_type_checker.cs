@@ -32,11 +32,25 @@ namespace Trapl.Semantics
             {
                 foreach (var inst in segment.instructions)
                 {
+                    foreach (var operand in inst.EnumerateOperands())
+                        CheckOperand(operand);
+
                     var instCopy = (inst as InstructionCopy);
                     if (instCopy != null)
                         CheckInstructionCopy(instCopy);
                 }
             }
+        }
+
+
+        private void CheckOperand(SourceOperand operand)
+        {
+            foreach (var suboperand in operand.EnumerateSuboperands())
+                CheckOperand(suboperand);
+
+            var operandFunct = (operand as SourceOperandFunct);
+            if (operandFunct != null)
+                CheckOperandFunct(operandFunct);
         }
 
 
@@ -59,17 +73,7 @@ namespace Trapl.Semantics
                 if (this.routine.registers[i].type.IsResolved())
                     continue;
 
-                // Find if there is a binding to this register.
-                StorageBinding binding = null;
-                foreach (var b in this.routine.bindings)
-                {
-                    if (b.registerIndex == i)
-                    {
-                        binding = b;
-                        break;
-                    }
-                }
-
+                var binding = this.routine.bindings.Find(b => b.registerIndex == i);
                 if (binding != null)
                 {
                     session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
@@ -88,10 +92,33 @@ namespace Trapl.Semantics
         }
 
 
+        private void CheckOperandFunct(SourceOperandFunct operand)
+        {
+            var count = operand.potentialFuncts.Count;
+
+            if (count > 1)
+            {
+                session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
+                    "cannot infer which funct to use", operand.span);
+
+                session.diagn.AddInnerToLast(MessageKind.Info, MessageCode.Info,
+                    "ambiguous between the following" +
+                    (count > 2 ? " and other " + (count - 2) : "") + ":",
+                    operand.potentialFuncts[0].name.span,
+                    operand.potentialFuncts[1].name.span);
+            }
+            else if (count == 0)
+            {
+                session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
+                    "no matching funct", operand.span);
+            }
+        }
+
+
         private void CheckInstructionCopy(InstructionCopy code)
         {
             var typeDest = this.routine.registers[code.destination.registerIndex].type;
-            var typeSrc = code.source.GetTypeForInference(this.session, this.routine);
+            var typeSrc = code.source.GetOutputType(this.session, this.routine);
 
             if (DoesMismatch(typeDest, typeSrc))
             {

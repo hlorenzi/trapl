@@ -11,6 +11,7 @@ namespace Trapl.Infrastructure
                 decl.declASTNode = declASTNode;
                 decl.nameASTNode = declASTNode.Child(0);
                 decl.name.pathASTNode = declASTNode.Child(0).Child(0);
+                decl.name.span = declASTNode.Child(0).Span();
                 decl.defASTNode = declASTNode.Child(1);
                 decl.templateASTNode = Semantics.TemplateUtil.GetTemplateASTOrNull(declASTNode.Child(0));
                 session.structDecls.Add(decl.name.pathASTNode, decl);
@@ -20,6 +21,7 @@ namespace Trapl.Infrastructure
                 var decl = new DeclFunct();
                 decl.declASTNode = declASTNode;
                 decl.nameASTNode = declASTNode.Child(0);
+                decl.name.span = declASTNode.Child(0).Span();
                 decl.name.pathASTNode = declASTNode.Child(0).Child(0);
                 decl.defASTNode = declASTNode.Child(1);
                 decl.templateASTNode = Semantics.TemplateUtil.GetTemplateASTOrNull(declASTNode.Child(0));

@@ -53,30 +53,31 @@ namespace Trapl.Semantics
                 throw new InternalException("not implemented");
 
             var destType = this.routine.registers[inst.destination.registerIndex].type;
-            var srcType = inst.source.GetTypeForInference(this.session, this.routine);
+            var srcType = inst.source.GetOutputType(this.session, this.routine);
 
-            TryInference(srcType, ref destType);
-            TryInference(destType, ref srcType);
+            this.appliedAnyRule |= TryInference(this.session, srcType, ref destType);
+            TryInference(this.session, destType, ref srcType);
 
             this.routine.registers[inst.destination.registerIndex].type = destType;
-            inst.source.SetTypeForInference(this.session, this.routine, srcType);
+            this.appliedAnyRule |= inst.source.TryInference(this.session, this.routine, srcType);
         }
 
 
-        private void TryInference(Type typeFrom, ref Type typeTo)
+        public static bool TryInference(Session session, Type typeFrom, ref Type typeTo)
         {
             if (typeTo is TypePlaceholder && !(typeFrom is TypePlaceholder))
             {
-                this.appliedAnyRule = true;
                 typeTo = typeFrom;
+                return true;
             }
 
             else if (typeTo is TypeReference && typeFrom is TypeReference)
             {
                 var refTo = (TypeReference)typeTo;
                 var refFrom = (TypeReference)typeFrom;
-                TryInference(refFrom.referencedType, ref refTo.referencedType);
-                TryInference(refTo.referencedType, ref refFrom.referencedType);
+                var result = TryInference(session, refFrom.referencedType, ref refTo.referencedType);
+                result |= TryInference(session, refTo.referencedType, ref refFrom.referencedType);
+                return result;
             }
 
             else if (typeTo is TypeStruct && typeFrom is TypeStruct)
@@ -84,49 +85,64 @@ namespace Trapl.Semantics
                 var structTo = (TypeStruct)typeTo;
                 var structFrom = (TypeStruct)typeFrom;
 
-                if (structTo.potentialStructs.Count > 1 && structFrom.potentialStructs.Count == 1)
+                /*if (structTo.potentialStructs.Count > 1 && structFrom.potentialStructs.Count == 1)
                 {
-                    TryTemplateInference(structFrom.nameInference.template, ref structTo.nameInference.template);
+                    TryInference(session, structFrom.nameInference.template, ref structTo.nameInference.template);
                     typeTo = typeFrom;
-                }
+                }*/
+
+                return false;
             }
 
             else if (typeTo is TypeFunct && typeFrom is TypeFunct)
             {
                 var functTo = (TypeFunct)typeTo;
                 var functFrom = (TypeFunct)typeFrom;
-                TryInference(functFrom.returnType, ref functTo.returnType);
+                var result = TryInference(session, functFrom.returnType, ref functTo.returnType);
 
-                if (functTo.argumentTypes.Count == functFrom.argumentTypes.Count)
+                if (functTo.argumentTypes == null && functFrom.argumentTypes != null)
+                {
+                    functTo.argumentTypes = new List<Type>(functFrom.argumentTypes);
+                    result = true;
+                }
+
+                if (functTo.argumentTypes != null &&
+                    functFrom.argumentTypes != null &&
+                    functTo.argumentTypes.Count == functFrom.argumentTypes.Count)
                 {
                     for (var i = 0; i < functTo.argumentTypes.Count; i++)
                     {
                         var argTo = functTo.argumentTypes[i];
-                        TryInference(functFrom.argumentTypes[i], ref argTo);
+                        result |= TryInference(session, functFrom.argumentTypes[i], ref argTo);
                         functTo.argumentTypes[i] = argTo;
                     }
                 }
 
                 typeTo = functTo;
+                return result;
             }
 
             else if (typeTo is TypeTuple && typeFrom is TypeTuple)
             {
                 var tupleTo = (TypeTuple)typeTo;
                 var tupleFrom = (TypeTuple)typeFrom;
+                var result = false;
 
                 if (tupleTo.elementTypes.Count == tupleFrom.elementTypes.Count)
                 {
                     for (var i = 0; i < tupleTo.elementTypes.Count; i++)
                     {
                         var elemTo = tupleTo.elementTypes[i];
-                        TryInference(tupleFrom.elementTypes[i], ref elemTo);
+                        result |= TryInference(session, tupleFrom.elementTypes[i], ref elemTo);
                         tupleTo.elementTypes[i] = elemTo;
                     }
                 }
 
                 typeTo = tupleTo;
+                return result;
             }
+
+            return false;
         }
 
 
@@ -148,7 +164,7 @@ namespace Trapl.Semantics
                         fromTemplate.parameters[i] is Template.ParameterType)
                     {
                         var param = (Template.ParameterType)toTemplate.parameters[i];
-                        TryInference(((Template.ParameterType)fromTemplate.parameters[i]).type, ref param.type);
+                        TryInference(session, ((Template.ParameterType)fromTemplate.parameters[i]).type, ref param.type);
                         toTemplate.parameters[i] = param;
                     }
                 }

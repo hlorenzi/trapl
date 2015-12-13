@@ -120,15 +120,21 @@ namespace Trapl.Semantics
         public abstract string GetString(Infrastructure.Session session);
 
 
-        public virtual Infrastructure.Type GetTypeForInference(Session session, Routine routine)
+        public virtual Infrastructure.Type GetOutputType(Session session, Routine routine)
         {
             return new TypePlaceholder();
         }
         
 
-        public virtual void SetTypeForInference(Session session, Routine routine, Infrastructure.Type type)
+        public virtual bool TryInference(Session session, Routine routine, Infrastructure.Type type)
         {
+            return false;
+        }
 
+
+        public virtual IEnumerable<SourceOperand> EnumerateSuboperands()
+        {
+            yield break;
         }
     }
 
@@ -151,15 +157,18 @@ namespace Trapl.Semantics
         }
 
 
-        public override Infrastructure.Type GetTypeForInference(Session session, Routine routine)
+        public override Infrastructure.Type GetOutputType(Session session, Routine routine)
         {
             return routine.registers[access.registerIndex].type;
         }
 
 
-        public override void SetTypeForInference(Session session, Routine routine, Infrastructure.Type type)
+        public override bool TryInference(Session session, Routine routine, Infrastructure.Type type)
         {
-            routine.registers[access.registerIndex].type = type;
+            return RoutineTypeInferencer.TryInference(
+                session,
+                type,
+                ref routine.registers[access.registerIndex].type);
         }
     }
 
@@ -186,7 +195,7 @@ namespace Trapl.Semantics
         public override string GetString(Infrastructure.Session session)
         {
             if (this.potentialFuncts.Count > 1)
-                return "ambiguous funct";
+                return this.potentialFuncts.Count + " ambiguous functs";
             else if (this.potentialFuncts.Count == 0)
                 return "no funct";
             else
@@ -194,18 +203,28 @@ namespace Trapl.Semantics
         }
 
 
-        public override Infrastructure.Type GetTypeForInference(Session session, Routine routine)
+        public override Infrastructure.Type GetOutputType(Session session, Routine routine)
         {
             if (this.potentialFuncts.Count != 1)
-                return new TypeError();
+                return new TypeFunct(new TypePlaceholder());
 
             return new TypeFunct(this.potentialFuncts[0]);
         }
 
 
-        public override void SetTypeForInference(Session session, Routine routine, Infrastructure.Type type)
+        public override bool TryInference(Session session, Routine routine, Infrastructure.Type outputType)
         {
-            
+            var result = false;
+            for (var i = this.potentialFuncts.Count - 1; i >= 0; i--)
+            {
+                var functType = new TypeFunct(this.potentialFuncts[i]);
+                if (!functType.IsMatch(new TypeFunct(outputType)))
+                {
+                    this.potentialFuncts.RemoveAt(i);
+                    result = true;
+                }
+            }
+            return result;
         }
     }
 
@@ -229,15 +248,15 @@ namespace Trapl.Semantics
         }
 
 
-        public override Infrastructure.Type GetTypeForInference(Session session, Routine routine)
+        public override Infrastructure.Type GetOutputType(Session session, Routine routine)
         {
             return new TypeStruct(session.primitiveInt);
         }
 
 
-        public override void SetTypeForInference(Session session, Routine routine, Infrastructure.Type type)
+        public override bool TryInference(Session session, Routine routine, Infrastructure.Type type)
         {
-
+            return false;
         }
     }
 
@@ -267,7 +286,7 @@ namespace Trapl.Semantics
         }
 
 
-        public override Infrastructure.Type GetTypeForInference(Session session, Routine routine)
+        public override Infrastructure.Type GetOutputType(Session session, Routine routine)
         {
             if (elementSources.Count > 0)
                 throw new InternalException("not implemented");
@@ -276,9 +295,16 @@ namespace Trapl.Semantics
         }
 
 
-        public override void SetTypeForInference(Session session, Routine routine, Infrastructure.Type type)
+        public override bool TryInference(Session session, Routine routine, Infrastructure.Type type)
         {
+            return false;
+        }
 
+
+        public override IEnumerable<SourceOperand> EnumerateSuboperands()
+        {
+            foreach (var elem in this.elementSources)
+                yield return elem;
         }
     }
 
@@ -312,9 +338,9 @@ namespace Trapl.Semantics
         }
 
 
-        public override Infrastructure.Type GetTypeForInference(Session session, Routine routine)
+        public override Infrastructure.Type GetOutputType(Session session, Routine routine)
         {
-            var functType = calledSource.GetTypeForInference(session, routine) as TypeFunct;
+            var functType = calledSource.GetOutputType(session, routine) as TypeFunct;
             if (functType == null)
                 return new TypePlaceholder();
 
@@ -322,9 +348,22 @@ namespace Trapl.Semantics
         }
 
 
-        public override void SetTypeForInference(Session session, Routine routine, Infrastructure.Type type)
+        public override bool TryInference(Session session, Routine routine, Infrastructure.Type type)
         {
-            calledSource.SetTypeForInference(session, routine, type);
+            var functType = new TypeFunct(type);
+            functType.argumentTypes = new List<Infrastructure.Type>();
+            foreach (var arg in this.argumentSources)
+                functType.argumentTypes.Add(arg.GetOutputType(session, routine));
+
+            return calledSource.TryInference(session, routine, functType);
+        }
+
+
+        public override IEnumerable<SourceOperand> EnumerateSuboperands()
+        {
+            yield return calledSource;
+            foreach (var arg in this.argumentSources)
+                yield return arg;
         }
     }
 
@@ -335,6 +374,12 @@ namespace Trapl.Semantics
 
 
         public abstract string GetString(Infrastructure.Session session);
+
+
+        public virtual IEnumerable<SourceOperand> EnumerateOperands()
+        {
+            yield break;
+        }
     }
 
 
@@ -353,6 +398,12 @@ namespace Trapl.Semantics
         {
             return
                 "exec " + this.source.GetString(session);
+        }
+
+
+        public override IEnumerable<SourceOperand> EnumerateOperands()
+        {
+            yield return this.source;
         }
     }
 
@@ -375,6 +426,12 @@ namespace Trapl.Semantics
             return 
                 "copy " + this.destination.GetString(session) +
                 " <- " + this.source.GetString(session);
+        }
+
+
+        public override IEnumerable<SourceOperand> EnumerateOperands()
+        {
+            yield return this.source;
         }
     }
 
@@ -433,6 +490,12 @@ namespace Trapl.Semantics
                 "branch " + this.conditionSource.GetString(session) +
                 " ? #s" + this.trueDestinationSegment +
                 " : #s" + this.falseDestinationSegment;
+        }
+
+
+        public override IEnumerable<SourceOperand> EnumerateOperands()
+        {
+            yield return this.conditionSource;
         }
     }
 }
