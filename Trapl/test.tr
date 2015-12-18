@@ -1,24 +1,11 @@
-fn test(z: Int) -> Bool
+fn test<Int>(z: Int) -> Bool
 {
-	let x;
-	let y;
-	let w = add(x, y);
-
-	if x
-		{ add(x, x) }
-	else
-		{ add(y, y) }
+	let x = test;
+	let y = test(x);
 }
 
 
-fn add<Int>(x: Int, y: Int) -> Int
+fn test<Bool>(x: Bool)
 {
-	let a = add;
-	a(x, y)
-}
 
-
-fn add<Bool>(x: Bool, y: Bool) -> Bool
-{
-	add(x, y)
 }

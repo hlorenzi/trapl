@@ -105,7 +105,7 @@ namespace Trapl.Semantics
         }
 
 
-        public string GetString(Infrastructure.Session session)
+        public string GetString(Session session)
         {
             return "#r" + this.registerIndex;
         }
@@ -128,10 +128,11 @@ namespace Trapl.Semantics
         public StorageAccess source;
 
 
-        public InstructionCopyFromStorage(StorageAccess destination, StorageAccess source)
+        public InstructionCopyFromStorage(StorageAccess destination, StorageAccess source, Diagnostics.Span span)
         {
             this.destination = destination;
             this.source = source;
+            this.span = span;
         }
 
 
@@ -150,10 +151,11 @@ namespace Trapl.Semantics
         public string value;
 
 
-        public InstructionCopyFromNumberLiteral(StorageAccess destination, string value)
+        public InstructionCopyFromNumberLiteral(StorageAccess destination, string value, Diagnostics.Span span)
         {
             this.destination = destination;
             this.value = value;
+            this.span = span;
         }
 
 
@@ -172,9 +174,10 @@ namespace Trapl.Semantics
         public List<StorageAccess> elementSources = new List<StorageAccess>();
 
 
-        public InstructionCopyFromTupleLiteral(StorageAccess destination)
+        public InstructionCopyFromTupleLiteral(StorageAccess destination, Diagnostics.Span span)
         {
             this.destination = destination;
+            this.span = span;
         }
 
 
@@ -201,10 +204,11 @@ namespace Trapl.Semantics
         public List<DeclFunct> potentialFuncts = new List<DeclFunct>();
 
 
-        public InstructionCopyFromFunct(StorageAccess destination, List<DeclFunct> potentialFuncts)
+        public InstructionCopyFromFunct(StorageAccess destination, List<DeclFunct> potentialFuncts, Diagnostics.Span span)
         {
             this.destination = destination;
             this.potentialFuncts = potentialFuncts;
+            this.span = span;
         }
 
 
@@ -215,11 +219,11 @@ namespace Trapl.Semantics
                 " <- ";
 
             if (this.potentialFuncts.Count > 1)
-                return result + this.potentialFuncts.Count + " ambiguous functs";
+                return result + "fn ? " + this.potentialFuncts.Count + " ambiguous";
             else if (this.potentialFuncts.Count == 0)
-                return result + "no funct";
+                return result + "fn ? no match";
             else
-                return result + this.potentialFuncts[0].GetString(session);
+                return result + "fn " + this.potentialFuncts[0].GetString(session);
         }
     }
 
@@ -231,11 +235,12 @@ namespace Trapl.Semantics
         public List<StorageAccess> argumentSources = new List<StorageAccess>();
 
 
-        public InstructionCopyFromCall(StorageAccess destination, StorageAccess called, List<StorageAccess> args)
+        public InstructionCopyFromCall(StorageAccess destination, StorageAccess called, List<StorageAccess> args, Diagnostics.Span span)
         {
             this.destination = destination;
             this.calledSource = called;
             this.argumentSources = args;
+            this.span = span;
         }
 
 

@@ -8,7 +8,7 @@ namespace Trapl.Infrastructure
     public class DeclFunct : Decl
     {
         public List<Type> argumentTypes = new List<Type>();
-        public Type returnType;
+        public Type returnType = new TypeTuple();
 
         public Semantics.Routine routine;
         public int argumentNum;

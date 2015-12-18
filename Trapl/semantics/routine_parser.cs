@@ -52,10 +52,13 @@ namespace Trapl.Semantics
 
         private void ParseBlock(Grammar.ASTNode astNode, ref int entrySegment, StorageAccess output)
         {
-            // Generate a dummy store if there are no subexpressions.
+            // Generate a void store if there are no subexpressions.
             if (astNode.ChildNumber() == 0)
             {
-                this.routine.AddInstruction(entrySegment, new InstructionCopyFromTupleLiteral(output));
+                this.routine.AddInstruction(
+                    entrySegment,
+                    new InstructionCopyFromTupleLiteral(output, astNode.Span()));
+
                 return;
             }
 
@@ -151,6 +154,11 @@ namespace Trapl.Semantics
                     ref entrySegment,
                     new StorageAccess(registerIndex, astNode.Child(0).Span()));
             }
+
+            // Generate a void store.
+            this.routine.AddInstruction(
+                entrySegment,
+                new InstructionCopyFromTupleLiteral(output, astNode.Span()));
         }
 
         private void ParseCall(Grammar.ASTNode astNode, ref int entrySegment, StorageAccess output)
@@ -186,7 +194,7 @@ namespace Trapl.Semantics
 
             // Generate call instruction.
             this.routine.AddInstruction(entrySegment,
-                new InstructionCopyFromCall(output, calledReg, argumentRegs));
+                new InstructionCopyFromCall(output, calledReg, argumentRegs, astNode.Span()));
         }
 
 
@@ -199,10 +207,18 @@ namespace Trapl.Semantics
                     var bindingIndex = GetBindingIndex(astNode.Child(1), true);
                     var registerIndex = this.routine.bindings[bindingIndex].registerIndex;
 
+                    // Parse right-hand side expression.
                     this.ParseExpression(
                         astNode.Child(2),
                         ref entrySegment,
                         new StorageAccess(registerIndex, astNode.Child(1).Span()));
+
+                    // Generate a void store.
+                    this.routine.AddInstruction(
+                        entrySegment,
+                        new InstructionCopyFromTupleLiteral(output, astNode.Span()));
+
+                    return;
                 }
             }
 
@@ -213,28 +229,32 @@ namespace Trapl.Semantics
         private void ParseNumberLiteral(Grammar.ASTNode astNode, ref int entrySegment, StorageAccess output)
         {
             this.routine.AddInstruction(entrySegment,
-                new InstructionCopyFromNumberLiteral(output, astNode.GetExcerpt()));
+                new InstructionCopyFromNumberLiteral(output, astNode.GetExcerpt(), astNode.Span()));
         }
 
 
         private void ParseName(Grammar.ASTNode astNode, ref int entrySegment, StorageAccess output)
         {
+            // Try to find a local with the same name.
             var bindingIndex = GetBindingIndex(astNode, false);
             if (bindingIndex >= 0)
             {
                 this.routine.AddInstruction(entrySegment,
-                    new InstructionCopyFromStorage(output,
-                    new StorageAccess(
-                        this.routine.bindings[bindingIndex].registerIndex,
-                        astNode.Span())));
+                    new InstructionCopyFromStorage(
+                        output,
+                        new StorageAccess(
+                            this.routine.bindings[bindingIndex].registerIndex,
+                            astNode.Span()),
+                    astNode.Span()));
                 return;
             }
 
+            // Try to find a group of functs with the same name.
             var functList = session.functDecls.GetDeclsClone(astNode.Child(0));
             if (functList.Count > 0)
             {
                 this.routine.AddInstruction(entrySegment,
-                    new InstructionCopyFromFunct(output, functList));
+                    new InstructionCopyFromFunct(output, functList, astNode.Span()));
                 return;
             }
 

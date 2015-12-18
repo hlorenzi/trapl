@@ -38,29 +38,139 @@ namespace Trapl.Semantics
                 {
                     foreach (var inst in segment.instructions)
                     {
-                        /*var instCopy = (inst as InstructionCopy);
-                        if (instCopy != null)
-                            ApplyRuleForInstructionCopy(instCopy);*/
+                        var instFromStorage = (inst as InstructionCopyFromStorage);
+                        if (instFromStorage != null)
+                            ApplyRuleForInstructionCopyFromStorage(instFromStorage);
+
+                        var instFromTuple = (inst as InstructionCopyFromTupleLiteral);
+                        if (instFromTuple != null)
+                            ApplyRuleForInstructionCopyFromTupleLiteral(instFromTuple);
+
+                        var instFromFunct = (inst as InstructionCopyFromFunct);
+                        if (instFromFunct != null)
+                            ApplyRuleForInstructionCopyFromFunct(instFromFunct);
+
+                        var instFromCall = (inst as InstructionCopyFromCall);
+                        if (instFromCall != null)
+                            ApplyRuleForInstructionCopyFromCall(instFromCall);
                     }
                 }
             }
         }
 
 
-        /*private void ApplyRuleForInstructionCopy(InstructionCopy inst)
+        private void ApplyRuleForInstructionCopyFromStorage(InstructionCopyFromStorage inst)
+        {
+            if (inst.destination.fieldAccesses.Count > 0 ||
+                inst.source.fieldAccesses.Count > 0)
+                throw new InternalException("not implemented");
+
+            var destType = routine.registers[inst.destination.registerIndex].type;
+            var srcType = routine.registers[inst.source.registerIndex].type;
+
+            this.appliedAnyRule |=
+                TryInference(session, srcType, ref destType) |
+                TryInference(session, destType, ref srcType);
+
+            routine.registers[inst.destination.registerIndex].type = destType;
+            routine.registers[inst.source.registerIndex].type = srcType;
+        }
+
+
+        private void ApplyRuleForInstructionCopyFromTupleLiteral(InstructionCopyFromTupleLiteral inst)
         {
             if (inst.destination.fieldAccesses.Count > 0)
                 throw new InternalException("not implemented");
 
-            var destType = this.routine.registers[inst.destination.registerIndex].type;
-            var srcType = inst.source.GetOutputType(this.session, this.routine);
+            var destType = routine.registers[inst.destination.registerIndex].type;
+            var srcTuple = new TypeTuple();
+            foreach (var elem in inst.elementSources)
+                srcTuple.elementTypes.Add(this.routine.registers[elem.registerIndex].type);
 
-            this.appliedAnyRule |= TryInference(this.session, srcType, ref destType);
-            TryInference(this.session, destType, ref srcType);
+            var srcType = (Type)srcTuple;
 
-            this.routine.registers[inst.destination.registerIndex].type = destType;
-            this.appliedAnyRule |= inst.source.TryInference(this.session, this.routine, srcType);
-        }*/
+            var result =
+                TryInference(session, srcType, ref destType) |
+                TryInference(session, destType, ref srcType);
+
+            if (result)
+            {
+                this.appliedAnyRule = true;
+                routine.registers[inst.destination.registerIndex].type = destType;
+                for (var i = 0; i < inst.elementSources.Count; i++)
+                {
+                    this.routine.registers[inst.elementSources[i].registerIndex].type =
+                        srcTuple.elementTypes[i];
+                }
+            }
+        }
+
+
+        private void ApplyRuleForInstructionCopyFromCall(InstructionCopyFromCall inst)
+        {
+            if (inst.destination.fieldAccesses.Count > 0)
+                throw new InternalException("not implemented");
+
+            var destType = routine.registers[inst.destination.registerIndex].type;
+            var callType = routine.registers[inst.calledSource.registerIndex].type;
+            var callFunct = callType as TypeFunct;
+            if (callFunct == null)
+                return;
+
+            var srcFunct = new TypeFunct(destType, 0);
+            foreach (var arg in inst.argumentSources)
+                srcFunct.argumentTypes.Add(this.routine.registers[arg.registerIndex].type);
+
+            var srcType = (Type)srcFunct;
+
+            var result =
+                TryInference(session, callType, ref srcType) |
+                TryInference(session, srcType, ref callType) |
+                TryInference(session, callFunct.returnType, ref destType) |
+                TryInference(session, destType, ref callFunct.returnType);
+
+            if (result)
+            {
+                this.appliedAnyRule = true;
+
+                routine.registers[inst.calledSource.registerIndex].type = callType;
+                routine.registers[inst.destination.registerIndex].type = callFunct.returnType;
+
+                for (var i = 0; i < inst.argumentSources.Count; i++)
+                {
+                    this.routine.registers[inst.argumentSources[i].registerIndex].type =
+                        srcFunct.argumentTypes[i];
+                }
+            }
+        }
+
+
+        private void ApplyRuleForInstructionCopyFromFunct(InstructionCopyFromFunct inst)
+        {
+            if (inst.destination.fieldAccesses.Count > 0)
+                throw new InternalException("not implemented");
+
+            if (inst.potentialFuncts.Count > 0)
+            {
+                for (var i = inst.potentialFuncts.Count - 1; i >= 0; i--)
+                {
+                    var functType = new TypeFunct(inst.potentialFuncts[i]);
+                    if (!functType.IsMatch(this.routine.registers[inst.destination.registerIndex].type))
+                    {
+                        inst.potentialFuncts.RemoveAt(i);
+                        this.appliedAnyRule = true;
+                    }
+                }
+            }
+
+            if (inst.potentialFuncts.Count == 1)
+            {
+                if (TryInference(this.session,
+                    new TypeFunct(inst.potentialFuncts[0]),
+                    ref routine.registers[inst.destination.registerIndex].type))
+                    this.appliedAnyRule = true;
+            }
+        }
 
 
         public static bool TryInference(Session session, Type typeFrom, ref Type typeTo)

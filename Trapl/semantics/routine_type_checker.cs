@@ -9,7 +9,7 @@ namespace Trapl.Semantics
         public static void Check(Infrastructure.Session session, Routine body)
         {
             var checker = new RoutineTypeChecker(session, body);
-            //checker.Check();
+            checker.Check();
         }
 
 
@@ -24,7 +24,7 @@ namespace Trapl.Semantics
         }
 
 
-        /*private void Check()
+        private void Check()
         {
             this.CheckUnresolvedRegisters();
 
@@ -32,25 +32,23 @@ namespace Trapl.Semantics
             {
                 foreach (var inst in segment.instructions)
                 {
-                    foreach (var operand in inst.EnumerateOperands())
-                        CheckOperand(operand);
+                    var instFromStorage = (inst as InstructionCopyFromStorage);
+                    if (instFromStorage != null)
+                        CheckInstructionCopyFromStorage(instFromStorage);
 
-                    var instCopy = (inst as InstructionCopy);
-                    if (instCopy != null)
-                        CheckInstructionCopy(instCopy);
+                    var instFromTuple = (inst as InstructionCopyFromTupleLiteral);
+                    if (instFromTuple != null)
+                        ;// CheckInstructionCopyFromTupleLiteral(instFromTuple);
+
+                    var instFromFunct = (inst as InstructionCopyFromFunct);
+                    if (instFromFunct != null)
+                        CheckInstructionCopyFromFunct(instFromFunct);
+
+                    var instFromCall = (inst as InstructionCopyFromCall);
+                    if (instFromCall != null)
+                        ;// CheckInstructionCopyFromCall(instFromCall);
                 }
             }
-        }
-
-
-        private void CheckOperand(SourceOperand operand)
-        {
-            foreach (var suboperand in operand.EnumerateSuboperands())
-                CheckOperand(suboperand);
-
-            var operandFunct = (operand as SourceOperandFunct);
-            if (operandFunct != null)
-                CheckOperandFunct(operandFunct);
         }
 
 
@@ -92,44 +90,44 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckOperandFunct(SourceOperandFunct operand)
+        private void CheckInstructionCopyFromFunct(InstructionCopyFromFunct inst)
         {
-            var count = operand.potentialFuncts.Count;
+            var count = inst.potentialFuncts.Count;
 
             if (count > 1)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
-                    "cannot infer which funct to use", operand.span);
+                    "cannot infer which funct to use", inst.span);
 
                 session.diagn.AddInnerToLast(MessageKind.Info, MessageCode.Info,
                     "ambiguous between the following" +
                     (count > 2 ? " and other " + (count - 2) : "") + ":",
-                    operand.potentialFuncts[0].name.span,
-                    operand.potentialFuncts[1].name.span);
+                    inst.potentialFuncts[0].name.span,
+                    inst.potentialFuncts[1].name.span);
             }
             else if (count == 0)
             {
                 session.diagn.Add(MessageKind.Error, MessageCode.InferenceFailed,
-                    "no matching funct", operand.span);
+                    "no matching funct", inst.span);
             }
         }
 
 
-        private void CheckInstructionCopy(InstructionCopy code)
+        private void CheckInstructionCopyFromStorage(InstructionCopyFromStorage inst)
         {
-            var typeDest = this.routine.registers[code.destination.registerIndex].type;
-            var typeSrc = code.source.GetOutputType(this.session, this.routine);
+            var typeDest = this.routine.registers[inst.destination.registerIndex].type;
+            var typeSrc = this.routine.registers[inst.source.registerIndex].type;
 
             if (DoesMismatch(typeDest, typeSrc))
             {
-                if (code.destination.registerIndex == 0)
+                if (inst.destination.registerIndex == 0)
                 {
                     session.diagn.Add(MessageKind.Error, MessageCode.IncompatibleTypes,
                         "returning '" +
                         typeSrc.GetString(session) + "' " +
                         "in funct returning '" +
                         typeDest.GetString(session) + "'",
-                        code.source.span);
+                        inst.source.span);
                 }
                 else
                 {
@@ -138,10 +136,10 @@ namespace Trapl.Semantics
                         typeSrc.GetString(session) + "' " +
                         "to '" +
                         typeDest.GetString(session) + "'",
-                        code.destination.span,
-                        code.source.span);
+                        inst.destination.span,
+                        inst.source.span);
                 }
             }
-        }*/
+        }
     }
 }
