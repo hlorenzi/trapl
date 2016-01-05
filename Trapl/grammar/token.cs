@@ -8,13 +8,13 @@ namespace Trapl.Grammar
     {
         Error,
         DoubleHash, HashColon, ColonHash,
-        Identifier, Number, NumberPrefix, NumberSuffix, BooleanTrue, BooleanFalse,
+        Identifier, Number, NumberPrefix, NumberSuffix, BooleanTrue, BooleanFalse, Placeholder,
         KeywordFn, KeywordStruct, KeywordTrait, KeywordGen,
         KeywordLet, KeywordIf, KeywordElse, KeywordWhile, KeywordReturn,
         BraceOpen, BraceClose, ParenOpen, ParenClose,
         Period, Comma, Colon, Semicolon, Arrow, DoubleColon, TriplePeriod,
         Equal, Plus, Minus, Asterisk, Slash, PercentSign,
-        Ampersand, VerticalBar, Circumflex, At,
+        Ampersand, VerticalBar, Circumflex, At, SingleQuote,
         DoubleEqual, ExclamationMark, ExclamationMarkEqual, QuestionMark,
         LessThan, LessThanEqual, GreaterThan, GreaterThanEqual
     }
@@ -44,9 +44,6 @@ namespace Trapl.Grammar
         {
             get
             {
-                if (index < 0)
-                    throw new IndexOutOfRangeException("index was negative");
-
                 if (index >= tokens.Count)
                     return tokenAfterEnd;
 
@@ -55,7 +52,7 @@ namespace Trapl.Grammar
         }
 
 
-        public void PrintDebug(Infrastructure.Unit src)
+        public void PrintDebug(Infrastructure.TextInput src)
         {
             foreach (var token in this.tokens)
             {

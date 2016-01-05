@@ -8,10 +8,18 @@ namespace Trapl
         static void Main(string[] args)
         {
             var session = new Infrastructure.Session();
-            session.AddUnit(Infrastructure.Unit.MakeFromFile("../../test.tr"));
-            session.Resolve();
-            session.PrintDefs();
-            session.diagn.PrintToConsole(session);
+            var input = Infrastructure.TextInput.MakeFromFile("../../test.tr");
+            var tokens = Grammar.Tokenizer.Tokenize(session, input);
+            var astParser = new Grammar.ASTParser(session, tokens);
+
+            try
+            {
+                var topLevelNode = astParser.ParseTopLevel();
+                topLevelNode.PrintDebugRecursive("");
+            }
+            catch (Infrastructure.CheckException) { }
+
+            session.PrintMessagesToConsole();
             Console.ReadKey();
         }
     }

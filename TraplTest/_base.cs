@@ -29,7 +29,7 @@ namespace TraplTest
         protected Trapl.Infrastructure.Session ParseTokens(string sourceStr)
         {
             var session = new Trapl.Infrastructure.Session();
-            Trapl.Grammar.Tokenizer.Tokenize(session, Trapl.Infrastructure.Unit.MakeFromString(sourceStr));
+            Trapl.Grammar.Tokenizer.Tokenize(session, Trapl.Infrastructure.TextInput.MakeFromString(sourceStr));
             return session;
         }
 
@@ -37,7 +37,7 @@ namespace TraplTest
         protected Trapl.Infrastructure.Session ParseGrammar(string sourceStr)
         {
             var session = new Trapl.Infrastructure.Session();
-            session.AddUnit(Trapl.Infrastructure.Unit.MakeFromString(sourceStr));
+            session.AddUnit(Trapl.Infrastructure.TextInput.MakeFromString(sourceStr));
             return session;
         }
 
@@ -45,7 +45,7 @@ namespace TraplTest
         protected Trapl.Infrastructure.Session Compile(string sourceStr)
         {
             var session = new Trapl.Infrastructure.Session();
-            session.AddUnit(Trapl.Infrastructure.Unit.MakeFromString(sourceStr));
+            session.AddUnit(Trapl.Infrastructure.TextInput.MakeFromString(sourceStr));
 
             if (session.diagn.ContainsErrors())
                 Assert.Inconclusive();

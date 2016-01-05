@@ -4,18 +4,19 @@ using System.IO;
 
 namespace Trapl.Infrastructure
 {
-    public class Unit
+    public class TextInput
     {
-        public static Unit MakeFromFile(string filepath)
+        public static TextInput MakeFromFile(string filepath)
         {
-            var src = new Unit();
+            var src = new TextInput();
             src.filepath = filepath;
             return src;
         }
 
-        public static Unit MakeFromString(string str)
+
+        public static TextInput MakeFromString(string str)
         {
-            var src = new Unit();
+            var src = new TextInput();
             src.stringContents = str;
             return src;
         }
@@ -26,7 +27,7 @@ namespace Trapl.Infrastructure
         private WeakReference<string> fileContents;
 
 
-        private Unit()
+        private TextInput()
         {
             this.stringContents = null;
             this.filepath = null;

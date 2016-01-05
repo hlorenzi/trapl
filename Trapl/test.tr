@@ -1,11 +1,22 @@
-fn test<Int>(z: Int) -> Bool
+struct Test
 {
-	let x = test;
-	let y = test(x);
+	x: Int,
+	y: &Engine::Lib::Test,
+	z: (Test, Global::Int),
+	w: &'test Float32
 }
 
 
-fn test<Bool>(x: Bool)
+fn test(x: Int, y: &'a MyModule::Test::Tester) -> (Int8, Int16)
 {
-
+	0x14_23u32;
+	(42);
+	-555;
+	!true;
+	false;
+	1 + 1;
+	2 * (3 - 4);
+	@123;
+	&(678);
+	{ true; 0b101 }
 }

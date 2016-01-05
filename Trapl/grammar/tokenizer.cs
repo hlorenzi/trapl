@@ -7,16 +7,16 @@ namespace Trapl.Grammar
 {
     public class Tokenizer
     {
-        public static TokenCollection Tokenize(Infrastructure.Session session, Infrastructure.Unit unit)
+        public static TokenCollection Tokenize(Infrastructure.Session session, Infrastructure.TextInput input)
         {
             var output = new TokenCollection();
 
             // Iterate through all characters in input.
             var index = 0;
-            while (index < unit.Length())
+            while (index < input.Length())
             {
                 // Skip whitespace.
-                if (IsWhitespace(unit[index]))
+                if (IsWhitespace(input[index]))
                 {
                     index++;
                     continue;
@@ -24,26 +24,21 @@ namespace Trapl.Grammar
 
                 // Match next characters to a token, and add it to the output.
                 var match =
-                    TryMatchModelToken(unit, index) ??
-                    TryMatchVaryingToken(unit, index) ??
-                    new TokenMatch(new string(unit[index], 1), TokenKind.Error);
+                    TryMatchModelToken(input, index) ??
+                    TryMatchVaryingToken(input, index) ??
+                    new TokenMatch(new string(input[index], 1), TokenKind.Error);
 
-                var span = new Span(unit, index, index + match.representation.Length);
+                var span = new Span(input, index, index + match.representation.Length);
 
                 // Signal errors.
                 if (match.kind == TokenKind.Error)
                 {
-                    session.diagn.Add(MessageKind.Error, MessageCode.UnexpectedChar, "unexpected character", span);
-                }
-                // Check number format correctness.
-                else if (match.kind == TokenKind.Number)
-                {
-                    CheckNumberValidity(session, match.representation, span);
+                    session.AddMessage(MessageKind.Error, MessageCode.UnexpectedChar, "unexpected character", span);
                 }
                 // Skip line comments.
                 else if (match.kind == TokenKind.DoubleHash)
                 {
-                    while (index < unit.Length() && unit[index] != '\n')
+                    while (index < input.Length() && input[index] != '\n')
                         index++;
                     continue;
                 }
@@ -53,16 +48,16 @@ namespace Trapl.Grammar
                     var nesting = 1;
                     index += 2;
 
-                    while (index < unit.Length() - 1)
+                    while (index < input.Length() - 1)
                     {
-                        if (unit[index] == ':' && unit[index + 1] == '#')
+                        if (input[index] == ':' && input[index + 1] == '#')
                         {
                             nesting--;
                             index += 2;
                             if (nesting == 0)
                                 break;
                         }
-                        else if (unit[index] == '#' && unit[index + 1] == ':')
+                        else if (input[index] == '#' && input[index + 1] == ':')
                         {
                             nesting++;
                             index += 2;
@@ -72,7 +67,7 @@ namespace Trapl.Grammar
                     }
 
                     if (nesting > 0)
-                        session.diagn.Add(MessageKind.Error, MessageCode.UnexpectedChar, "unterminated comment", span);
+                        session.AddMessage(MessageKind.Error, MessageCode.UnexpectedChar, "unterminated comment", span);
 
                     continue;
                 }
@@ -83,7 +78,7 @@ namespace Trapl.Grammar
             }
 
             output.tokenAfterEnd =
-                new Token(TokenKind.Error, new Diagnostics.Span(unit, index, index));
+                new Token(TokenKind.Error, new Diagnostics.Span(input, index, index));
 
             return output;
         }
@@ -103,7 +98,7 @@ namespace Trapl.Grammar
         }
 
 
-        private static TokenMatch TryMatchModelToken(Infrastructure.Unit unit, int index)
+        private static TokenMatch TryMatchModelToken(Infrastructure.TextInput unit, int index)
         {
             var models = new List<TokenMatch>
             {
@@ -138,7 +133,8 @@ namespace Trapl.Grammar
                 new TokenMatch("&", TokenKind.Ampersand),
                 new TokenMatch("|", TokenKind.VerticalBar),
                 new TokenMatch("^", TokenKind.Circumflex),
-                new TokenMatch("@", TokenKind.At)
+                new TokenMatch("@", TokenKind.At),
+                new TokenMatch("'", TokenKind.SingleQuote)
             };
 
             // Check all model tokens for matches to the next input.
@@ -170,7 +166,7 @@ namespace Trapl.Grammar
         }
 
 
-        private static TokenMatch TryMatchVaryingToken(Infrastructure.Unit unit, int index)
+        private static TokenMatch TryMatchVaryingToken(Infrastructure.TextInput unit, int index)
         {
             var keywords = new List<TokenMatch>
             {
@@ -184,7 +180,8 @@ namespace Trapl.Grammar
                 new TokenMatch("while", TokenKind.KeywordWhile),
                 new TokenMatch("return", TokenKind.KeywordReturn),
                 new TokenMatch("true", TokenKind.BooleanTrue),
-                new TokenMatch("false", TokenKind.BooleanFalse)
+                new TokenMatch("false", TokenKind.BooleanFalse),
+                new TokenMatch("_", TokenKind.Placeholder)
             };
 
 
@@ -224,18 +221,6 @@ namespace Trapl.Grammar
             }
 
             return null;
-        }
-
-
-        private static void CheckNumberValidity(Infrastructure.Session session, string numStr, Diagnostics.Span span)
-        {
-            string prefix, value, suffix;
-            Grammar.Number.GetParts(numStr, out prefix, out value, out suffix);
-            if (!Grammar.Number.Validate(prefix, value, suffix))
-            {
-                session.diagn.Add(MessageKind.Error, MessageCode.InvalidFormat,
-                    "invalid number", span);
-            }
         }
 
 

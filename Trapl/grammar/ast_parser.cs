@@ -7,67 +7,6 @@ namespace Trapl.Grammar
 {
     public class ASTParser
     {
-        public static List<ASTNode> Parse(Infrastructure.Session session, TokenCollection tokenColl)
-        {
-            var parser = new ASTParser(session, tokenColl);
-
-            try { parser.ParseTopLevel(); }
-            catch (ParserException) { }
-
-            return parser.topDeclNodes;
-        }
-
-        public static ASTNode ParseName(Infrastructure.Session session, TokenCollection tokenColl)
-        {
-            var parser = new ASTParser(session, tokenColl);
-            ASTNode result = null;
-
-            try { result = parser.ParseName(false); }
-            catch (ParserException) { }
-
-            return result;
-        }
-
-        public static ASTNode ParseTemplateList(Infrastructure.Session session, TokenCollection tokenColl)
-        {
-            var parser = new ASTParser(session, tokenColl);
-            ASTNode result = null;
-
-            try { result = parser.ParseTemplateList(); }
-            catch (ParserException) { }
-
-            return result;
-        }
-
-        public static ASTNode ParseType(Infrastructure.Session session, TokenCollection tokenColl)
-        {
-            var parser = new ASTParser(session, tokenColl);
-            ASTNode result = null;
-
-            try { result = parser.ParseType(); }
-            catch (ParserException) { }
-
-            return result;
-        }
-
-        public static ASTNode ParseFunctDecl(Infrastructure.Session session, TokenCollection tokenColl)
-        {
-            var parser = new ASTParser(session, tokenColl);
-            ASTNode result = null;
-
-            try { result = parser.ParseFunctDecl(true); }
-            catch (ParserException) { }
-
-            return result;
-        }
-
-
-        private class ParserException : Exception
-        {
-
-        }
-
-
         private int readhead;
         private TokenCollection tokenColl;
         private List<ASTNode> topDeclNodes;
@@ -75,9 +14,9 @@ namespace Trapl.Grammar
         private Stack<bool> insideCondition;
 
 
-        private ASTParser(Infrastructure.Session session, TokenCollection tokenColl)
+        public ASTParser(Infrastructure.Session session, TokenCollection tokenColl, int startToken = 0)
         {
-            this.readhead = 0;
+            this.readhead = startToken;
             this.tokenColl = tokenColl;
             this.topDeclNodes = new List<ASTNode>();
             this.session = session;
@@ -142,12 +81,12 @@ namespace Trapl.Grammar
         }
 
 
-        private Token Match(TokenKind tokenKind, MessageCode errCode, string errText)
+        private Token Match(TokenKind tokenKind, string errText)
         {
             if (this.Current().kind == tokenKind)
                 return this.Advance();
             else
-                throw this.FatalBefore(errCode, errText);
+                throw this.FatalBefore(MessageCode.Expected, errText);
         }
 
 
@@ -165,24 +104,28 @@ namespace Trapl.Grammar
         }
 
 
-        private ParserException FatalBefore(MessageCode errCode, string errText)
+        private Infrastructure.CheckException FatalAt(Span span, MessageCode errCode, string errText)
         {
-            this.session.diagn.Add(MessageKind.Error, errCode, errText, this.Current().span.JustBefore());
-            return new ParserException();
+            this.session.AddMessage(MessageKind.Error, errCode, errText, span);
+            return new Infrastructure.CheckException();
         }
 
 
-        private ParserException FatalCurrent(MessageCode errCode, string errText)
+        private Infrastructure.CheckException FatalBefore(MessageCode errCode, string errText)
         {
-            this.session.diagn.Add(MessageKind.Error, errCode, errText, this.Current().span);
-            return new ParserException();
+            return this.FatalAt(this.Current().span.JustBefore(), errCode, errText);
         }
 
 
-        private ParserException FatalAfterPrevious(MessageCode errCode, string errText)
+        private Infrastructure.CheckException FatalCurrent(MessageCode errCode, string errText)
         {
-            this.session.diagn.Add(MessageKind.Error, errCode, errText, this.Previous().span.JustAfter());
-            return new ParserException();
+            return this.FatalAt(this.Current().span, errCode, errText);
+        }
+
+
+        private Infrastructure.CheckException FatalAfterPrevious(MessageCode errCode, string errText)
+        {
+            return this.FatalAt(this.Previous().span.JustAfter(), errCode, errText);
         }
 
 
@@ -192,275 +135,190 @@ namespace Trapl.Grammar
         #region Parser Methods
 
 
-        private void ParseTopLevel()
+        public ASTNodeTopLevel ParseTopLevel()
         {
+            var topLevelNode = new ASTNodeTopLevel();
+            topLevelNode.SetSpan(this.Current().span);
+
             while (!this.IsOver())
             {
                 if (this.CurrentIs(TokenKind.KeywordFn))
-                    this.topDeclNodes.Add(this.ParseFunctDecl(true));
+                    topLevelNode.AddStatementNode(this.ParseFunctDecl(true));
 
                 else if (this.CurrentIs(TokenKind.KeywordStruct))
-                    this.topDeclNodes.Add(this.ParseStructDecl());
-
-                else if (this.CurrentIs(TokenKind.KeywordTrait))
-                    this.topDeclNodes.Add(this.ParseTraitDecl());
+                    topLevelNode.AddStatementNode(this.ParseDeclStruct());
 
                 else
                     throw this.FatalBefore(MessageCode.Expected, "expected 'struct', 'fn', or 'trait'");
             }
+
+            topLevelNode.AddSpan(this.Current().span);
+            return topLevelNode;
         }
 
 
-        private ASTNode ParseFunctDecl(bool withBody)
+        private ASTNodeDeclFunct ParseFunctDecl(bool withBody)
         {
-            var topNode = new ASTNode(ASTNodeKind.TopLevelDecl);
-            topNode.AddSpan(this.Current().span);
-            this.Match(TokenKind.KeywordFn, MessageCode.Expected, "expected 'fn'");
-            topNode.AddChild(this.ParseName(false));
+            var functNode = new ASTNodeDeclFunct();
+            functNode.SetSpan(this.Current().span);
 
-            var fnNode = new ASTNode(ASTNodeKind.FunctDecl);
-            fnNode.AddSpan(this.Current().span);
-            this.Match(TokenKind.ParenOpen, MessageCode.Expected, "expected '('");
+            this.Match(TokenKind.KeywordFn, "expected 'fn'");
+            functNode.SetNameNode(this.ParseName(false));
+
+            this.Match(TokenKind.ParenOpen, "expected '('");
             while (this.CurrentIsNot(TokenKind.ParenClose))
             {
-                var argNode = new ASTNode(ASTNodeKind.FunctArg);
-                argNode.AddChild(this.ParseName(false));
-                this.Match(TokenKind.Colon, MessageCode.Expected, "expected ':'");
-                argNode.AddChild(this.ParseType());
-                fnNode.AddChild(argNode);
+                var paramNode = new ASTNodeDeclFunctParam();
+                paramNode.SetNameNode(this.ParseName(false));
+                this.Match(TokenKind.Colon, "expected ':'");
+                paramNode.SetTypeNode(this.ParseType());
+                functNode.AddParameterNode(paramNode);
                 if (this.Current().kind == TokenKind.Comma)
                     this.Advance();
                 else if (this.Current().kind != TokenKind.ParenClose)
                     throw this.FatalAfterPrevious(MessageCode.Expected, "expected ',' or ')'");
             }
-            this.Match(TokenKind.ParenClose, MessageCode.Expected, "expected ')'");
+            this.Match(TokenKind.ParenClose, "expected ')'");
 
             if (this.CurrentIs(TokenKind.Arrow))
             {
                 this.Advance();
-                var retNode = new ASTNode(ASTNodeKind.FunctReturnType);
-                retNode.AddChild(this.ParseType());
-                fnNode.AddChild(retNode);
+                functNode.SetReturnTypeNode(this.ParseType());
             }
 
             if (withBody)
             {
-                var bodyNode = new ASTNode(ASTNodeKind.FunctBody);
-                bodyNode.AddChild(this.ParseBlock());
-                fnNode.AddChild(bodyNode);
+                functNode.SetBodyNode(this.ParseExprBlock());
             }
 
-            topNode.AddChild(fnNode);
-            return topNode;
+            return functNode;
         }
 
 
-        private ASTNode ParseStructDecl()
+        private ASTNodeDeclStruct ParseDeclStruct()
         {
-            var topNode = new ASTNode(ASTNodeKind.TopLevelDecl);
-            topNode.AddSpan(this.Current().span);
-            this.Match(TokenKind.KeywordStruct, MessageCode.Expected, "expected 'struct'");
-            topNode.AddChild(this.ParseName(false));
+            var structNode = new ASTNodeDeclStruct();
+            structNode.SetSpan(this.Current().span);
 
-            var structNode = new ASTNode(ASTNodeKind.StructDecl);
-            structNode.AddSpan(this.Current().span);
-            this.Match(TokenKind.BraceOpen, MessageCode.Expected, "expected '{'");
+            this.Match(TokenKind.KeywordStruct, "expected 'struct'");
+            structNode.SetNameNode(this.ParseName(false));
+
+            this.Match(TokenKind.BraceOpen, "expected '{'");
             while (this.CurrentIsNot(TokenKind.BraceClose))
             {
-                var memberNode = new ASTNode(ASTNodeKind.StructField);
-                memberNode.AddChild(this.ParseName(false));
-                this.Match(TokenKind.Colon, MessageCode.Expected, "expected ':'");
-                memberNode.AddChild(this.ParseType());
-                structNode.AddChild(memberNode);
-                this.MatchListSeparator(TokenKind.Comma, TokenKind.BraceClose,
+                var fieldNode = new ASTNodeDeclStructField();
+                fieldNode.SetSpan(this.Current().span);
+                fieldNode.SetNameNode(this.ParseName(false));
+                this.Match(TokenKind.Colon, "expected ':'");
+                fieldNode.SetTypeNode(this.ParseType());
+                structNode.AddFieldNode(fieldNode);
+
+                this.MatchListSeparator(
+                    TokenKind.Comma, TokenKind.BraceClose,
                     MessageCode.Expected, "expected ',' or '}'");
             }
             structNode.AddSpan(this.Current().span);
-            this.Match(TokenKind.BraceClose, MessageCode.Expected, "expected '}'");
+            this.Match(TokenKind.BraceClose, "expected '}'");
 
-            topNode.AddChild(structNode);
-            return topNode;
+            return structNode;
         }
 
 
-        private ASTNode ParseTraitDecl()
+        private ASTNodeName ParseName(bool needsExplicitParameterSeparator)
         {
-            var topNode = new ASTNode(ASTNodeKind.TopLevelDecl);
-            topNode.AddSpan(this.Current().span);
-            this.Match(TokenKind.KeywordTrait, MessageCode.Expected, "expected 'trait'");
-            topNode.AddChild(this.ParseName(false));
+            var nameNode = new ASTNodeName();
+            nameNode.SetSpan(this.Current().span);
 
-            var traitNode = new ASTNode(ASTNodeKind.TraitDecl);
-            traitNode.AddSpan(this.Current().span);
-            this.Match(TokenKind.BraceOpen, MessageCode.Expected, "expected '{'");
-            while (this.CurrentIsNot(TokenKind.BraceClose))
-            {
-                var fnNode = this.ParseFunctDecl(false);
-                fnNode.kind = ASTNodeKind.TraitFn;
-                traitNode.AddChild(fnNode);
-
-                this.MatchListSeparator(TokenKind.Comma, TokenKind.BraceClose,
-                    MessageCode.Expected, "expected ',' or '}'");
-            }
-            traitNode.AddSpan(this.Current().span);
-            this.Match(TokenKind.BraceClose, MessageCode.Expected, "expected '}'");
-
-            topNode.AddChild(traitNode);
-            return topNode;
-        }
-
-
-        private ASTNode ParseName(bool explicitPattern)
-        {
-            var node = new ASTNode(ASTNodeKind.Name);
-            node.AddChild(this.ParsePath());
-
-            if ((!explicitPattern && this.CurrentIs(TokenKind.LessThan)) ||
-                (this.CurrentIs(TokenKind.DoubleColon) && this.NextIs(TokenKind.LessThan)))
-            {
-                if (this.CurrentIs(TokenKind.DoubleColon))
-                    this.Advance();
-
-                node.AddChild(this.ParseTemplateList());
-            }
-
-            return node;
-        }
-
-
-        private ASTNode ParsePath()
-        {
-            var node = new ASTNode(ASTNodeKind.Path);
-            node.AddChild(ParseIdentifier());
+            var pathNode = new ASTNodePath();
+            pathNode.SetSpan(this.Current().span);
+            pathNode.AddIdentifierNode(this.ParseIdentifier());
             while (this.CurrentIs(TokenKind.DoubleColon) && this.NextIs(TokenKind.Identifier))
             {
                 this.Advance();
-                node.AddChild(ParseIdentifier());
+                pathNode.AddIdentifierNode(this.ParseIdentifier());
             }
+            nameNode.SetPathNode(pathNode);
+
+            return nameNode;
+        }
+
+
+        public ASTNodeIdentifier ParseIdentifier()
+        {
+            var node = new ASTNodeIdentifier();
+            node.SetSpan(this.Current().span);
+            this.Match(TokenKind.Identifier, "expected identifier");
             return node;
         }
 
 
-        private ASTNode ParseIdentifier()
+        public ASTNodeType ParseType()
         {
-            return new ASTNode(ASTNodeKind.Identifier,
-                this.Match(TokenKind.Identifier, MessageCode.Expected, "expected identifier").span);
-        }
-
-
-        public ASTNode ParseTemplateList()
-        {
-            var node = new ASTNode(ASTNodeKind.TemplateList);
-            node.AddSpan(this.Current().span);
-            this.Match(TokenKind.LessThan, MessageCode.Expected, "expected '<'");
-            while (this.CurrentIsNot(TokenKind.GreaterThan))
+            // Parse a reference type.
+            if (this.CurrentIs(TokenKind.Ampersand))
             {
-                node.AddChild(this.ParseTemplateParameter());
-
-                if (this.CurrentIs(TokenKind.TriplePeriod))
-                {
-                    this.Advance();
-                    this.MatchListSeparator(TokenKind.Comma, TokenKind.GreaterThan,
-                        MessageCode.Expected, "expected ',' or '>'");
-                    node.kind = ASTNodeKind.TemplateVariadicList;
-                    break;
-                }
-                else
-                    this.MatchListSeparator(TokenKind.Comma, TokenKind.GreaterThan,
-                        MessageCode.Expected, "expected ',' or '>'");
-            }
-            node.AddSpan(this.Current().span);
-            this.Match(TokenKind.GreaterThan, MessageCode.Expected, "expected '>'");
-            return node;
-        }
-
-
-        public ASTNode ParseTemplateParameter()
-        {
-            var node = new ASTNode(ASTNodeKind.TemplateParameter);
-            node.AddChild(this.ParseType());
-            return node;
-        }
-
-
-        private ASTNode ParseType()
-        {
-            var node = new ASTNode(ASTNodeKind.Type);
-            node.AddSpan(this.Current().span);
-
-            if (this.CurrentIs(TokenKind.KeywordGen))
-            {
-                node.kind = ASTNodeKind.GenericTypeParameter;
+                var refTypeNode = new ASTNodeTypeReference();
+                refTypeNode.SetSpan(this.Current().span);
                 this.Advance();
+                if (this.CurrentIs(TokenKind.SingleQuote))
+                    refTypeNode.SetLifetimeNode(this.ParseLifetime());
+                refTypeNode.SetReferencedNode(this.ParseType());
+                return refTypeNode;
             }
-
-            var modifierNodes = new List<ASTNode>();
-
-            while (this.CurrentIs(TokenKind.Ampersand))
-            {
-                modifierNodes.Add(new ASTNode(ASTNodeKind.Operator, this.Advance().span));
-            }
-
             // Parse a tuple type.
-            if (this.CurrentIs(TokenKind.ParenOpen))
+            else if (this.CurrentIs(TokenKind.ParenOpen))
             {
-                node.kind = ASTNodeKind.TupleType;
+                var tupleTypeNode = new ASTNodeTypeTuple();
+                tupleTypeNode.SetSpan(this.Current().span);
                 this.Advance();
                 while (this.CurrentIsNot(TokenKind.ParenClose))
                 {
-                    node.AddChild(this.ParseType());
-                    this.MatchListSeparator(TokenKind.Comma, TokenKind.ParenClose, MessageCode.Expected, "expected ',' or ')'");
+                    tupleTypeNode.AddElementNode(this.ParseType());
+                    this.MatchListSeparator(
+                        TokenKind.Comma, TokenKind.ParenClose,
+                        MessageCode.Expected, "expected ',' or ')'");
                 }
-                node.AddSpan(this.Current().span);
-                this.Match(TokenKind.ParenClose, MessageCode.Expected, "expected ')'");
+                tupleTypeNode.AddSpan(this.Current().span);
+                this.Match(TokenKind.ParenClose, "expected ')'");
+                return tupleTypeNode;
             }
             // Parse a struct type.
             else
             {
-                node.AddChild(this.ParseName(false));
-
-                foreach (var mod in modifierNodes)
-                    node.AddChild(mod);
+                var structTypeNode = new ASTNodeTypeStruct();
+                structTypeNode.SetSpan(this.Current().span);
+                structTypeNode.SetNameNode(this.ParseName(false));
+                return structTypeNode;
             }
-
-            return node;
         }
 
 
-        private ASTNode ParseBooleanLiteral()
+        public ASTNodeLifetime ParseLifetime()
         {
-            var token = this.Advance();
-            return new ASTNode(ASTNodeKind.BooleanLiteral, token.span);
-        }
+            var span = this.Current().span;
+            this.Match(TokenKind.SingleQuote, "expected single quote");
 
-
-        private ASTNode ParseNumberLiteral()
-        {
-            var token = this.Match(TokenKind.Number, MessageCode.Expected, "expected number");
-            return new ASTNode(ASTNodeKind.NumberLiteral, token.span);
-        }
-
-
-        private ASTNode ParseBlock()
-        {
-            var node = new ASTNode(ASTNodeKind.Block);
-            node.AddSpan(this.Current().span);
-            this.Match(TokenKind.BraceOpen, MessageCode.Expected, "expected '{'");
-            while (this.CurrentIsNot(TokenKind.BraceClose))
+            if (this.CurrentIs(TokenKind.Placeholder))
             {
-                node.AddChild(ParseExpression());
-                this.MatchListSeparator(TokenKind.Semicolon, TokenKind.BraceClose,
-                    MessageCode.Expected, "expected ';' or '}'");
+                var lifetimeNode = new ASTNodePlaceholderLifetime();
+                lifetimeNode.SetSpan(span);
+                lifetimeNode.AddSpan(this.Current().span);
+                this.Advance();
+                return lifetimeNode;
             }
-            node.AddSpan(this.Current().span);
-            this.Match(TokenKind.BraceClose, MessageCode.Expected, "expected '}'");
-            return node;
+            else
+            {
+                var lifetimeNode = new ASTNodeConcreteLifetime();
+                lifetimeNode.SetSpan(span);
+                lifetimeNode.SetIdentifierNode(this.ParseIdentifier());
+                return lifetimeNode;
+            }
         }
 
 
-        private ASTNode ParseExpression()
+        private ASTNodeExpr ParseExpr()
         {
-            if (this.CurrentIs(TokenKind.KeywordLet))
+            /*if (this.CurrentIs(TokenKind.KeywordLet))
                 return this.ParseLetExpression();
             else if (this.CurrentIs(TokenKind.KeywordIf))
                 return this.ParseIfExpression();
@@ -470,12 +328,12 @@ namespace Trapl.Grammar
                 return this.ParseWhileExpression();
             else if (this.CurrentIs(TokenKind.KeywordReturn))
                 return this.ParseReturnExpression();
-            else
+            else*/
                 return this.ParseBinaryOp(0);
         }
 
 
-        private ASTNode ParseLetExpression()
+        /*private ASTNode ParseLetExpression()
         {
             var node = new ASTNode(ASTNodeKind.ControlLet);
             node.AddSpan(this.Current().span);
@@ -538,7 +396,7 @@ namespace Trapl.Grammar
                 node.AddChild(this.ParseExpression());
             }
             return node;
-        }
+        }*/
 
 
         private class OperatorModel
@@ -599,11 +457,35 @@ namespace Trapl.Grammar
         };
 
 
-        private ASTNode ParseBinaryOp(int level)
+        private static readonly Dictionary<TokenKind, ASTNodeExprUnaryOp.Operator> unaryOperators =
+            new Dictionary<TokenKind, ASTNodeExprUnaryOp.Operator>()
+            {
+                { TokenKind.Minus, ASTNodeExprUnaryOp.Operator.Minus },
+                { TokenKind.ExclamationMark, ASTNodeExprUnaryOp.Operator.Exclamation },
+                { TokenKind.At, ASTNodeExprUnaryOp.Operator.At },
+                { TokenKind.Ampersand, ASTNodeExprUnaryOp.Operator.Ampersand },
+            };
+
+
+        private static readonly Dictionary<TokenKind, ASTNodeExprBinaryOp.Operator> binaryOperators =
+            new Dictionary<TokenKind, ASTNodeExprBinaryOp.Operator>()
+            {
+                { TokenKind.Equal, ASTNodeExprBinaryOp.Operator.Equal },
+                { TokenKind.Plus, ASTNodeExprBinaryOp.Operator.Plus },
+                { TokenKind.Minus, ASTNodeExprBinaryOp.Operator.Minus },
+                { TokenKind.Asterisk, ASTNodeExprBinaryOp.Operator.Asterisk },
+                { TokenKind.Slash, ASTNodeExprBinaryOp.Operator.Slash },
+                { TokenKind.Ampersand, ASTNodeExprBinaryOp.Operator.Ampersand },
+                { TokenKind.VerticalBar, ASTNodeExprBinaryOp.Operator.VerticalBar },
+                { TokenKind.Circumflex, ASTNodeExprBinaryOp.Operator.Circumflex },
+            };
+
+
+        private ASTNodeExpr ParseBinaryOp(int level)
         {
             // If reached the end of operators list, continue parsing inner expressions.
             if (level >= opList.GetLength(0))
-                return this.ParseCallExpression();
+                return this.ParseExprLeaf();
 
             // Try to find a unary operator that matches the current token.
             var unaryMatch = opList[level].Find(
@@ -613,14 +495,15 @@ namespace Trapl.Grammar
             if (unaryMatch != null)
             {
                 // Prepare the unary node.
-                var node = new ASTNode(ASTNodeKind.UnaryOp);
-                node.AddChild(new ASTNode(ASTNodeKind.Operator, this.Current().span));
+                var unaryOpNode = new ASTNodeExprUnaryOp();
+                unaryOpNode.SetSpan(this.Current().span);
+                unaryOpNode.SetOperator(unaryOperators[this.Current().kind]);
                 this.Advance();
 
                 // Parse the unary operand.
-                node.AddChild(this.ParseBinaryOp(level));
+                unaryOpNode.SetOperandNode(this.ParseBinaryOp(level));
 
-                return node;
+                return unaryOpNode;
             }
 
             // If no unary operator matched, parse the left-hand side of a binary expression.
@@ -629,7 +512,7 @@ namespace Trapl.Grammar
             // Infinite loop for left associativity.
             while (true)
             {
-                var node = new ASTNode(ASTNodeKind.BinaryOp);
+                var binaryOpNode = new ASTNodeExprBinaryOp();
 
                 // Find a binary operator that matches the current token.
                 var binaryMatch = opList[level].Find(
@@ -640,31 +523,31 @@ namespace Trapl.Grammar
                 if (binaryMatch == null)
                     return lhsNode;
 
-                node.AddChild(new ASTNode(ASTNodeKind.Operator, this.Current().span));
+                binaryOpNode.SetOperator(binaryOperators[this.Current().kind]);
                 this.Advance();
 
                 // Parse right-hand side. 
-                ASTNode rhsNode;
+                ASTNodeExpr rhsNode;
                 if (binaryMatch.associativity == OperatorModel.Associativity.Right)
-                    rhsNode = this.ParseExpression();
+                    rhsNode = this.ParseExpr();
                 else
                     rhsNode = this.ParseBinaryOp(level + 1);
 
-                node.AddChild(lhsNode);
-                node.AddChild(rhsNode);
+                binaryOpNode.SetLeftOperandNode(lhsNode);
+                binaryOpNode.SetRightOperandNode(rhsNode);
 
                 // In a right-associative operator, return the current binary op node.
                 if (binaryMatch.associativity == OperatorModel.Associativity.Right)
-                    return node;
+                    return binaryOpNode;
 
                 // In a left-associative operator, set the current binary op node
                 // as the left-hand side for the next iteration.
-                lhsNode = node;
+                lhsNode = binaryOpNode;
             }
         }
 
 
-        private ASTNode ParseCallExpression()
+        /*private ASTNode ParseCallExpression()
         {
             var targetNode = this.ParseStructLiteral();
             if (this.CurrentIsNot(TokenKind.ParenOpen))
@@ -720,31 +603,83 @@ namespace Trapl.Grammar
             this.Match(TokenKind.BraceClose, MessageCode.Expected, "expected '}'");
 
             return node;
+        }*/
+
+
+        private ASTNodeExpr ParseExprLeaf()
+        {
+            if (this.CurrentIs(TokenKind.BraceOpen))
+                return this.ParseExprBlock();
+            else if (this.CurrentIs(TokenKind.ParenOpen))
+                return this.ParseExprParenthesized();
+            else if (this.CurrentIs(TokenKind.Number))
+                return this.ParseExprLiteralInt();
+            else if (this.CurrentIs(TokenKind.BooleanTrue) || this.CurrentIs(TokenKind.BooleanFalse))
+                return this.ParseExprLiteralBool();
+            /*else if (this.CurrentIs(TokenKind.Identifier))
+                return this.ParseName(true);*/
+            else
+                throw this.FatalBefore(MessageCode.Expected, "expected expression");
         }
 
 
-        private ASTNode ParseLeafExpression()
+        private ASTNodeExprBlock ParseExprBlock()
         {
-            if (this.CurrentIs(TokenKind.Identifier))
-                return this.ParseName(true);
-            else if (this.CurrentIs(TokenKind.Number))
-                return this.ParseNumberLiteral();
-            else if (this.CurrentIs(TokenKind.BooleanTrue) || this.CurrentIs(TokenKind.BooleanFalse))
-                return this.ParseBooleanLiteral();
-            else if (this.CurrentIs(TokenKind.BraceOpen))
-                return this.ParseBlock();
-            else if (this.CurrentIs(TokenKind.ParenOpen))
+            var blockNode = new ASTNodeExprBlock();
+            blockNode.SetSpan(this.Match(TokenKind.BraceOpen, "expected '{'").span);
+            while (this.CurrentIsNot(TokenKind.BraceClose))
             {
-                var parenOpenSpan = this.Advance().span;
-                this.insideCondition.Push(false);
-                var node = this.ParseExpression();
-                this.insideCondition.Pop();
-                node.AddSpan(parenOpenSpan.Merge(this.Current().span));
-                this.Match(TokenKind.ParenClose, MessageCode.Expected, "expected ')'");
-                return node;
+                blockNode.AddSubexpressionNode(this.ParseExpr());
+                this.MatchListSeparator(TokenKind.Semicolon, TokenKind.BraceClose,
+                    MessageCode.Expected, "expected ';' or '}'");
             }
-            else
-                throw this.FatalBefore(MessageCode.Expected, "expected expression");
+            blockNode.AddSpan(this.Match(TokenKind.BraceClose, "expected '}'").span);
+            return blockNode;
+        }
+
+
+        private ASTNodeExprParenthesized ParseExprParenthesized()
+        {
+            var parenNode = new ASTNodeExprParenthesized();
+            parenNode.SetSpan(this.Match(TokenKind.ParenOpen, "expected '('").span);
+            this.insideCondition.Push(false);
+            parenNode.SetInnerExpressionNode(this.ParseExpr());
+            this.insideCondition.Pop();
+            parenNode.AddSpan(this.Match(TokenKind.ParenClose, "expected ')'").span);
+            return parenNode;
+        }
+
+
+        private ASTNodeExprLiteralBool ParseExprLiteralBool()
+        {
+            if (!this.CurrentIs(TokenKind.BooleanFalse) &&
+                !this.CurrentIs(TokenKind.BooleanTrue))
+                throw this.FatalBefore(MessageCode.Expected, "expected boolean literal");
+
+            var token = this.Advance();
+            var boolNode = new ASTNodeExprLiteralBool();
+            boolNode.SetSpan(token.span);
+            boolNode.SetValue(token.kind == TokenKind.BooleanTrue);
+            return boolNode;
+        }
+
+
+        private ASTNodeExprLiteralInt ParseExprLiteralInt()
+        {
+            var token = this.Match(TokenKind.Number, "expected integer literal");
+
+            int radix;
+            string value;
+            Integer.Type type;
+            if (!Integer.Parse(token.span.GetExcerpt(), out radix, out value, out type))
+                throw this.FatalAt(token.span, MessageCode.InvalidFormat, "invalid integer");
+
+            var intNode = new ASTNodeExprLiteralInt();
+            intNode.SetSpan(token.span);
+            intNode.SetRadix(radix);
+            intNode.SetValue(value);
+            intNode.SetType(type);
+            return intNode;
         }
 
         #endregion
