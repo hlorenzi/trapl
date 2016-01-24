@@ -9,14 +9,16 @@ struct Test
 
 fn test(x: Int, y: &'a MyModule::Test::Tester) -> (Int8, Int16)
 {
-	0x14_23u32;
-	(42);
-	-555;
-	!true;
-	false;
-	1 + 1;
-	2 * (3 - 4);
-	@123;
-	&(678);
-	{ true; 0b101 }
+	x;
+	let z;
+	let z: Int;
+	let z = 0;
+	let z: Int = 0;
+	let _;
+	let _: Float32;
+	let _ = 0;
+	let _: Float32 = 0;
+
+	while x	{ do() };
+	return w;
 }

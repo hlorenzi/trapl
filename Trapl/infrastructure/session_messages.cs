@@ -3,7 +3,7 @@
 
 namespace Trapl.Infrastructure
 {
-    public class Session
+    public partial class Session
     {
         public List<Diagnostics.Message> messages = new List<Diagnostics.Message>();
 

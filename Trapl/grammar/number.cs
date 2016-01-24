@@ -5,7 +5,7 @@ namespace Trapl.Grammar
     {
         public enum Type
         {
-            None, Error,
+            None,
             Int, Int8, Int16, Int32, Int64,
             UInt, UInt8, UInt16, UInt32, UInt64
         }
