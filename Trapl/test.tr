@@ -1,13 +1,43 @@
-struct Test
+Baz: struct { }
+Foo::{ Baz: struct { } }
+Foo::Bar::{ Baz: struct { } }
+
+Test1: struct
 {
-	x: Int,
-	y: &Engine::Lib::Test,
-	z: (Test, Global::Int),
-	w: &'test Float32
+	a: Baz,
+	b: Foo::Baz,
+	c: Foo::Bar::Baz,
+	d: Bar::Baz
+}
+
+Test2: struct
+{
+	use Foo::_;
+
+	a: Baz,
+	b: Foo::Baz,
+	c: Foo::Bar::Baz,
+	d: Bar::Baz
+}
+
+Test3: struct
+{
+	use Foo::_;
+	use Foo::Bar::_;
+
+	a: Baz,
+	b: Foo::Baz,
+	c: Foo::Bar::Baz,
+	d: Bar::Baz,
+	e: Bar,
+	f: _::Baz,
+	g: _::Foo::Baz,
+	h: _::Foo::Bar::Baz,
+	i: _::Foo
 }
 
 
-fn test(x: Int, y: &'a MyModule::Test::Tester) -> (Int8, Int16)
+test: fn(x: Baz, y: _::Foo::Baz) -> (_::Baz, Foo::Bar::Baz)
 {
 	x;
 	let z;

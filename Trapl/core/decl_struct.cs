@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 
-namespace Trapl.Infrastructure
+namespace Trapl.Core
 {
     public class DeclStruct
     {

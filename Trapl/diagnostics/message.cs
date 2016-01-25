@@ -20,17 +20,10 @@ namespace Trapl.Diagnostics
         Expected,
         UnmatchedElse,
 
-        DuplicateDecl,
-        StructRecursion,
-
-        UndeclaredIdentifier,
-        UndeclaredTemplate,
-        WrongTopDeclKind,
-        InferenceFailed,
-        IncompatibleTypes,
-        CannotAddress,
-        CannotDereference,
-        CannotAccess
+        Undeclared,
+        DuplicateDeclaration,
+        AmbiguousDeclaration,
+        WrongDeclarationKind
     }
 
 
@@ -86,7 +79,7 @@ namespace Trapl.Diagnostics
         }
 
 
-        public void PrintToConsole(Infrastructure.Session session)
+        public void PrintToConsole(Core.Session session)
         {
             PrintContext();
             PrintMessage();

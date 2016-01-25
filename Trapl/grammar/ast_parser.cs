@@ -10,11 +10,11 @@ namespace Trapl.Grammar
         private int readhead;
         private TokenCollection tokenColl;
         private List<ASTNode> topDeclNodes;
-        private Infrastructure.Session session;
+        private Core.Session session;
         private Stack<bool> insideCondition;
 
 
-        public ASTParser(Infrastructure.Session session, TokenCollection tokenColl, int startToken = 0)
+        public ASTParser(Core.Session session, TokenCollection tokenColl, int startToken = 0)
         {
             this.readhead = startToken;
             this.tokenColl = tokenColl;
@@ -22,6 +22,20 @@ namespace Trapl.Grammar
             this.session = session;
             this.insideCondition = new Stack<bool>();
             this.insideCondition.Push(false);
+        }
+
+
+        public static ASTNodeTopLevel Parse(Core.Session session, TokenCollection tokenColl)
+        {
+            try
+            {
+                var astParser = new ASTParser(session, tokenColl);
+                return astParser.ParseTopLevel();
+            }
+            catch (Core.CheckException)
+            {
+                return null;
+            }
         }
 
 
@@ -104,26 +118,26 @@ namespace Trapl.Grammar
         }
 
 
-        private Infrastructure.CheckException FatalAt(Span span, MessageCode errCode, string errText)
+        private Core.CheckException FatalAt(Span span, MessageCode errCode, string errText)
         {
             this.session.AddMessage(MessageKind.Error, errCode, errText, span);
-            return new Infrastructure.CheckException();
+            return new Core.CheckException();
         }
 
 
-        private Infrastructure.CheckException FatalBefore(MessageCode errCode, string errText)
+        private Core.CheckException FatalBefore(MessageCode errCode, string errText)
         {
             return this.FatalAt(this.Current().span.JustBefore(), errCode, errText);
         }
 
 
-        private Infrastructure.CheckException FatalCurrent(MessageCode errCode, string errText)
+        private Core.CheckException FatalCurrent(MessageCode errCode, string errText)
         {
             return this.FatalAt(this.Current().span, errCode, errText);
         }
 
 
-        private Infrastructure.CheckException FatalAfterPrevious(MessageCode errCode, string errText)
+        private Core.CheckException FatalAfterPrevious(MessageCode errCode, string errText)
         {
             return this.FatalAt(this.Previous().span.JustAfter(), errCode, errText);
         }
@@ -140,36 +154,171 @@ namespace Trapl.Grammar
             var topLevelNode = new ASTNodeTopLevel();
             topLevelNode.SetSpan(this.Current().span);
 
-            while (!this.IsOver())
-            {
-                if (this.CurrentIs(TokenKind.KeywordFn))
-                    topLevelNode.AddStatementNode(this.ParseFunctDecl(true));
+            ASTNodeUse nextUseDirective;
+            while (this.ParseNextUseDirective(out nextUseDirective))
+                topLevelNode.AddUseNode(nextUseDirective);
 
-                else if (this.CurrentIs(TokenKind.KeywordStruct))
-                    topLevelNode.AddStatementNode(this.ParseDeclStruct());
-
-                else
-                    throw this.FatalBefore(MessageCode.Expected, "expected 'struct', 'fn', or 'trait'");
-            }
+            ASTNode nextDecl;
+            while (this.ParseNextDecl(out nextDecl))
+                topLevelNode.AddDeclNode(nextDecl);
 
             topLevelNode.AddSpan(this.Current().span);
             return topLevelNode;
         }
 
 
-        public ASTNodeDeclFunct ParseFunctDecl(bool withBody)
+        public bool ParseNextUseDirective(out ASTNodeUse useDirective)
+        {
+            useDirective = null;
+
+            if (this.IsOver())
+                return false;
+
+            if (this.CurrentIs(TokenKind.BraceClose))
+                return false;
+
+            if (this.CurrentIs(TokenKind.KeywordUse))
+            {
+                useDirective = this.ParseUseDirective();
+                this.Match(TokenKind.Semicolon, "expected ';'");
+                return true;
+            }
+
+            return false;
+        }
+
+
+        public bool ParseNextDecl(out ASTNode decl)
+        {
+            decl = null;
+
+            if (this.IsOver())
+                return false;
+
+            if (this.CurrentIs(TokenKind.BraceClose))
+                return false;
+
+            var declName = this.ParseName(false, false);
+            if (this.CurrentIs(TokenKind.DoubleColon) && this.NextIs(TokenKind.BraceOpen))
+            {
+                this.Advance();
+                var namespaceNode = new ASTNodeDeclNamespace();
+                namespaceNode.SetPathNode(declName.path);
+
+                this.Match(TokenKind.BraceOpen, "expected '{'");
+
+                ASTNodeUse nextUseDirective;
+                while (this.ParseNextUseDirective(out nextUseDirective))
+                    namespaceNode.AddUseNode(nextUseDirective);
+
+                ASTNode nextDecl;
+                while (this.ParseNextDecl(out nextDecl))
+                    namespaceNode.AddInnerNode(nextDecl);
+
+                this.Match(TokenKind.BraceClose, "expected '}'");
+
+                decl = namespaceNode;
+                return true;
+            }
+            else
+            {
+                this.Match(TokenKind.Colon, "expected ':'");
+
+                if (this.CurrentIs(TokenKind.KeywordFn))
+                {
+                    var fnNode = this.ParseDeclFunct(true);
+                    fnNode.SetNameNode(declName);
+                    decl = fnNode;
+                    return true;
+                }
+
+                else if (this.CurrentIs(TokenKind.KeywordStruct))
+                {
+                    var stNode = this.ParseDeclStruct();
+                    stNode.SetNameNode(declName);
+                    decl = stNode;
+                    return true;
+                }
+
+                else
+                    throw this.FatalBefore(MessageCode.Expected, "expected 'struct' or 'fn'");
+            }
+        }
+
+
+        public ASTNodeUse ParseUseDirective()
+        {
+            var useSpan = this.Current().span;
+            this.Match(TokenKind.KeywordUse, "expected 'use'");
+
+            var pathNode = new ASTNodePath();
+            pathNode.SetSpan(this.Current().span);
+            pathNode.AddIdentifierNode(this.ParseIdentifier());
+            while (this.CurrentIs(TokenKind.DoubleColon) && this.NextIs(TokenKind.Identifier))
+            {
+                this.Advance();
+                pathNode.AddIdentifierNode(this.ParseIdentifier());
+            }
+
+            if (this.CurrentIs(TokenKind.DoubleColon) && this.NextIs(TokenKind.Placeholder))
+            {
+                this.Advance();
+                this.Advance();
+
+                var useNode = new ASTNodeUseAll();
+                useNode.SetSpan(useSpan);
+                useNode.SetPathNode(pathNode);
+                return useNode;
+            }
+            else
+                throw new NotImplementedException();
+        }
+
+
+        public ASTNodeDeclStruct ParseDeclStruct()
+        {
+            var structNode = new ASTNodeDeclStruct();
+            structNode.SetSpan(this.Current().span);
+
+            this.Match(TokenKind.KeywordStruct, "expected 'struct'");
+            this.Match(TokenKind.BraceOpen, "expected '{'");
+
+            ASTNodeUse nextUseDirective;
+            while (this.ParseNextUseDirective(out nextUseDirective))
+                structNode.AddUseNode(nextUseDirective);
+
+            while (this.CurrentIsNot(TokenKind.BraceClose))
+            {
+                var fieldNode = new ASTNodeDeclStructField();
+                fieldNode.SetSpan(this.Current().span);
+                fieldNode.SetNameNode(this.ParseName(false, true));
+                this.Match(TokenKind.Colon, "expected ':'");
+                fieldNode.SetTypeNode(this.ParseType());
+                structNode.AddFieldNode(fieldNode);
+
+                this.MatchListSeparator(
+                    TokenKind.Comma, TokenKind.BraceClose,
+                    MessageCode.Expected, "expected ',' or '}'");
+            }
+            structNode.AddSpan(this.Current().span);
+            this.Match(TokenKind.BraceClose, "expected '}'");
+
+            return structNode;
+        }
+
+
+        public ASTNodeDeclFunct ParseDeclFunct(bool withBody)
         {
             var functNode = new ASTNodeDeclFunct();
             functNode.SetSpan(this.Current().span);
 
             this.Match(TokenKind.KeywordFn, "expected 'fn'");
-            functNode.SetNameNode(this.ParseName(false));
 
             this.Match(TokenKind.ParenOpen, "expected '('");
             while (this.CurrentIsNot(TokenKind.ParenClose))
             {
                 var paramNode = new ASTNodeDeclFunctParam();
-                paramNode.SetNameNode(this.ParseName(false));
+                paramNode.SetNameNode(this.ParseName(false, true));
                 this.Match(TokenKind.Colon, "expected ':'");
                 paramNode.SetTypeNode(this.ParseType());
                 functNode.AddParameterNode(paramNode);
@@ -195,43 +344,23 @@ namespace Trapl.Grammar
         }
 
 
-        public ASTNodeDeclStruct ParseDeclStruct()
-        {
-            var structNode = new ASTNodeDeclStruct();
-            structNode.SetSpan(this.Current().span);
-
-            this.Match(TokenKind.KeywordStruct, "expected 'struct'");
-            structNode.SetNameNode(this.ParseName(false));
-
-            this.Match(TokenKind.BraceOpen, "expected '{'");
-            while (this.CurrentIsNot(TokenKind.BraceClose))
-            {
-                var fieldNode = new ASTNodeDeclStructField();
-                fieldNode.SetSpan(this.Current().span);
-                fieldNode.SetNameNode(this.ParseName(false));
-                this.Match(TokenKind.Colon, "expected ':'");
-                fieldNode.SetTypeNode(this.ParseType());
-                structNode.AddFieldNode(fieldNode);
-
-                this.MatchListSeparator(
-                    TokenKind.Comma, TokenKind.BraceClose,
-                    MessageCode.Expected, "expected ',' or '}'");
-            }
-            structNode.AddSpan(this.Current().span);
-            this.Match(TokenKind.BraceClose, "expected '}'");
-
-            return structNode;
-        }
-
-
-        public ASTNodeName ParseName(bool needsExplicitParameterSeparator)
+        public ASTNodeName ParseName(bool needsExplicitParameterSeparator, bool canBeRooted)
         {
             var nameNode = new ASTNodeName();
             nameNode.SetSpan(this.Current().span);
 
             var pathNode = new ASTNodePath();
             pathNode.SetSpan(this.Current().span);
+
+            if (canBeRooted && this.CurrentIs(TokenKind.Placeholder))
+            {
+                this.Advance();
+                pathNode.SetRooted(true);
+                this.Match(TokenKind.DoubleColon, "expected '::'");
+            }
+
             pathNode.AddIdentifierNode(this.ParseIdentifier());
+
             while (this.CurrentIs(TokenKind.DoubleColon) && this.NextIs(TokenKind.Identifier))
             {
                 this.Advance();
@@ -287,7 +416,7 @@ namespace Trapl.Grammar
             {
                 var structTypeNode = new ASTNodeTypeStruct();
                 structTypeNode.SetSpan(this.Current().span);
-                structTypeNode.SetNameNode(this.ParseName(false));
+                structTypeNode.SetNameNode(this.ParseName(false, true));
                 return structTypeNode;
             }
         }
@@ -669,7 +798,7 @@ namespace Trapl.Grammar
             else
             {
                 var nameNode = new ASTNodeExprNameConcrete();
-                nameNode.SetNameNode(this.ParseName(true));
+                nameNode.SetNameNode(this.ParseName(true, true));
                 return nameNode;
             }
         }

@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
 
 
-namespace Trapl.Infrastructure
+namespace Trapl.Core
 {
     public partial class Session
     {
-        public List<Diagnostics.Message> messages = new List<Diagnostics.Message>();
+        private List<Diagnostics.Message> messages = new List<Diagnostics.Message>();
+        private Stack<Diagnostics.MessageContext> contextStack = new Stack<Diagnostics.MessageContext>();
 
 
         public void AddMessage(
@@ -13,7 +14,7 @@ namespace Trapl.Infrastructure
             string text, params Diagnostics.Span[] spans)
         {
             var msg = Diagnostics.Message.Make(code, text, kind, spans);
-            //msg.SetContext(this.contextStack);
+            msg.SetContext(this.contextStack);
             this.messages.Add(msg);
         }
 
@@ -24,6 +25,18 @@ namespace Trapl.Infrastructure
         {
             var msg = Diagnostics.Message.Make(code, text, kind, spans);
             this.messages[this.messages.Count - 1].SetInner(msg);
+        }
+
+
+        public void PushContext(string text, Diagnostics.Span span)
+        {
+            this.contextStack.Push(new Diagnostics.MessageContext(text, span));
+        }
+
+
+        public void PopContext()
+        {
+            this.contextStack.Pop();
         }
 
 

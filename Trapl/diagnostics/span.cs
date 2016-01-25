@@ -5,11 +5,11 @@ namespace Trapl.Diagnostics
 {
     public struct Span
     {
-        public Infrastructure.TextInput unit;
+        public Core.TextInput unit;
         public int start, end;
 
 
-        public Span(Infrastructure.TextInput unit, int start, int end)
+        public Span(Core.TextInput unit, int start, int end)
         {
             this.unit = unit;
             this.start = start;

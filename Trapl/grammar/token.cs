@@ -9,7 +9,7 @@ namespace Trapl.Grammar
         Error,
         DoubleHash, HashColon, ColonHash,
         Identifier, Number, NumberPrefix, NumberSuffix, BooleanTrue, BooleanFalse, Placeholder,
-        KeywordFn, KeywordStruct, KeywordTrait, KeywordGen,
+        KeywordFn, KeywordStruct, KeywordTrait, KeywordGen, KeywordUse,
         KeywordLet, KeywordIf, KeywordElse, KeywordWhile, KeywordReturn,
         BraceOpen, BraceClose, ParenOpen, ParenClose,
         Period, Comma, Colon, Semicolon, Arrow, DoubleColon, TriplePeriod,
@@ -52,7 +52,7 @@ namespace Trapl.Grammar
         }
 
 
-        public void PrintDebug(Infrastructure.TextInput src)
+        public void PrintDebug(Core.TextInput src)
         {
             foreach (var token in this.tokens)
             {

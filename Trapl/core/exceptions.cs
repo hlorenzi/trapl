@@ -1,7 +1,7 @@
 ﻿using System;
 
 
-namespace Trapl.Infrastructure
+namespace Trapl.Core
 {
     public class CheckException : Exception
     {

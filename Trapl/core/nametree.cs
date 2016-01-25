@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 
-namespace Trapl.Infrastructure
+namespace Trapl.Core
 {
     public class NameTree<T>
     {
@@ -16,7 +16,7 @@ namespace Trapl.Infrastructure
         private IdentifierGroup globalGroup = new IdentifierGroup();
 
 
-        public void Add(T value, Name name)
+        public void Add(Name name, T value)
         {
             if (name.identifiers.Length == 0)
                 throw new System.ArgumentException("empty name");
@@ -44,7 +44,7 @@ namespace Trapl.Infrastructure
         }
 
 
-        public bool FindByName(out T value, Name name)
+        public bool FindByName(Name name, out T value)
         {
             value = default(T);
 

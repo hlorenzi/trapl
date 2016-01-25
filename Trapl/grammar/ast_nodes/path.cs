@@ -5,7 +5,14 @@ namespace Trapl.Grammar
 {
     public class ASTNodePath : ASTNode
     {
+        public bool isRooted = false;
         public List<ASTNodeIdentifier> identifiers = new List<ASTNodeIdentifier>();
+
+
+        public void SetRooted(bool isRooted)
+        {
+            this.isRooted = isRooted;
+        }
 
 
         public void AddIdentifierNode(ASTNodeIdentifier identifier)

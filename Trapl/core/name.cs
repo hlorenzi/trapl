@@ -1,4 +1,4 @@
-﻿namespace Trapl.Infrastructure
+﻿namespace Trapl.Core
 {
     public class Name
     {
@@ -9,6 +9,16 @@
         {
             var name = new Name();
             name.identifiers = identifiers;
+            return name;
+        }
+
+
+        public Name Concatenate(Name other)
+        {
+            var name = new Name();
+            name.identifiers = new string[this.identifiers.Length + other.identifiers.Length];
+            this.identifiers.CopyTo(name.identifiers, 0);
+            other.identifiers.CopyTo(name.identifiers, this.identifiers.Length);
             return name;
         }
 

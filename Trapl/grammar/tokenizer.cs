@@ -7,7 +7,7 @@ namespace Trapl.Grammar
 {
     public class Tokenizer
     {
-        public static TokenCollection Tokenize(Infrastructure.Session session, Infrastructure.TextInput input)
+        public static TokenCollection Tokenize(Core.Session session, Core.TextInput input)
         {
             var output = new TokenCollection();
 
@@ -98,7 +98,7 @@ namespace Trapl.Grammar
         }
 
 
-        private static TokenMatch TryMatchModelToken(Infrastructure.TextInput unit, int index)
+        private static TokenMatch TryMatchModelToken(Core.TextInput unit, int index)
         {
             var models = new List<TokenMatch>
             {
@@ -166,7 +166,7 @@ namespace Trapl.Grammar
         }
 
 
-        private static TokenMatch TryMatchVaryingToken(Infrastructure.TextInput unit, int index)
+        private static TokenMatch TryMatchVaryingToken(Core.TextInput unit, int index)
         {
             var keywords = new List<TokenMatch>
             {
@@ -174,6 +174,7 @@ namespace Trapl.Grammar
                 new TokenMatch("struct", TokenKind.KeywordStruct),
                 new TokenMatch("trait", TokenKind.KeywordTrait),
                 new TokenMatch("gen", TokenKind.KeywordGen),
+                new TokenMatch("use", TokenKind.KeywordUse),
                 new TokenMatch("let", TokenKind.KeywordLet),
                 new TokenMatch("if", TokenKind.KeywordIf),
                 new TokenMatch("else", TokenKind.KeywordElse),

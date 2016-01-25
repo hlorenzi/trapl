@@ -2,7 +2,7 @@
 using System.IO;
 
 
-namespace Trapl.Infrastructure
+namespace Trapl.Core
 {
     public class TextInput
     {

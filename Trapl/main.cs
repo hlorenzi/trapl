@@ -1,5 +1,6 @@
 ﻿using System;
-using Trapl.Infrastructure;
+using Trapl.Core;
+using Trapl.Grammar;
 
 
 namespace Trapl
@@ -8,28 +9,19 @@ namespace Trapl
     {
         static void Main(string[] args)
         {
-            var session = new Infrastructure.Session();
-            var input = Infrastructure.TextInput.MakeFromFile("../../test.tr");
-            var tokens = Grammar.Tokenizer.Tokenize(session, input);
-            var astParser = new Grammar.ASTParser(session, tokens);
+            var session = new Session();
+            var input = TextInput.MakeFromFile("../../test.tr");
+            var tokens = Tokenizer.Tokenize(session, input);
+            var topLevelNode = ASTParser.Parse(session, tokens);
 
-            try
+            if (topLevelNode != null)
             {
-                var topLevelNode = astParser.ParseTopLevel();
-                topLevelNode.PrintDebugRecursive("");
+                //topLevelNode.PrintDebugRecursive("");
+
+                CoreConverter.ConvertStructs(session, topLevelNode);
+                session.PrintDeclsToConsole(true);
             }
-            catch (Infrastructure.CheckException) { }
 
-            var primitiveInt = session.CreateStruct(Name.FromPath("Int"));
-            session.AddStructField(primitiveInt, Name.FromPath("x"), new TypeStruct(primitiveInt));
-            session.CreateStruct(Name.FromPath("Int", "One", "More"));
-            session.CreateStruct(Name.FromPath("Float", "ThirtyTwo"));
-            session.CreateStruct(Name.FromPath("Float"));
-            session.CreateStruct(Name.FromPath("Int", "Two"));
-            session.CreateStruct(Name.FromPath("Int", "One"));
-            session.CreateStruct(Name.FromPath("Float", "Double"));
-
-            session.PrintDeclsToConsole(true);
             session.PrintMessagesToConsole();
             Console.ReadKey();
         }
