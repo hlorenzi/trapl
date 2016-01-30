@@ -5,7 +5,7 @@ namespace Trapl.Grammar
 {
     public partial class CoreConverter
     {
-        public static Core.UseDirective ConvertUseDirective(Core.Session session, ASTNodeUse useNode)
+        public Core.UseDirective ConvertUseDirective(ASTNodeUse useNode)
         {
             var useAllNode = useNode as ASTNodeUseAll;
             if (useAllNode != null)
@@ -16,34 +16,6 @@ namespace Trapl.Grammar
             }
             else
                 throw new System.NotImplementedException();
-        }
-
-
-        public static List<Core.UseDirective> FindOuterUseDirectives(Core.Session session, ASTNode startNode)
-        {
-            var result = new List<Core.UseDirective>();
-
-            if (startNode.parent == null)
-                return result;
-
-            var lastNode = startNode;
-            var curNode = startNode.parent;
-            while (curNode != null)
-            {
-                foreach (var child in curNode.EnumerateChildren())
-                {
-                    if (child is ASTNodeUse)
-                        result.Add(ConvertUseDirective(session, (ASTNodeUse)child));
-
-                    if (child == lastNode)
-                        break;
-                }
-
-                lastNode = curNode;
-                curNode = curNode.parent;
-            }
-
-            return result;
         }
     }
 }

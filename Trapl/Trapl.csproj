@@ -74,9 +74,11 @@
     <Compile Include="grammar\ast_nodes\type_struct.cs" />
     <Compile Include="grammar\ast_nodes\type_tuple.cs" />
     <Compile Include="grammar\core_converter\name.cs" />
+    <Compile Include="grammar\core_converter\bindings.cs" />
     <Compile Include="grammar\core_converter\struct.cs" />
     <Compile Include="grammar\core_converter\type.cs" />
     <Compile Include="grammar\core_converter\use.cs" />
+    <Compile Include="grammar\core_converter\_base.cs" />
     <Compile Include="grammar\number.cs" />
     <Compile Include="grammar\token.cs" />
     <Compile Include="grammar\tokenizer.cs" />

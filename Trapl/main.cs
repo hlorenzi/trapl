@@ -18,7 +18,9 @@ namespace Trapl
             {
                 //topLevelNode.PrintDebugRecursive("");
 
-                CoreConverter.ConvertStructs(session, topLevelNode);
+                var converter = new CoreConverter(session);
+                converter.ConvertBindings(topLevelNode);
+                converter.ConvertStructFields();
                 session.PrintDeclsToConsole(true);
             }
 

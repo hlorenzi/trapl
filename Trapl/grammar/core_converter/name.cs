@@ -5,7 +5,7 @@ namespace Trapl.Grammar
 {
     public partial class CoreConverter
     {
-        public static Core.Name ConvertName(ASTNodeName nameNode)
+        public Core.Name ConvertName(ASTNodeName nameNode)
         {
             var identifiers = new List<string>();
 
@@ -16,7 +16,7 @@ namespace Trapl.Grammar
         }
 
 
-        public static Core.Name ConvertName(ASTNodePath pathNode)
+        public Core.Name ConvertName(ASTNodePath pathNode)
         {
             var identifiers = new List<string>();
 

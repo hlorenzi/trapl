@@ -74,7 +74,7 @@ namespace Trapl.Core
         }
 
 
-        public List<DeclReference> GetDeclsWithUseDirectives(Name name, bool isAbsolutePath, List<UseDirective> useDirectives)
+        public List<DeclReference> GetDeclsWithUseDirectives(Name name, bool isAbsolutePath, IList<UseDirective> useDirectives)
         {
             DeclReference decl;
             var foundDecls = new List<DeclReference>();
@@ -131,7 +131,7 @@ namespace Trapl.Core
         }
 
 
-        public bool ValidateType(DeclReference decl, Name origName, Diagnostics.Span span)
+        public bool ValidateAsType(DeclReference decl, Name origName, Diagnostics.Span span)
         {
             if (decl.kind != Core.Session.DeclReference.Kind.Struct)
             {

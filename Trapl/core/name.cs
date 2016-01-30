@@ -23,6 +23,31 @@
         }
 
 
+        public Name ConcatenateIdentifier(string identifier)
+        {
+            var name = new Name();
+            name.identifiers = new string[this.identifiers.Length + 1];
+            this.identifiers.CopyTo(name.identifiers, 0);
+            name.identifiers[this.identifiers.Length] = identifier;
+            return name;
+        }
+
+
+        public bool Compare(Name other)
+        {
+            if (this.identifiers.Length != other.identifiers.Length)
+                return false;
+
+            for (var i = 0; i < this.identifiers.Length; i++)
+            {
+                if (this.identifiers[i] != other.identifiers[i])
+                    return false;
+            }
+
+            return true;
+        }
+
+
         public string GetString()
         {
             var result = "";
