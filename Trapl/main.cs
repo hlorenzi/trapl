@@ -19,7 +19,7 @@ namespace Trapl
                 //topLevelNode.PrintDebugRecursive("");
 
                 var converter = new CoreConverter(session);
-                converter.ConvertBindings(topLevelNode);
+                converter.ConvertTopLevelDeclGroup(topLevelNode);
                 converter.ConvertStructFields();
                 session.PrintDeclsToConsole(true);
             }

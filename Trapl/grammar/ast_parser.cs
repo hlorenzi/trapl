@@ -9,7 +9,6 @@ namespace Trapl.Grammar
     {
         private int readhead;
         private TokenCollection tokenColl;
-        private List<ASTNode> topDeclNodes;
         private Core.Session session;
         private Stack<bool> insideCondition;
 
@@ -18,19 +17,18 @@ namespace Trapl.Grammar
         {
             this.readhead = startToken;
             this.tokenColl = tokenColl;
-            this.topDeclNodes = new List<ASTNode>();
             this.session = session;
             this.insideCondition = new Stack<bool>();
             this.insideCondition.Push(false);
         }
 
 
-        public static ASTNodeTopLevel Parse(Core.Session session, TokenCollection tokenColl)
+        public static ASTNodeDeclGroup Parse(Core.Session session, TokenCollection tokenColl)
         {
             try
             {
                 var astParser = new ASTParser(session, tokenColl);
-                return astParser.ParseTopLevel();
+                return astParser.ParseDeclGroup();
             }
             catch (Core.CheckException)
             {
@@ -149,100 +147,61 @@ namespace Trapl.Grammar
         #region Parser Methods
 
 
-        public ASTNodeTopLevel ParseTopLevel()
+        public ASTNodeDeclGroup ParseDeclGroup()
         {
-            var topLevelNode = new ASTNodeTopLevel();
-            topLevelNode.SetSpan(this.Current().span);
+            var declGroupNode = new ASTNodeDeclGroup();
+            declGroupNode.SetSpan(this.Current().span);
 
-            ASTNodeUse nextUseDirective;
-            while (this.ParseNextUseDirective(out nextUseDirective))
-                topLevelNode.AddUseNode(nextUseDirective);
-
-            ASTNode nextDecl;
-            while (this.ParseNextDecl(out nextDecl))
-                topLevelNode.AddDeclNode(nextDecl);
-
-            topLevelNode.AddSpan(this.Current().span);
-            return topLevelNode;
-        }
-
-
-        public bool ParseNextUseDirective(out ASTNodeUse useDirective)
-        {
-            useDirective = null;
-
-            if (this.IsOver())
-                return false;
-
-            if (this.CurrentIs(TokenKind.BraceClose))
-                return false;
-
-            if (this.CurrentIs(TokenKind.KeywordUse))
+            // Parse use directives.
+            while (!this.IsOver() && !this.CurrentIs(TokenKind.BraceClose) &&
+                this.CurrentIs(TokenKind.KeywordUse))
             {
-                useDirective = this.ParseUseDirective();
+                var useNode = this.ParseUseDirective();
                 this.Match(TokenKind.Semicolon, "expected ';'");
-                return true;
+                declGroupNode.AddUseNode(useNode);
             }
 
-            return false;
-        }
-
-
-        public bool ParseNextDecl(out ASTNode decl)
-        {
-            decl = null;
-
-            if (this.IsOver())
-                return false;
-
-            if (this.CurrentIs(TokenKind.BraceClose))
-                return false;
-
-            var declName = this.ParseName(false, false);
-            if (this.CurrentIs(TokenKind.DoubleColon) && this.NextIs(TokenKind.BraceOpen))
+            // Parse namespaces, functs, and structs.
+            while (!this.IsOver() && !this.CurrentIs(TokenKind.BraceClose))
             {
-                this.Advance();
-                var namespaceNode = new ASTNodeDeclNamespace();
-                namespaceNode.SetPathNode(declName.path);
-
-                this.Match(TokenKind.BraceOpen, "expected '{'");
-
-                ASTNodeUse nextUseDirective;
-                while (this.ParseNextUseDirective(out nextUseDirective))
-                    namespaceNode.AddUseNode(nextUseDirective);
-
-                ASTNode nextDecl;
-                while (this.ParseNextDecl(out nextDecl))
-                    namespaceNode.AddInnerNode(nextDecl);
-
-                this.Match(TokenKind.BraceClose, "expected '}'");
-
-                decl = namespaceNode;
-                return true;
-            }
-            else
-            {
-                this.Match(TokenKind.Colon, "expected ':'");
-
-                if (this.CurrentIs(TokenKind.KeywordFn))
+                var declName = this.ParseName(false, false);
+                if (this.CurrentIs(TokenKind.DoubleColon) && this.NextIs(TokenKind.BraceOpen))
                 {
-                    var fnNode = this.ParseDeclFunct(true);
-                    fnNode.SetNameNode(declName);
-                    decl = fnNode;
-                    return true;
-                }
+                    this.Advance();
+                    var namespaceNode = new ASTNodeDeclNamespace();
+                    namespaceNode.SetPathNode(declName.path);
 
-                else if (this.CurrentIs(TokenKind.KeywordStruct))
-                {
-                    var stNode = this.ParseDeclStruct();
-                    stNode.SetNameNode(declName);
-                    decl = stNode;
-                    return true;
-                }
+                    this.Match(TokenKind.BraceOpen, "expected '{'");
+                    namespaceNode.SetInnerGroupNode(ParseDeclGroup());
+                    this.Match(TokenKind.BraceClose, "expected '}'");
 
+                    declGroupNode.AddNamespaceDeclNode(namespaceNode);
+                }
                 else
-                    throw this.FatalBefore(MessageCode.Expected, "expected 'struct' or 'fn'");
+                {
+                    this.Match(TokenKind.Colon, "expected ':'");
+
+                    if (this.CurrentIs(TokenKind.KeywordFn))
+                    {
+                        var fnNode = this.ParseDeclFunct(true);
+                        fnNode.SetNameNode(declName);
+                        declGroupNode.AddFunctDeclNode(fnNode);
+                    }
+
+                    else if (this.CurrentIs(TokenKind.KeywordStruct))
+                    {
+                        var stNode = this.ParseDeclStruct();
+                        stNode.SetNameNode(declName);
+                        declGroupNode.AddStructDeclNode(stNode);
+                    }
+
+                    else
+                        throw this.FatalBefore(MessageCode.Expected, "expected 'struct' or 'fn'");
+                }
             }
+
+            declGroupNode.AddSpan(this.Current().span);
+            return declGroupNode;
         }
 
 
@@ -283,10 +242,16 @@ namespace Trapl.Grammar
             this.Match(TokenKind.KeywordStruct, "expected 'struct'");
             this.Match(TokenKind.BraceOpen, "expected '{'");
 
-            ASTNodeUse nextUseDirective;
-            while (this.ParseNextUseDirective(out nextUseDirective))
-                structNode.AddUseNode(nextUseDirective);
+            // Parse use directives.
+            while (!this.IsOver() && !this.CurrentIs(TokenKind.BraceClose) &&
+                this.CurrentIs(TokenKind.KeywordUse))
+            {
+                var useNode = this.ParseUseDirective();
+                this.Match(TokenKind.Semicolon, "expected ';'");
+                structNode.AddUseNode(useNode);
+            }
 
+            // Parse fields.
             while (this.CurrentIsNot(TokenKind.BraceClose))
             {
                 var fieldNode = new ASTNodeDeclStructField();
@@ -314,6 +279,7 @@ namespace Trapl.Grammar
 
             this.Match(TokenKind.KeywordFn, "expected 'fn'");
 
+            // Parse parameter list.
             this.Match(TokenKind.ParenOpen, "expected '('");
             while (this.CurrentIsNot(TokenKind.ParenClose))
             {
@@ -329,12 +295,14 @@ namespace Trapl.Grammar
             }
             this.Match(TokenKind.ParenClose, "expected ')'");
 
+            // Parse return type.
             if (this.CurrentIs(TokenKind.Arrow))
             {
                 this.Advance();
                 functNode.SetReturnTypeNode(this.ParseType());
             }
 
+            // Parse body.
             if (withBody)
             {
                 functNode.SetBodyNode(this.ParseExprBlock());

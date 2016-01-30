@@ -6,8 +6,7 @@ namespace Trapl.Grammar
     public class ASTNodeDeclNamespace : ASTNode
     {
         public ASTNodePath path;
-        public List<ASTNodeUse> useDirectives = new List<ASTNodeUse>();
-        public List<ASTNode> innerDecls = new List<ASTNode>();
+        public ASTNodeDeclGroup innerGroup;
 
 
         public void SetPathNode(ASTNodePath path)
@@ -18,31 +17,18 @@ namespace Trapl.Grammar
         }
 
 
-        public void AddUseNode(ASTNodeUse use)
+        public void SetInnerGroupNode(ASTNodeDeclGroup groupNode)
         {
-            use.SetParent(this);
-            this.AddSpan(use.GetSpan());
-            this.useDirectives.Add(use);
-        }
-
-
-        public void AddInnerNode(ASTNode decl)
-        {
-            decl.SetParent(this);
-            this.AddSpan(decl.GetSpan());
-            this.innerDecls.Add(decl);
+            groupNode.SetParent(this);
+            this.AddSpan(groupNode.GetSpan());
+            this.innerGroup = groupNode;
         }
 
 
         public override IEnumerable<ASTNode> EnumerateChildren()
         {
             yield return this.path;
-
-            foreach (var use in this.useDirectives)
-                yield return use;
-
-            foreach (var decl in this.innerDecls)
-                yield return decl;
+            yield return this.innerGroup;
         }
     }
 }

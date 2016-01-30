@@ -32,7 +32,7 @@ namespace Trapl.Core
 
         private NameTree<DeclReference> declTree = new NameTree<DeclReference>();
         private List<DeclStruct> declStructs = new List<DeclStruct>();
-        private List<int> declFuncts = new List<int>();
+        private List<DeclFunct> declFuncts = new List<DeclFunct>();
 
 
         public int CreateStruct(Name name)
@@ -48,6 +48,22 @@ namespace Trapl.Core
 
             this.declTree.Add(name, declRef);
             return this.declStructs.Count - 1;
+        }
+
+
+        public int CreateFunct(Name name)
+        {
+            var decl = new DeclFunct();
+            this.declFuncts.Add(decl);
+
+            var declRef = new DeclReference
+            {
+                kind = DeclReference.Kind.Funct,
+                index = this.declFuncts.Count - 1
+            };
+
+            this.declTree.Add(name, declRef);
+            return this.declFuncts.Count - 1;
         }
 
 
@@ -147,7 +163,7 @@ namespace Trapl.Core
         }
 
 
-    public Name GetDeclName(DeclReference declRef)
+        public Name GetDeclName(DeclReference declRef)
         {
             Name name;
             if (!this.declTree.FindByValue(declRef, out name))

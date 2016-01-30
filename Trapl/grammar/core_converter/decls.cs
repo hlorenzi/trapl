@@ -18,60 +18,48 @@ namespace Trapl.Grammar
         private List<Binding<ASTNodeDeclFunct>> functBindings = new List<Binding<ASTNodeDeclFunct>>();
 
 
-        public void ConvertBindings(ASTNodeTopLevel topLevelNode)
+        public void ConvertTopLevelDeclGroup(ASTNodeDeclGroup topLevelGroupNode)
         {
-            this.ConvertBindingList(topLevelNode.decls, Core.Name.FromPath(), new List<Core.UseDirective>());
+            this.ConvertDeclGroup(topLevelGroupNode, Core.Name.FromPath(), new List<Core.UseDirective>());
         }
 
 
-        private void ConvertBindingList(List<ASTNode> declNodes, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
+        private void ConvertDeclGroup(ASTNodeDeclGroup declGroup, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
         {
             var useDirectiveCountBefore = useDirectives.Count;
 
-            foreach (var node in declNodes)
-            {
-                var useNode = node as ASTNodeUse;
-                if (useNode != null)
-                {
-                    useDirectives.Add(ConvertUseDirective(useNode));
-                    continue;
-                }
+            foreach (var useNode in declGroup.useDirectives)
+                useDirectives.Add(ConvertUseDirective(useNode));
 
-                var namespaceNode = node as ASTNodeDeclNamespace;
-                if (namespaceNode != null)
-                {
-                    this.ConvertNamespaceBinding(namespaceNode, curNamespace, useDirectives);
-                    continue;
-                }
+            foreach (var structNode in declGroup.structDecls)
+                this.ConvertStructDecl(structNode, curNamespace, useDirectives);
 
-                var structNode = node as ASTNodeDeclStruct;
-                if (structNode != null)
-                {
-                    this.ConvertStructBinding(structNode, curNamespace, useDirectives);
-                    continue;
-                }
-            }
+            foreach (var functNode in declGroup.functDecls)
+                this.ConvertFunctDecl(functNode, curNamespace, useDirectives);
+
+            foreach (var namespaceNode in declGroup.namespaceDecls)
+                this.ConvertNamespaceDecl(namespaceNode, curNamespace, useDirectives);
 
             while (useDirectives.Count > useDirectiveCountBefore)
                 useDirectives.RemoveAt(useDirectives.Count - 1);
         }
 
 
-        private void ConvertNamespaceBinding(ASTNodeDeclNamespace namespaceNode, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
+        private void ConvertNamespaceDecl(ASTNodeDeclNamespace namespaceNode, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
         {
             var innerNamespace = curNamespace.Concatenate(this.ConvertName(namespaceNode.path));
 
             for (var i = 0; i < namespaceNode.path.identifiers.Count; i++)
                 useDirectives.Add(new Core.UseDirectiveAll { name = curNamespace.ConcatenateIdentifier(namespaceNode.path.identifiers[i].GetExcerpt()) });
 
-            this.ConvertBindingList(namespaceNode.innerDecls, innerNamespace, useDirectives);
+            this.ConvertDeclGroup(namespaceNode.innerGroup, innerNamespace, useDirectives);
 
             for (var i = 0; i < namespaceNode.path.identifiers.Count; i++)
                 useDirectives.RemoveAt(useDirectives.Count - 1);
         }
 
 
-        private void ConvertStructBinding(ASTNodeDeclStruct structNode, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
+        private void ConvertStructDecl(ASTNodeDeclStruct structNode, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
         {
             var name = curNamespace.Concatenate(ConvertName(structNode.name));
             if (!ValidateName(name, structNode.name.GetSpan()))
@@ -92,6 +80,24 @@ namespace Trapl.Grammar
 
             foreach (var structUseNode in structNode.useDirectives)
                 useDirectives.RemoveAt(useDirectives.Count - 1);
+        }
+
+
+        private void ConvertFunctDecl(ASTNodeDeclFunct functNode, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
+        {
+            var name = curNamespace.Concatenate(ConvertName(functNode.name));
+            if (!ValidateName(name, functNode.name.GetSpan()))
+                return;
+
+            var functIndex = this.session.CreateFunct(name);
+
+            this.functBindings.Add(new Binding<ASTNodeDeclFunct>
+            {
+                name = name,
+                declNode = functNode,
+                declIndex = functIndex,
+                useDirectives = useDirectives.ToArray()
+            });
         }
 
 
