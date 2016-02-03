@@ -21,6 +21,7 @@ namespace Trapl
                 var converter = new CoreConverter(session);
                 converter.ConvertTopLevelDeclGroup(topLevelNode);
                 converter.ConvertStructFields();
+                converter.ConvertFunctHeaders();
                 session.PrintDeclsToConsole(true);
             }
 

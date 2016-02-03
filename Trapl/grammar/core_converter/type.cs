@@ -21,8 +21,18 @@ namespace Trapl.Grammar
 
                 return Core.TypeStruct.Of(foundDecls[0].index);
             }
-            else
-                throw new System.NotImplementedException();
+
+            var typeTupleNode = typeNode as ASTNodeTypeTuple;
+            if (typeTupleNode != null)
+            {
+                var elementTypes = new Core.Type[typeTupleNode.elements.Count];
+                for (var i = 0; i < typeTupleNode.elements.Count; i++)
+                    elementTypes[i] = ConvertType(typeTupleNode.elements[i], useDirectives);
+
+                return Core.TypeTuple.Of(elementTypes);
+            }
+
+            throw new System.NotImplementedException();
         }
     }
 }

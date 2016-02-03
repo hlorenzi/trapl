@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="core\decl_funct.cs" />
+    <Compile Include="core\types\placeholder.cs" />
     <Compile Include="core\use_directive.cs" />
     <Compile Include="diagnostics\message.cs" />
     <Compile Include="diagnostics\span.cs" />
@@ -74,6 +75,7 @@
     <Compile Include="grammar\ast_nodes\type_reference.cs" />
     <Compile Include="grammar\ast_nodes\type_struct.cs" />
     <Compile Include="grammar\ast_nodes\type_tuple.cs" />
+    <Compile Include="grammar\core_converter\funct.cs" />
     <Compile Include="grammar\core_converter\name.cs" />
     <Compile Include="grammar\core_converter\decls.cs" />
     <Compile Include="grammar\core_converter\struct.cs" />

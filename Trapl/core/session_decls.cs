@@ -199,6 +199,34 @@ namespace Trapl.Core
         }
 
 
+        public int AddFunctLocal(int functIndex, Name name, Type fieldType)
+        {
+            var decl = this.declFuncts[functIndex];
+            var localIndex = decl.localTypes.Count;
+            decl.localTypes.Add(fieldType);
+            decl.localNames.Add(name);
+            return localIndex;
+        }
+
+
+        public int AddFunctParameter(int functIndex, Name name, Type fieldType)
+        {
+            var decl = this.declFuncts[functIndex];
+            var localIndex = decl.parameterNum;
+            decl.localTypes.Insert(localIndex, fieldType);
+            decl.localNames.Insert(localIndex, name);
+            decl.parameterNum++;
+            return localIndex;
+        }
+
+
+        public void SetFunctReturnType(int functIndex, Type returnType)
+        {
+            var decl = this.declFuncts[functIndex];
+            decl.returnType = returnType;
+        }
+
+
         public void PrintDeclsToConsole(bool printContents)
         {
             foreach (var decl in this.declTree.Enumerate())
@@ -215,6 +243,9 @@ namespace Trapl.Core
                 {
                     if (decl.Item2.kind == DeclReference.Kind.Struct)
                         PrintStructToConsole(this.declStructs[decl.Item2.index], "  ");
+
+                    else if (decl.Item2.kind == DeclReference.Kind.Funct)
+                        PrintFunctToConsole(this.declFuncts[decl.Item2.index], "  ");
 
                     Console.Out.WriteLine();
                 }
@@ -235,6 +266,31 @@ namespace Trapl.Core
                 Console.Out.Write(" ");
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.Out.Write(decl.fieldTypes[i].GetString(this));
+                Console.ResetColor();
+                Console.Out.WriteLine();
+            }
+        }
+
+
+        public void PrintFunctToConsole(DeclFunct decl, string indentation)
+        {
+            Console.ResetColor();
+            Console.Out.Write(indentation);
+            Console.Out.Write("-> ");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Out.Write(decl.returnType.GetString(this));
+            Console.ResetColor();
+            Console.Out.WriteLine();
+
+            for (var i = 0; i < decl.localTypes.Count; i++)
+            {
+                Console.ResetColor();
+                Console.Out.Write(indentation);
+
+                Console.Out.Write(decl.localNames[i].GetString());
+                Console.Out.Write(" ");
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.Out.Write(decl.localTypes[i].GetString(this));
                 Console.ResetColor();
                 Console.Out.WriteLine();
             }
