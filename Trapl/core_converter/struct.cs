@@ -2,9 +2,18 @@
 {
     public partial class CoreConverter
     {
+        private class StructWorkData
+        {
+            public Core.Name name;
+            public ASTNodeDeclStruct declNode;
+            public int declIndex;
+            public Core.UseDirective[] useDirectives;
+        }
+
+
         public void ConvertStructFields()
         {
-            foreach (var binding in this.structBindings)
+            foreach (var binding in this.structWorkData)
             {
                 session.PushContext(
                     "in struct '" + binding.name.GetString() + "'",

@@ -53,16 +53,8 @@ Foo::Bar::Test4: struct { }
 
 test: fn(x: Qux, y: _::Foo::Qux) -> (_::Qux, Foo::Bar::Qux)
 {
-	x;
-	let z;
-	let z: Int;
-	let z = 0;
-	let z: Int = 0;
-	let _;
-	let _: Float32;
-	let _ = 0;
-	let _: Float32 = 0;
-
-	while x	{ do() };
-	return w;
+	1;
+	2;
+	{ 3; 4 };
+	5;
 }

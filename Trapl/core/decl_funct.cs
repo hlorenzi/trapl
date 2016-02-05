@@ -5,9 +5,46 @@ namespace Trapl.Core
 {
     public class DeclFunct
     {
-        public List<Name> localNames = new List<Name>();
-        public List<Type> localTypes = new List<Type>();
+        public class LocalBinding
+        {
+            public Name name;
+            public int registerIndex;
+        }
+
+
+        public List<Type> registerTypes = new List<Type>();
         public int parameterNum;
-        public Type returnType;
+        public List<LocalBinding> localBindings = new List<LocalBinding>();
+        public List<InstructionSegment> segments = new List<InstructionSegment>();
+
+
+        public int CreateSegment()
+        {
+            this.segments.Add(new InstructionSegment());
+            return this.segments.Count - 1;
+        }
+
+
+        public void AddInstruction(int segmentIndex, Instruction inst)
+        {
+            this.segments[segmentIndex].instructions.Add(inst);
+        }
+
+
+        public int CreateRegister(Core.Type type)
+        {
+            this.registerTypes.Add(type);
+            return this.registerTypes.Count - 1;
+        }
+
+
+        public int CreateBinding(Core.Name name, int registerIndex)
+        {
+            var binding = new LocalBinding();
+            binding.name = name;
+            binding.registerIndex = registerIndex;
+            this.localBindings.Add(binding);
+            return this.localBindings.Count - 1;
+        }
     }
 }

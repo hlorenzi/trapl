@@ -199,31 +199,34 @@ namespace Trapl.Core
         }
 
 
-        public int AddFunctLocal(int functIndex, Name name, Type fieldType)
+        public void SetFunctParameterNumber(int functIndex, int parameterNum)
         {
             var decl = this.declFuncts[functIndex];
-            var localIndex = decl.localTypes.Count;
-            decl.localTypes.Add(fieldType);
-            decl.localNames.Add(name);
-            return localIndex;
+            decl.parameterNum = parameterNum;
         }
 
 
-        public int AddFunctParameter(int functIndex, Name name, Type fieldType)
+        public int CreateFunctSegment(int functIndex)
         {
-            var decl = this.declFuncts[functIndex];
-            var localIndex = decl.parameterNum;
-            decl.localTypes.Insert(localIndex, fieldType);
-            decl.localNames.Insert(localIndex, name);
-            decl.parameterNum++;
-            return localIndex;
+            return this.declFuncts[functIndex].CreateSegment();
         }
 
 
-        public void SetFunctReturnType(int functIndex, Type returnType)
+        public void AddFunctInstruction(int functIndex, int segmentIndex, Instruction inst)
         {
-            var decl = this.declFuncts[functIndex];
-            decl.returnType = returnType;
+            this.declFuncts[functIndex].AddInstruction(segmentIndex, inst);
+        }
+
+
+        public int CreateFunctRegister(int functIndex, Core.Type type)
+        {
+            return this.declFuncts[functIndex].CreateRegister(type);
+        }
+
+
+        public int CreateFunctBinding(int functIndex, Core.Name name, int registerIndex)
+        {
+            return this.declFuncts[functIndex].CreateBinding(name, registerIndex);
         }
 
 
@@ -274,25 +277,55 @@ namespace Trapl.Core
 
         public void PrintFunctToConsole(DeclFunct decl, string indentation)
         {
-            Console.ResetColor();
-            Console.Out.Write(indentation);
-            Console.Out.Write("-> ");
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Out.Write(decl.returnType.GetString(this));
-            Console.ResetColor();
-            Console.Out.WriteLine();
-
-            for (var i = 0; i < decl.localTypes.Count; i++)
+            for (var i = 0; i < decl.registerTypes.Count; i++)
             {
                 Console.ResetColor();
                 Console.Out.Write(indentation);
 
-                Console.Out.Write(decl.localNames[i].GetString());
+                Console.Out.Write("#r" + i);
                 Console.Out.Write(" ");
                 Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.Out.Write(decl.localTypes[i].GetString(this));
+                Console.Out.Write(decl.registerTypes[i].GetString(this));
                 Console.ResetColor();
                 Console.Out.WriteLine();
+            }
+
+            Console.Out.WriteLine();
+
+            for (var i = 0; i < decl.localBindings.Count; i++)
+            {
+                Console.ResetColor();
+                Console.Out.Write(indentation);
+
+                Console.Out.Write(decl.localBindings[i].name.GetString());
+                Console.Out.Write(" ");
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.Out.Write("#r" + decl.localBindings[i].registerIndex);
+                Console.ResetColor();
+                Console.Out.WriteLine();
+            }
+
+            Console.Out.WriteLine();
+
+            for (var i = 0; i < decl.segments.Count; i++)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Out.Write(indentation);
+
+                Console.Out.Write("segment #" + i);
+                Console.ResetColor();
+                Console.Out.WriteLine();
+
+                for (var j = 0; j < decl.segments[i].instructions.Count; j++)
+                {
+                    Console.ResetColor();
+                    Console.Out.Write(indentation);
+                    Console.Out.Write("  ");
+
+                    Console.Out.Write(decl.segments[i].instructions[j].GetString());
+                    Console.ResetColor();
+                    Console.Out.WriteLine();
+                }
             }
         }
     }

@@ -5,17 +5,8 @@ namespace Trapl.Grammar
 {
     public partial class CoreConverter
     {
-        private class Binding<T> where T : ASTNode
-        {
-            public Core.Name name;
-            public T declNode;
-            public int declIndex;
-            public Core.UseDirective[] useDirectives;
-        }
-
-
-        private List<Binding<ASTNodeDeclStruct>> structBindings = new List<Binding<ASTNodeDeclStruct>>();
-        private List<Binding<ASTNodeDeclFunct>> functBindings = new List<Binding<ASTNodeDeclFunct>>();
+        private List<StructWorkData> structWorkData = new List<StructWorkData>();
+        private List<FunctWorkData> functWorkData = new List<FunctWorkData>();
 
 
         public void ConvertTopLevelDeclGroup(ASTNodeDeclGroup topLevelGroupNode)
@@ -70,7 +61,7 @@ namespace Trapl.Grammar
             foreach (var structUseNode in structNode.useDirectives)
                 useDirectives.Add(ConvertUseDirective(structUseNode));
 
-            this.structBindings.Add(new Binding<ASTNodeDeclStruct>
+            this.structWorkData.Add(new StructWorkData
             {
                 name = name,
                 declNode = structNode,
@@ -91,7 +82,7 @@ namespace Trapl.Grammar
 
             var functIndex = this.session.CreateFunct(name);
 
-            this.functBindings.Add(new Binding<ASTNodeDeclFunct>
+            this.functWorkData.Add(new FunctWorkData
             {
                 name = name,
                 declNode = functNode,
@@ -107,8 +98,8 @@ namespace Trapl.Grammar
             if (this.session.TryGetDecl(name, out duplicateIndex))
             {
                 var duplicateSpan = 
-                    this.structBindings.Find(st => st.name.Compare(name))?.declNode.name.GetSpan() ??
-                    this.functBindings.Find(st => st.name.Compare(name))?.declNode.name.GetSpan() ??
+                    this.structWorkData.Find(st => st.name.Compare(name))?.declNode.name.GetSpan() ??
+                    this.functWorkData.Find(st => st.name.Compare(name))?.declNode.name.GetSpan() ??
                     new Diagnostics.Span();
 
                 this.session.AddMessage(
