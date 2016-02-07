@@ -1,16 +1,19 @@
 ﻿using System.Collections.Generic;
 
 
-namespace Trapl.Grammar
+namespace Trapl.Semantics
 {
-    public partial class CoreConverter
+    public static class TypeResolver
     {
-        public Core.Type ConvertType(ASTNodeType typeNode, IList<Core.UseDirective> useDirectives)
+        public static Core.Type Resolve(
+            Core.Session session,
+            Grammar.ASTNodeType typeNode,
+            IList<Core.UseDirective> useDirectives)
         {
-            var typeStructNode = typeNode as ASTNodeTypeStruct;
+            var typeStructNode = typeNode as Grammar.ASTNodeTypeStruct;
             if (typeStructNode != null)
             {
-                var name = ConvertName(typeStructNode.name);
+                var name = NameResolver.Resolve(typeStructNode.name);
 
                 var foundDecls = session.GetDeclsWithUseDirectives(name, typeStructNode.name.path.isRooted, useDirectives);
                 if (!session.ValidateSingleDecl(foundDecls, name, typeStructNode.name.GetSpan()))
@@ -22,12 +25,12 @@ namespace Trapl.Grammar
                 return Core.TypeStruct.Of(foundDecls[0].index);
             }
 
-            var typeTupleNode = typeNode as ASTNodeTypeTuple;
+            var typeTupleNode = typeNode as Grammar.ASTNodeTypeTuple;
             if (typeTupleNode != null)
             {
                 var elementTypes = new Core.Type[typeTupleNode.elements.Count];
                 for (var i = 0; i < typeTupleNode.elements.Count; i++)
-                    elementTypes[i] = ConvertType(typeTupleNode.elements[i], useDirectives);
+                    elementTypes[i] = Resolve(session, typeTupleNode.elements[i], useDirectives);
 
                 return Core.TypeTuple.Of(elementTypes);
             }

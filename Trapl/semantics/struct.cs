@@ -1,17 +1,17 @@
-﻿namespace Trapl.Grammar
+﻿namespace Trapl.Semantics
 {
-    public partial class CoreConverter
+    public partial class DeclResolver
     {
         private class StructWorkData
         {
             public Core.Name name;
-            public ASTNodeDeclStruct declNode;
+            public Grammar.ASTNodeDeclStruct declNode;
             public int declIndex;
             public Core.UseDirective[] useDirectives;
         }
 
 
-        public void ConvertStructFields()
+        public void ResolveStructFields()
         {
             foreach (var binding in this.structWorkData)
             {
@@ -21,8 +21,8 @@
 
                 foreach (var fieldNode in binding.declNode.fields)
                 {
-                    var fieldName = ConvertName(fieldNode.name);
-                    var fieldType = ConvertType(fieldNode.type, binding.useDirectives);
+                    var fieldName = NameResolver.Resolve(fieldNode.name);
+                    var fieldType = TypeResolver.Resolve(session, fieldNode.type, binding.useDirectives);
                     session.AddStructField(binding.declIndex, fieldName, fieldType);
                 }
 

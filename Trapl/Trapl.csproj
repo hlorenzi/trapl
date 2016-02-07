@@ -44,13 +44,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="core\decl_funct.cs" />
+    <Compile Include="core\instructions\inst_branch.cs" />
+    <Compile Include="core\instructions\inst_goto.cs" />
     <Compile Include="core\instructions\inst_move.cs" />
     <Compile Include="core\instructions\_inst.cs" />
     <Compile Include="core\instructions\_segment.cs" />
+    <Compile Include="core\types\funct.cs" />
     <Compile Include="core\types\placeholder.cs" />
     <Compile Include="core\use_directive.cs" />
-    <Compile Include="core_converter\funct_body.cs" />
-    <Compile Include="core_converter\type_inferencer.cs" />
+    <Compile Include="semantics\funct_body.cs" />
+    <Compile Include="semantics\type_inferencer.cs" />
     <Compile Include="diagnostics\message.cs" />
     <Compile Include="diagnostics\span.cs" />
     <Compile Include="grammar\ast_nodes\decl_funct.cs" />
@@ -80,13 +83,13 @@
     <Compile Include="grammar\ast_nodes\type_reference.cs" />
     <Compile Include="grammar\ast_nodes\type_struct.cs" />
     <Compile Include="grammar\ast_nodes\type_tuple.cs" />
-    <Compile Include="core_converter\funct.cs" />
-    <Compile Include="core_converter\name.cs" />
-    <Compile Include="core_converter\decls.cs" />
-    <Compile Include="core_converter\struct.cs" />
-    <Compile Include="core_converter\type.cs" />
-    <Compile Include="core_converter\use.cs" />
-    <Compile Include="core_converter\_base.cs" />
+    <Compile Include="semantics\funct.cs" />
+    <Compile Include="semantics\name.cs" />
+    <Compile Include="semantics\decls.cs" />
+    <Compile Include="semantics\struct.cs" />
+    <Compile Include="semantics\type_resolver.cs" />
+    <Compile Include="semantics\use.cs" />
+    <Compile Include="semantics\_base.cs" />
     <Compile Include="grammar\number.cs" />
     <Compile Include="grammar\token.cs" />
     <Compile Include="grammar\tokenizer.cs" />

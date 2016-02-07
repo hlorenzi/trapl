@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-
-
-namespace Trapl.Core
+﻿namespace Trapl.Core
 {
     public class TypeTuple : Type
     {

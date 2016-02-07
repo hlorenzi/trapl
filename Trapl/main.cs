@@ -1,6 +1,7 @@
 ﻿using System;
 using Trapl.Core;
 using Trapl.Grammar;
+using Trapl.Semantics;
 
 
 namespace Trapl
@@ -18,11 +19,11 @@ namespace Trapl
             {
                 //topLevelNode.PrintDebugRecursive("");
 
-                var converter = new CoreConverter(session);
-                converter.ConvertTopLevelDeclGroup(topLevelNode);
-                converter.ConvertStructFields();
-                converter.ConvertFunctHeaders();
-                converter.ConvertFunctBodies();
+                var resolver = new DeclResolver(session);
+                resolver.ResolveTopLevelDeclGroup(topLevelNode);
+                resolver.ResolveStructFields();
+                resolver.ResolveFunctHeaders();
+                resolver.ResolveFunctBodies();
                 session.PrintDeclsToConsole(true);
             }
 

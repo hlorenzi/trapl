@@ -18,6 +18,15 @@
     }
 
 
+    public class DataAccessDiscard : DataAccess
+    {
+        public override string GetString()
+        {
+            return "_";
+        }
+    }
+
+
     public class DataAccessRegister : DataAccess
     {
         public int registerIndex;

@@ -2,59 +2,9 @@ Qux: struct { }
 Foo::{ Qux: struct { } }
 Foo::Bar::{ Qux: struct { } }
 
-Test1: struct
-{
-	a: Qux,
-	b: Foo::Qux,
-	c: Foo::Bar::Qux,
-	d: Bar::Qux
-}
-
-Test2: struct
-{
-	use Foo::_;
-
-	a: Qux,
-	b: Foo::Qux,
-	c: Foo::Bar::Qux,
-	d: Bar::Qux
-}
-
-Test3: struct
-{
-	use Foo::_;
-	use Foo::Bar::_;
-
-	a: Qux,
-	b: Foo::Qux,
-	c: Foo::Bar::Qux,
-	d: Bar::Qux,
-	e: Bar,
-	f: _::Qux,
-	g: _::Foo::Qux,
-	h: _::Foo::Bar::Qux,
-	i: _::Foo
-}
-
-
-Foo::Bar::
-{
-	Test4: struct
-	{
-		a: Qux,
-		b: _::Qux,
-		c: Bar::Qux,
-		d: Foo::Bar::Qux
-	}
-}
-
-Foo::Bar::Test4: struct { }
-
 
 test: fn(x: Qux, y: _::Foo::Qux) -> (_::Qux, Foo::Bar::Qux)
 {
-	1;
-	2;
-	{ 3; 4 };
-	5;
+	test;
+	test(x, y);
 }

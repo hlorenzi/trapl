@@ -5,16 +5,16 @@ namespace Trapl.Grammar
 {
     public class ASTNodeExprLet : ASTNodeExpr
     {
-        public ASTNodeExpr declExpr;
+        public ASTNodeExprName name;
         public ASTNodeType type;
         public ASTNodeExpr initExpr;
 
 
-        public void SetDeclarationNode(ASTNodeExpr expr)
+        public void SetDeclarationNode(ASTNodeExprName name)
         {
-            expr.SetParent(this);
-            this.AddSpan(expr.GetSpan());
-            this.declExpr = expr;
+            name.SetParent(this);
+            this.AddSpan(name.GetSpan());
+            this.name = name;
         }
 
 
@@ -36,7 +36,7 @@ namespace Trapl.Grammar
 
         public override IEnumerable<ASTNode> EnumerateChildren()
         {
-            yield return this.declExpr;
+            yield return this.name;
 
             if (this.type != null)
                 yield return this.type;

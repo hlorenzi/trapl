@@ -9,6 +9,24 @@ namespace Trapl.Core
     }
 
 
+    public class InstructionMoveData : InstructionMove
+    {
+        public DataAccess source;
+
+
+        public static InstructionMoveData Of(Diagnostics.Span span, DataAccess destination, DataAccess source)
+        {
+            return new InstructionMoveData { span = span, destination = destination, source = source };
+        }
+
+
+        public override string GetString()
+        {
+            return "move " + destination.GetString() + " <- " + source.GetString();
+        }
+    }
+
+
     public class InstructionMoveLiteralInt : InstructionMove
     {
         public long value;
@@ -46,7 +64,64 @@ namespace Trapl.Core
 
         public override string GetString()
         {
-            return "()";
+            return "move " + destination.GetString() + " <- ()";
+        }
+    }
+
+
+    public class InstructionMoveLiteralFunct : InstructionMove
+    {
+        public int functIndex;
+
+
+        public static InstructionMoveLiteralFunct With(Diagnostics.Span span, DataAccess destination, int functIndex)
+        {
+            return new InstructionMoveLiteralFunct { span = span, destination = destination, functIndex = functIndex };
+        }
+
+
+        public override string GetString()
+        {
+            return "move " + destination.GetString() + " <- fn[" + functIndex + "]";
+        }
+    }
+
+
+    public class InstructionMoveCallResult : InstructionMove
+    {
+        public DataAccess callTargetSource;
+        public DataAccess[] argumentSources;
+
+
+        public static InstructionMoveCallResult For(
+            Diagnostics.Span span,
+            DataAccess destination,
+            DataAccess callTarget,
+            DataAccess[] arguments)
+        {
+            return new InstructionMoveCallResult
+            {
+                span = span,
+                destination = destination,
+                callTargetSource = callTarget,
+                argumentSources = arguments
+            };
+        }
+
+
+        public override string GetString()
+        {
+            var result = "move " + destination.GetString() + " <- call " +
+                callTargetSource.GetString() + " (";
+
+            for (var i = 0; i < this.argumentSources.Length; i++)
+            {
+                result += this.argumentSources[i].GetString();
+                if (i < this.argumentSources.Length - 1)
+                    result += ", ";
+            }
+
+            return result + ")";
         }
     }
 }

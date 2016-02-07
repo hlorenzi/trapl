@@ -1,26 +1,26 @@
 ﻿using System.Collections.Generic;
 
 
-namespace Trapl.Grammar
+namespace Trapl.Semantics
 {
-    public partial class CoreConverter
+    public partial class DeclResolver
     {
         private List<StructWorkData> structWorkData = new List<StructWorkData>();
         private List<FunctWorkData> functWorkData = new List<FunctWorkData>();
 
 
-        public void ConvertTopLevelDeclGroup(ASTNodeDeclGroup topLevelGroupNode)
+        public void ResolveTopLevelDeclGroup(Grammar.ASTNodeDeclGroup topLevelGroupNode)
         {
             this.ConvertDeclGroup(topLevelGroupNode, Core.Name.FromPath(), new List<Core.UseDirective>());
         }
 
 
-        private void ConvertDeclGroup(ASTNodeDeclGroup declGroup, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
+        private void ConvertDeclGroup(Grammar.ASTNodeDeclGroup declGroup, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
         {
             var useDirectiveCountBefore = useDirectives.Count;
 
             foreach (var useNode in declGroup.useDirectives)
-                useDirectives.Add(ConvertUseDirective(useNode));
+                useDirectives.Add(UseDirectiveResolver.Resolve(useNode));
 
             foreach (var structNode in declGroup.structDecls)
                 this.ConvertStructDecl(structNode, curNamespace, useDirectives);
@@ -36,9 +36,9 @@ namespace Trapl.Grammar
         }
 
 
-        private void ConvertNamespaceDecl(ASTNodeDeclNamespace namespaceNode, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
+        private void ConvertNamespaceDecl(Grammar.ASTNodeDeclNamespace namespaceNode, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
         {
-            var innerNamespace = curNamespace.Concatenate(this.ConvertName(namespaceNode.path));
+            var innerNamespace = curNamespace.Concatenate(NameResolver.ResolvePath(namespaceNode.path));
 
             for (var i = 0; i < namespaceNode.path.identifiers.Count; i++)
                 useDirectives.Add(new Core.UseDirectiveAll { name = curNamespace.ConcatenateIdentifier(namespaceNode.path.identifiers[i].GetExcerpt()) });
@@ -50,16 +50,16 @@ namespace Trapl.Grammar
         }
 
 
-        private void ConvertStructDecl(ASTNodeDeclStruct structNode, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
+        private void ConvertStructDecl(Grammar.ASTNodeDeclStruct structNode, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
         {
-            var name = curNamespace.Concatenate(ConvertName(structNode.name));
+            var name = curNamespace.Concatenate(NameResolver.Resolve(structNode.name));
             if (!ValidateName(name, structNode.name.GetSpan()))
                 return;
 
             var structIndex = this.session.CreateStruct(name);
 
             foreach (var structUseNode in structNode.useDirectives)
-                useDirectives.Add(ConvertUseDirective(structUseNode));
+                useDirectives.Add(UseDirectiveResolver.Resolve(structUseNode));
 
             this.structWorkData.Add(new StructWorkData
             {
@@ -74,9 +74,9 @@ namespace Trapl.Grammar
         }
 
 
-        private void ConvertFunctDecl(ASTNodeDeclFunct functNode, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
+        private void ConvertFunctDecl(Grammar.ASTNodeDeclFunct functNode, Core.Name curNamespace, List<Core.UseDirective> useDirectives)
         {
-            var name = curNamespace.Concatenate(ConvertName(functNode.name));
+            var name = curNamespace.Concatenate(NameResolver.Resolve(functNode.name));
             if (!ValidateName(name, functNode.name.GetSpan()))
                 return;
 

@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 
 
-namespace Trapl.Grammar
+namespace Trapl.Semantics
 {
-    public partial class CoreConverter
+    public static class NameResolver
     {
-        public Core.Name ConvertName(ASTNodeName nameNode)
+        public static Core.Name Resolve(Grammar.ASTNodeName nameNode)
         {
             var identifiers = new List<string>();
 
@@ -16,7 +16,7 @@ namespace Trapl.Grammar
         }
 
 
-        public Core.Name ConvertName(ASTNodePath pathNode)
+        public static Core.Name ResolvePath(Grammar.ASTNodePath pathNode)
         {
             var identifiers = new List<string>();
 

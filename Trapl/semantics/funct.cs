@@ -1,17 +1,17 @@
-﻿namespace Trapl.Grammar
+﻿namespace Trapl.Semantics
 {
-    public partial class CoreConverter
+    public partial class DeclResolver
     {
         private class FunctWorkData
         {
             public Core.Name name;
-            public ASTNodeDeclFunct declNode;
+            public Grammar.ASTNodeDeclFunct declNode;
             public int declIndex;
             public Core.UseDirective[] useDirectives;
         }
 
 
-        public void ConvertFunctHeaders()
+        public void ResolveFunctHeaders()
         {
             foreach (var binding in this.functWorkData)
             {
@@ -20,12 +20,12 @@
                     binding.declNode.GetSpan());
 
                 session.CreateFunctRegister(binding.declIndex,
-                    ConvertType(binding.declNode.returnType, binding.useDirectives));
+                    TypeResolver.Resolve(session, binding.declNode.returnType, binding.useDirectives));
 
                 foreach (var paramNode in binding.declNode.parameters)
                 {
-                    var paramName = ConvertName(paramNode.name);
-                    var paramType = ConvertType(paramNode.type, binding.useDirectives);
+                    var paramName = NameResolver.Resolve(paramNode.name);
+                    var paramType = TypeResolver.Resolve(session, paramNode.type, binding.useDirectives);
                     var paramReg = session.CreateFunctRegister(binding.declIndex, paramType);
                     session.CreateFunctBinding(binding.declIndex, paramName, paramReg);
                 }
@@ -37,7 +37,7 @@
         }
 
 
-        public void ConvertFunctBodies()
+        public void ResolveFunctBodies()
         {
             foreach (var binding in this.functWorkData)
             {
@@ -45,7 +45,7 @@
                     "in funct '" + binding.name.GetString() + "'",
                     binding.declNode.GetSpan());
 
-                var bodyConverter = new FunctBodyConverter(session, binding.declIndex, binding.useDirectives);
+                var bodyConverter = new FunctBodyConverter(session, session.GetFunct(binding.declIndex), binding.useDirectives);
                 bodyConverter.Convert(binding.declNode.bodyExpression);
 
                 session.PopContext();

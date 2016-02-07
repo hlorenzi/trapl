@@ -67,6 +67,12 @@ namespace Trapl.Core
         }
 
 
+        public DeclFunct GetFunct(int functIndex)
+        {
+            return this.declFuncts[functIndex];
+        }
+
+
         public int GetDecl(Name name)
         {
             DeclReference decl;
@@ -155,6 +161,22 @@ namespace Trapl.Core
                     Diagnostics.MessageKind.Error,
                     Diagnostics.MessageCode.WrongDeclarationKind,
                     "'" + this.GetDeclName(decl).GetString() + "' is not a type",
+                    span);
+                return false;
+            }
+
+            return true;
+        }
+
+
+        public bool ValidateAsFunct(DeclReference decl, Name origName, Diagnostics.Span span)
+        {
+            if (decl.kind != Core.Session.DeclReference.Kind.Funct)
+            {
+                this.AddMessage(
+                    Diagnostics.MessageKind.Error,
+                    Diagnostics.MessageCode.WrongDeclarationKind,
+                    "'" + this.GetDeclName(decl).GetString() + "' is not a funct",
                     span);
                 return false;
             }
@@ -312,7 +334,7 @@ namespace Trapl.Core
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.Out.Write(indentation);
 
-                Console.Out.Write("segment #" + i);
+                Console.Out.Write("segment #s" + i);
                 Console.ResetColor();
                 Console.Out.WriteLine();
 
