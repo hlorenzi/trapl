@@ -3,9 +3,10 @@
 
 namespace Trapl.Semantics
 {
-    public class TypeInferencer
+    public partial class TypeInferencer
     {
         public List<Core.Type> inferredTypes = new List<Core.Type>();
+        public List<Rule> rules = new List<Rule>();
 
 
         public int AddSlot()
@@ -18,6 +19,12 @@ namespace Trapl.Semantics
         public void InferType(int slot, Core.Type type)
         {
             this.inferredTypes[slot] = type;
+        }
+
+
+        public void AddRule(Rule rule)
+        {
+            this.rules.Add(rule);
         }
     }
 }

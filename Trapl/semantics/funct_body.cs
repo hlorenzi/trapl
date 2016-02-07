@@ -1,8 +1,8 @@
 ﻿namespace Trapl.Semantics
 {
-    public class FunctBodyConverter
+    public class FunctBodyResolver
     {
-        public FunctBodyConverter(Core.Session session, Core.DeclFunct funct, Core.UseDirective[] useDirectives)
+        public FunctBodyResolver(Core.Session session, Core.DeclFunct funct, Core.UseDirective[] useDirectives)
         {
             this.session = session;
             this.funct = funct;
@@ -11,10 +11,10 @@
         }
 
 
-        public void Convert(Grammar.ASTNodeExpr topExpr)
+        public void Resolve(Grammar.ASTNodeExpr topExpr)
         {
             var segment = funct.CreateSegment();
-            ConvertExpr(topExpr, ref segment, Core.DataAccessRegister.ForRegister(0));
+            ResolveExpr(topExpr, ref segment, Core.DataAccessRegister.ForRegister(0));
         }
 
 
@@ -24,26 +24,28 @@
         private TypeInferencer typeInferencer;
 
 
-        private void ConvertExpr(Grammar.ASTNodeExpr expr, ref int curSegment, Core.DataAccess outputReg)
+        private void ResolveExpr(Grammar.ASTNodeExpr expr, ref int curSegment, Core.DataAccess outputReg)
         {
             if (expr is Grammar.ASTNodeExprBlock)
-                this.ConvertExprBlock((Grammar.ASTNodeExprBlock)expr, ref curSegment, outputReg);
+                this.ResolveExprBlock((Grammar.ASTNodeExprBlock)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprIf)
-                this.ConvertExprIf((Grammar.ASTNodeExprIf)expr, ref curSegment, outputReg);
+                this.ResolveExprIf((Grammar.ASTNodeExprIf)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprLet)
-                this.ConvertExprLet((Grammar.ASTNodeExprLet)expr, ref curSegment, outputReg);
+                this.ResolveExprLet((Grammar.ASTNodeExprLet)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprCall)
-                this.ConvertExprCall((Grammar.ASTNodeExprCall)expr, ref curSegment, outputReg);
+                this.ResolveExprCall((Grammar.ASTNodeExprCall)expr, ref curSegment, outputReg);
+            else if (expr is Grammar.ASTNodeExprBinaryOp)
+                this.ResolveExprBinaryOp((Grammar.ASTNodeExprBinaryOp)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprName)
-                this.ConvertExprName((Grammar.ASTNodeExprName)expr, ref curSegment, outputReg);
+                this.ResolveExprName((Grammar.ASTNodeExprName)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprLiteralInt)
-                this.ConvertExprLiteralInt((Grammar.ASTNodeExprLiteralInt)expr, ref curSegment, outputReg);
+                this.ResolveExprLiteralInt((Grammar.ASTNodeExprLiteralInt)expr, ref curSegment, outputReg);
             else
                 throw new System.NotImplementedException();
         }
 
 
-        private void ConvertExprBlock(Grammar.ASTNodeExprBlock exprBlock, ref int curSegment, Core.DataAccess outputReg)
+        private void ResolveExprBlock(Grammar.ASTNodeExprBlock exprBlock, ref int curSegment, Core.DataAccess outputReg)
         {
             // Generate an empty tuple store if there are no subexpressions.
             if (exprBlock.subexprs.Count == 0)
@@ -61,21 +63,21 @@
                     if (i < exprBlock.subexprs.Count - 1)
                         subexprOutput = new Core.DataAccessDiscard();
 
-                    this.ConvertExpr(exprBlock.subexprs[i], ref curSegment, subexprOutput);
+                    this.ResolveExpr(exprBlock.subexprs[i], ref curSegment, subexprOutput);
                 }
                 catch (Core.CheckException) { }
             }
         }
 
 
-        private void ConvertExprIf(Grammar.ASTNodeExprIf exprIf, ref int curSegment, Core.DataAccess output)
+        private void ResolveExprIf(Grammar.ASTNodeExprIf exprIf, ref int curSegment, Core.DataAccess output)
         {
             // Parse condition.
             var conditionReg = Core.DataAccessRegister.ForRegister(
                 funct.CreateRegister(
                     Core.TypePlaceholder.Of(typeInferencer.AddSlot())));
 
-            this.ConvertExpr(
+            this.ResolveExpr(
                 exprIf.conditionExpr,
                 ref curSegment,
                 conditionReg);
@@ -87,7 +89,7 @@
             var trueSegment = funct.CreateSegment();
             instBranch.destinationSegmentIfTaken = trueSegment;
 
-            ConvertExpr(exprIf.trueBranchExpr, ref trueSegment, output);
+            ResolveExpr(exprIf.trueBranchExpr, ref trueSegment, output);
 
             // Parse false branch, if there is one.
             if (exprIf.falseBranchExpr != null)
@@ -95,7 +97,7 @@
                 var falseSegment = funct.CreateSegment();
                 instBranch.destinationSegmentIfNotTaken = falseSegment;
 
-                ConvertExpr(exprIf.falseBranchExpr, ref falseSegment, output);
+                ResolveExpr(exprIf.falseBranchExpr, ref falseSegment, output);
 
                 var afterSegment = funct.CreateSegment();
                 funct.AddInstruction(trueSegment, Core.InstructionGoto.To(afterSegment));
@@ -113,7 +115,7 @@
         }
 
 
-        private void ConvertExprLet(Grammar.ASTNodeExprLet exprLet, ref int curSegment, Core.DataAccess output)
+        private void ResolveExprLet(Grammar.ASTNodeExprLet exprLet, ref int curSegment, Core.DataAccess output)
         {
             // Create a new storage location and name binding.
             var inferSlot = typeInferencer.AddSlot();
@@ -133,7 +135,7 @@
             // Parse init expression, if there is one.
             if (exprLet.initExpr != null)
             {
-                ConvertExpr(exprLet.initExpr, ref curSegment,
+                ResolveExpr(exprLet.initExpr, ref curSegment,
                     Core.DataAccessRegister.ForRegister(registerIndex));
             }
 
@@ -143,13 +145,13 @@
         }
 
 
-        private void ConvertExprCall(Grammar.ASTNodeExprCall exprCall, ref int curSegment, Core.DataAccess output)
+        private void ResolveExprCall(Grammar.ASTNodeExprCall exprCall, ref int curSegment, Core.DataAccess output)
         {
             // Parse called expression.
             var callTargetReg = Core.DataAccessRegister.ForRegister(
                 funct.CreateRegister(Core.TypePlaceholder.Of(typeInferencer.AddSlot())));
 
-            ConvertExpr(exprCall.calledExpr, ref curSegment, callTargetReg);
+            ResolveExpr(exprCall.calledExpr, ref curSegment, callTargetReg);
 
             // Parse argument expressions.
             var argumentRegs = new Core.DataAccess[exprCall.argumentExprs.Count];
@@ -159,7 +161,7 @@
                 argumentRegs[i] = Core.DataAccessRegister.ForRegister(
                     funct.CreateRegister(Core.TypePlaceholder.Of(typeInferencer.AddSlot())));
 
-                ConvertExpr(exprCall.argumentExprs[i], ref curSegment, argumentRegs[i]);
+                ResolveExpr(exprCall.argumentExprs[i], ref curSegment, argumentRegs[i]);
             }
 
             // Generate call instruction.
@@ -168,19 +170,48 @@
         }
 
 
-        private void ConvertExprLiteralInt(Grammar.ASTNodeExprLiteralInt exprLiteralInt, ref int curSegment, Core.DataAccess output)
+        private void ResolveExprBinaryOp(Grammar.ASTNodeExprBinaryOp exprBinOp, ref int curSegment, Core.DataAccess output)
+        {
+            if (exprBinOp.oper == Grammar.ASTNodeExprBinaryOp.Operator.Equal)
+            {
+                if (exprBinOp.lhsOperand is Grammar.ASTNodeExprNameConcrete)
+                {
+                    var name = NameResolver.Resolve(((Grammar.ASTNodeExprNameConcrete)exprBinOp.lhsOperand).name);
+                    var bindingIndex = FindLocalBinding(name, true);
+                    var registerIndex = funct.localBindings[bindingIndex].registerIndex;
+
+                    // Parse right-hand side expression.
+                    ResolveExpr(
+                        exprBinOp.rhsOperand,
+                        ref curSegment,
+                        Core.DataAccessRegister.ForRegister(registerIndex));
+
+                    // Generate a void store.
+                    funct.AddInstruction(
+                        curSegment,
+                        Core.InstructionMoveLiteralTuple.Empty(exprBinOp.GetSpan(), output));
+
+                    return;
+                }
+            }
+
+            throw new System.NotImplementedException();
+        }
+
+
+        private void ResolveExprLiteralInt(Grammar.ASTNodeExprLiteralInt exprLiteralInt, ref int curSegment, Core.DataAccess output)
         {
             funct.AddInstruction(curSegment,
                 Core.InstructionMoveLiteralInt.Of(exprLiteralInt.GetSpan(), output, System.Convert.ToInt64(exprLiteralInt.GetExcerpt())));
         }
 
 
-        private void ConvertExprName(Grammar.ASTNodeExprName exprName, ref int curSegment, Core.DataAccess output)
+        private void ResolveExprName(Grammar.ASTNodeExprName exprName, ref int curSegment, Core.DataAccess output)
         {
             var name = NameResolver.Resolve(((Grammar.ASTNodeExprNameConcrete)exprName).name);
 
             // Try to find a local with the same name.
-            var bindingIndex = GetBindingIndex(name, false);
+            var bindingIndex = FindLocalBinding(name, false);
             if (bindingIndex >= 0)
             {
                 funct.AddInstruction(curSegment,
@@ -211,7 +242,7 @@
         }
 
 
-        private int GetBindingIndex(Core.Name name, bool throwErrorOnUndeclared)
+        private int FindLocalBinding(Core.Name name, bool throwErrorOnUndeclared)
         {
             for (int i = funct.localBindings.Count - 1; i >= 0; i--)
             {
@@ -232,6 +263,16 @@
             }
 
             return -1;
+        }
+
+
+        private void AddSameTypeInferenceRule(Core.DataAccess data1, Core.DataAccess data2)
+        {
+            var reg1 = data1 as Core.DataAccessRegister;
+            var reg2 = data2 as Core.DataAccessRegister;
+
+            if (reg1 != null && reg2 != null)
+                typeInferencer.AddRule(TypeInferencer.RuleIsSame.For(reg1.registerIndex, reg2.registerIndex));
         }
     }
 }

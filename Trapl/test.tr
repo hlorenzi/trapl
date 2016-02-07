@@ -5,6 +5,6 @@ Foo::Bar::{ Qux: struct { } }
 
 test: fn(x: Qux, y: _::Foo::Qux) -> (_::Qux, Foo::Bar::Qux)
 {
-	test;
-	test(x, y);
+	test(test(x), y);
+	x = 0;
 }

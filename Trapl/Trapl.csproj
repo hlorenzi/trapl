@@ -53,7 +53,8 @@
     <Compile Include="core\types\placeholder.cs" />
     <Compile Include="core\use_directive.cs" />
     <Compile Include="semantics\funct_body.cs" />
-    <Compile Include="semantics\type_inferencer.cs" />
+    <Compile Include="semantics\type_inference\rules.cs" />
+    <Compile Include="semantics\type_inference\type_inferencer.cs" />
     <Compile Include="diagnostics\message.cs" />
     <Compile Include="diagnostics\span.cs" />
     <Compile Include="grammar\ast_nodes\decl_funct.cs" />

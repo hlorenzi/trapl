@@ -45,8 +45,8 @@
                     "in funct '" + binding.name.GetString() + "'",
                     binding.declNode.GetSpan());
 
-                var bodyConverter = new FunctBodyConverter(session, session.GetFunct(binding.declIndex), binding.useDirectives);
-                bodyConverter.Convert(binding.declNode.bodyExpression);
+                var bodyConverter = new FunctBodyResolver(session, session.GetFunct(binding.declIndex), binding.useDirectives);
+                bodyConverter.Resolve(binding.declNode.bodyExpression);
 
                 session.PopContext();
             }
