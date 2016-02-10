@@ -1,7 +1,7 @@
 ﻿using System;
 using Trapl.Core;
 using Trapl.Grammar;
-using Trapl.Semantics;
+using Trapl.Extraction;
 
 
 namespace Trapl
@@ -19,12 +19,13 @@ namespace Trapl
             {
                 //topLevelNode.PrintDebugRecursive("");
 
-                var resolver = new DeclResolver(session);
-                resolver.ResolveTopLevelDeclGroup(topLevelNode);
-                resolver.ResolveStructFields();
-                resolver.ResolveFunctHeaders();
-                resolver.ResolveFunctBodies();
-                session.PrintDeclsToConsole(true);
+                var extracted = Extractor.Extract(topLevelNode);
+
+                foreach (var st in extracted.structs)
+                    st.PrintToConsole();
+
+                foreach (var fn in extracted.functs)
+                    fn.PrintToConsole();
             }
 
             session.PrintMessagesToConsole();

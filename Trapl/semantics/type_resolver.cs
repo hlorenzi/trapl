@@ -15,7 +15,7 @@ namespace Trapl.Semantics
             {
                 var name = NameResolver.Resolve(typeStructNode.name);
 
-                var foundDecls = session.GetDeclsWithUseDirectives(name, typeStructNode.name.path.isRooted, useDirectives);
+                var foundDecls = session.GetDeclsWithUseDirectives(name, typeStructNode.name.path.isAbsolute, useDirectives);
                 if (!session.ValidateSingleDecl(foundDecls, name, typeStructNode.name.GetSpan()))
                     return new Core.TypeError();
 

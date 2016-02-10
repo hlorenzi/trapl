@@ -117,7 +117,7 @@
 
         private void ResolveExprLet(Grammar.ASTNodeExprLet exprLet, ref int curSegment, Core.DataAccess output)
         {
-            // Create a new storage location and name binding.
+            // Create a new register and name binding.
             var inferSlot = typeInferencer.AddSlot();
             var registerIndex = funct.CreateRegister(Core.TypePlaceholder.Of(inferSlot));
 

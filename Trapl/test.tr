@@ -1,10 +1,12 @@
-Qux: struct { }
-Foo::{ Qux: struct { } }
-Foo::Bar::{ Qux: struct { } }
-
-
-test: fn(x: Qux, y: _::Foo::Qux) -> (_::Qux, Foo::Bar::Qux)
+Foo: struct 
 {
-	test(test(x), y);
-	x = 0;
+	a: Foo,
+	b: Bar, 
+	c: Qux,
+	d: (Foo, Bar, Qux),
+	e: Foo::Bar::Qux
+}
+
+bar: fn(a: Foo, b: Bar) -> Qux
+{
 }
