@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 
 namespace Trapl.Core
@@ -20,9 +21,18 @@ namespace Trapl.Core
         }
 
 
-        public override string GetString()
+        public override void PrintToConsole(string indentation = "")
         {
-            return "move " + destination.GetString() + " <- " + source.GetString();
+            Console.Write(indentation);
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write("move ");
+            Console.ResetColor();
+            Console.Write(this.destination.GetString());
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write(" <- ");
+            Console.ResetColor();
+            Console.WriteLine(this.source.GetString());
+            Console.ResetColor();
         }
     }
 
@@ -38,9 +48,18 @@ namespace Trapl.Core
         }
 
 
-        public override string GetString()
+        public override void PrintToConsole(string indentation = "")
         {
-            return "move " + destination.GetString() + " <- " + value.ToString();
+            Console.Write(indentation);
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write("move ");
+            Console.ResetColor();
+            Console.Write(this.destination.GetString());
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write(" <- ");
+            Console.ResetColor();
+            Console.WriteLine(this.value.ToString());
+            Console.ResetColor();
         }
     }
 
@@ -62,9 +81,18 @@ namespace Trapl.Core
         }
 
 
-        public override string GetString()
+        public override void PrintToConsole(string indentation = "")
         {
-            return "move " + destination.GetString() + " <- ()";
+            Console.Write(indentation);
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write("move ");
+            Console.ResetColor();
+            Console.Write(this.destination.GetString());
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write(" <- ");
+            Console.ResetColor();
+            Console.WriteLine("()");
+            Console.ResetColor();
         }
     }
 
@@ -80,9 +108,18 @@ namespace Trapl.Core
         }
 
 
-        public override string GetString()
+        public override void PrintToConsole(string indentation = "")
         {
-            return "move " + destination.GetString() + " <- fn[" + functIndex + "]";
+            Console.Write(indentation);
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write("move ");
+            Console.ResetColor();
+            Console.Write(this.destination.GetString());
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write(" <- ");
+            Console.ResetColor();
+            Console.WriteLine("fn[" + this.functIndex + "]");
+            Console.ResetColor();
         }
     }
 
@@ -109,19 +146,31 @@ namespace Trapl.Core
         }
 
 
-        public override string GetString()
+        public override void PrintToConsole(string indentation = "")
         {
-            var result = "move " + destination.GetString() + " <- call " +
-                callTargetSource.GetString() + " (";
+            Console.Write(indentation);
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write("move ");
+            Console.ResetColor();
+            Console.Write(this.destination.GetString());
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write(" <- call ");
+            Console.ResetColor();
+            Console.Write(this.callTargetSource.GetString());
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write(" (");
 
             for (var i = 0; i < this.argumentSources.Length; i++)
             {
-                result += this.argumentSources[i].GetString();
+                Console.ResetColor();
+                Console.Write(this.argumentSources[i].GetString());
+                Console.ForegroundColor = ConsoleColor.DarkGray;
                 if (i < this.argumentSources.Length - 1)
-                    result += ", ";
+                    Console.Write(", ");
             }
 
-            return result + ")";
+            Console.WriteLine(")");
+            Console.ResetColor();
         }
     }
 }

@@ -13,8 +13,9 @@
 
         public void Resolve(Grammar.ASTNodeExpr topExpr)
         {
-            var segment = funct.CreateSegment();
-            ResolveExpr(topExpr, ref segment, Core.DataAccessRegister.ForRegister(0));
+            var curSegment = funct.CreateSegment();
+            ResolveExpr(topExpr, ref curSegment, Core.DataAccessRegister.ForRegister(0));
+            funct.AddInstruction(curSegment, new Core.InstructionEnd());
         }
 
 

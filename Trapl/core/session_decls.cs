@@ -333,20 +333,13 @@ namespace Trapl.Core
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.Out.Write(indentation);
-
                 Console.Out.Write("segment #s" + i);
                 Console.ResetColor();
                 Console.Out.WriteLine();
 
                 for (var j = 0; j < decl.segments[i].instructions.Count; j++)
                 {
-                    Console.ResetColor();
-                    Console.Out.Write(indentation);
-                    Console.Out.Write("  ");
-
-                    Console.Out.Write(decl.segments[i].instructions[j].GetString());
-                    Console.ResetColor();
-                    Console.Out.WriteLine();
+                    decl.segments[i].instructions[j].PrintToConsole(indentation + "  ");
                 }
             }
         }

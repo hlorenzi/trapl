@@ -1,13 +1,16 @@
-﻿namespace Trapl.Core
+﻿using System;
+
+
+namespace Trapl.Core
 {
     public abstract class Instruction
     {
         public Diagnostics.Span span;
 
 
-        public virtual string GetString()
+        public virtual void PrintToConsole(string indentation = "")
         {
-            return "";
+            Console.WriteLine(indentation);
         }
     }
 

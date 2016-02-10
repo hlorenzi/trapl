@@ -44,8 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="core\decl_funct.cs" />
-    <Compile Include="core\instructions\inst_branch.cs" />
-    <Compile Include="core\instructions\inst_goto.cs" />
+    <Compile Include="core\instructions\inst_flow.cs" />
     <Compile Include="core\instructions\inst_move.cs" />
     <Compile Include="core\instructions\_inst.cs" />
     <Compile Include="core\instructions\_segment.cs" />
