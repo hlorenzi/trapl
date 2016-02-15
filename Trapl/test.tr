@@ -3,12 +3,10 @@ Foo::{ Qux: struct { } }
 Foo::Bar::{ Qux: struct { } }
 
 
-test: fn(x: Qux, y: _::Foo::Qux) -> (_::Qux, Foo::Bar::Qux)
+test: fn() -> ()
 {
-	test(test(x), y);
-	x = 0;
-	if x
-		{ test(y, x) }
-	else
-		{ test(x, y) }
+	let x: Qux;
+	let y = x;
+	let z = test;
+	let w = test();
 }

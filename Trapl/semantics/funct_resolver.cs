@@ -7,7 +7,6 @@
             this.session = session;
             this.funct = funct;
             this.useDirectives = useDirectives;
-            this.typeInferencer = new TypeInferencer();
         }
 
 
@@ -16,13 +15,13 @@
             var curSegment = funct.CreateSegment();
             ResolveExpr(topExpr, ref curSegment, Core.DataAccessRegister.ForRegister(0));
             funct.AddInstruction(curSegment, new Core.InstructionEnd());
+            FunctInferencer.DoInference(this.session, this.funct);
         }
 
 
         private Core.Session session;
         private Core.DeclFunct funct;
         private Core.UseDirective[] useDirectives;
-        private TypeInferencer typeInferencer;
 
 
         private void ResolveExpr(Grammar.ASTNodeExpr expr, ref int curSegment, Core.DataAccess outputReg)
@@ -75,8 +74,7 @@
         {
             // Parse condition.
             var conditionReg = Core.DataAccessRegister.ForRegister(
-                funct.CreateRegister(
-                    Core.TypePlaceholder.Of(typeInferencer.AddSlot())));
+                funct.CreateRegister(new Core.TypePlaceholder()));
 
             this.ResolveExpr(
                 exprIf.conditionExpr,
@@ -119,8 +117,7 @@
         private void ResolveExprLet(Grammar.ASTNodeExprLet exprLet, ref int curSegment, Core.DataAccess output)
         {
             // Create a new storage location and name binding.
-            var inferSlot = typeInferencer.AddSlot();
-            var registerIndex = funct.CreateRegister(Core.TypePlaceholder.Of(inferSlot));
+            var registerIndex = funct.CreateRegister(new Core.TypePlaceholder());
 
             funct.CreateBinding(
                 NameResolver.Resolve(((Grammar.ASTNodeExprNameConcrete)exprLet.name).name),
@@ -129,8 +126,8 @@
             // Parse type annotation, if there is one.
             if (exprLet.type != null)
             {
-                typeInferencer.InferType(inferSlot,
-                    TypeResolver.Resolve(session, exprLet.type, useDirectives));
+                funct.registerTypes[registerIndex] =
+                    TypeResolver.Resolve(session, exprLet.type, useDirectives);
             }
 
             // Parse init expression, if there is one.
@@ -150,7 +147,7 @@
         {
             // Parse called expression.
             var callTargetReg = Core.DataAccessRegister.ForRegister(
-                funct.CreateRegister(Core.TypePlaceholder.Of(typeInferencer.AddSlot())));
+                funct.CreateRegister(new Core.TypePlaceholder()));
 
             ResolveExpr(exprCall.calledExpr, ref curSegment, callTargetReg);
 
@@ -160,7 +157,7 @@
             for (var i = 0; i < exprCall.argumentExprs.Count; i++)
             {
                 argumentRegs[i] = Core.DataAccessRegister.ForRegister(
-                    funct.CreateRegister(Core.TypePlaceholder.Of(typeInferencer.AddSlot())));
+                    funct.CreateRegister(new Core.TypePlaceholder()));
 
                 ResolveExpr(exprCall.argumentExprs[i], ref curSegment, argumentRegs[i]);
             }
@@ -264,16 +261,6 @@
             }
 
             return -1;
-        }
-
-
-        private void AddSameTypeInferenceRule(Core.DataAccess data1, Core.DataAccess data2)
-        {
-            var reg1 = data1 as Core.DataAccessRegister;
-            var reg2 = data2 as Core.DataAccessRegister;
-
-            if (reg1 != null && reg2 != null)
-                typeInferencer.AddRule(TypeInferencer.RuleIsSame.For(reg1.registerIndex, reg2.registerIndex));
         }
     }
 }

@@ -46,5 +46,15 @@ namespace Trapl.Core
             this.localBindings.Add(binding);
             return this.localBindings.Count - 1;
         }
+
+
+        public Core.TypeFunct MakeFunctType()
+        {
+            var parameterTypes = new Core.Type[this.parameterNum];
+            for (var i = 0; i < this.parameterNum; i++)
+                parameterTypes[i] = this.registerTypes[i];
+
+            return Core.TypeFunct.Of(this.registerTypes[0], parameterTypes);
+        }
     }
 }

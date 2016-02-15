@@ -8,7 +8,7 @@
 
         public static TypeFunct Of(Type returnType, params Type[] parameterTypes)
         {
-            return new TypeFunct { parameterTypes = parameterTypes };
+            return new TypeFunct { returnType = returnType, parameterTypes = parameterTypes };
         }
 
 
