@@ -17,6 +17,9 @@ namespace Trapl.Core
 
     public abstract class DataAccess
     {
+        public Diagnostics.Span span;
+
+
         public abstract string GetString();
     }
 
@@ -35,9 +38,9 @@ namespace Trapl.Core
         public int registerIndex;
 
 
-        public static DataAccessRegister ForRegister(int registerIndex)
+        public static DataAccessRegister ForRegister(Diagnostics.Span span, int registerIndex)
         {
-            return new DataAccessRegister { registerIndex = registerIndex };
+            return new DataAccessRegister { span = span, registerIndex = registerIndex };
         }
 
 

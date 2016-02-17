@@ -13,9 +13,10 @@
         public void Resolve(Grammar.ASTNodeExpr topExpr)
         {
             var curSegment = funct.CreateSegment();
-            ResolveExpr(topExpr, ref curSegment, Core.DataAccessRegister.ForRegister(0));
+            ResolveExpr(topExpr, ref curSegment, Core.DataAccessRegister.ForRegister(topExpr.GetSpan(), 0));
             funct.AddInstruction(curSegment, new Core.InstructionEnd());
             FunctInferencer.DoInference(this.session, this.funct);
+            FunctChecker.Check(this.session, this.funct);
         }
 
 
@@ -26,7 +27,9 @@
 
         private void ResolveExpr(Grammar.ASTNodeExpr expr, ref int curSegment, Core.DataAccess outputReg)
         {
-            if (expr is Grammar.ASTNodeExprBlock)
+            if (expr is Grammar.ASTNodeExprParenthesized)
+                this.ResolveExpr(((Grammar.ASTNodeExprParenthesized)expr).innerExpr, ref curSegment, outputReg);
+            else if (expr is Grammar.ASTNodeExprBlock)
                 this.ResolveExprBlock((Grammar.ASTNodeExprBlock)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprIf)
                 this.ResolveExprIf((Grammar.ASTNodeExprIf)expr, ref curSegment, outputReg);
@@ -74,6 +77,7 @@
         {
             // Parse condition.
             var conditionReg = Core.DataAccessRegister.ForRegister(
+                exprIf.conditionExpr.GetSpan(),
                 funct.CreateRegister(new Core.TypePlaceholder()));
 
             this.ResolveExpr(
@@ -134,7 +138,7 @@
             if (exprLet.initExpr != null)
             {
                 ResolveExpr(exprLet.initExpr, ref curSegment,
-                    Core.DataAccessRegister.ForRegister(registerIndex));
+                    Core.DataAccessRegister.ForRegister(exprLet.name.GetSpan(), registerIndex));
             }
 
             // Generate a void store.
@@ -147,6 +151,7 @@
         {
             // Parse called expression.
             var callTargetReg = Core.DataAccessRegister.ForRegister(
+                exprCall.calledExpr.GetSpan(),
                 funct.CreateRegister(new Core.TypePlaceholder()));
 
             ResolveExpr(exprCall.calledExpr, ref curSegment, callTargetReg);
@@ -157,6 +162,7 @@
             for (var i = 0; i < exprCall.argumentExprs.Count; i++)
             {
                 argumentRegs[i] = Core.DataAccessRegister.ForRegister(
+                    exprCall.argumentExprs[i].GetSpan(),
                     funct.CreateRegister(new Core.TypePlaceholder()));
 
                 ResolveExpr(exprCall.argumentExprs[i], ref curSegment, argumentRegs[i]);
@@ -182,7 +188,7 @@
                     ResolveExpr(
                         exprBinOp.rhsOperand,
                         ref curSegment,
-                        Core.DataAccessRegister.ForRegister(registerIndex));
+                        Core.DataAccessRegister.ForRegister(exprBinOp.lhsOperand.GetSpan(), registerIndex));
 
                     // Generate a void store.
                     funct.AddInstruction(
@@ -217,6 +223,7 @@
                         exprName.GetSpan(),
                         output,
                         Core.DataAccessRegister.ForRegister(
+                            exprName.GetSpan(),
                             funct.localBindings[bindingIndex].registerIndex)));
                 return;
             }

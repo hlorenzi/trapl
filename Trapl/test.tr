@@ -1,12 +1,33 @@
+Foo: struct { }
+Bar: struct { }
 Qux: struct { }
-Foo::{ Qux: struct { } }
-Foo::Bar::{ Qux: struct { } }
+
+
+qux_for_foo: fn(foo: Foo) -> Qux
+{
+
+}
 
 
 test: fn() -> ()
 {
-	let x: Qux;
-	let y = x;
-	let z = test;
-	let w = test();
+	let foo: Foo;
+	let bar: Bar;
+	let qux: Qux;
+
+	foo = (bar);
+	foo = foo;
+	foo = bar;
+	foo = test;
+	foo = test();
+	foo = qux_for_foo(foo);
+	qux = qux_for_foo(foo);
+
+	test();
+	foo();
+	qux_for_foo();
+	qux_for_foo(foo);
+	qux_for_foo(bar);
+
+	let if_result = if foo { bar } else { qux };
 }

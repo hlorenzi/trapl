@@ -57,7 +57,7 @@ namespace Trapl.Semantics
         }
 
 
-        public Core.Type GetDataAccessType(Core.DataAccess access)
+        private Core.Type GetDataAccessType(Core.DataAccess access)
         {
             var regAccess = access as Core.DataAccessRegister;
             if (regAccess != null)

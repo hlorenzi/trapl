@@ -51,6 +51,7 @@
     <Compile Include="core\types\funct.cs" />
     <Compile Include="core\types\placeholder.cs" />
     <Compile Include="core\use_directive.cs" />
+    <Compile Include="semantics\funct_checker.cs" />
     <Compile Include="semantics\funct_resolver.cs" />
     <Compile Include="semantics\funct_inferencer.cs" />
     <Compile Include="semantics\type_inferencer.cs" />

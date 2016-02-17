@@ -23,7 +23,11 @@ namespace Trapl.Diagnostics
         Undeclared,
         DuplicateDeclaration,
         AmbiguousDeclaration,
-        WrongDeclarationKind
+        WrongDeclarationKind,
+
+        IncompatibleTypes,
+        UncallableType,
+        WrongNumberOfArguments
     }
 
 

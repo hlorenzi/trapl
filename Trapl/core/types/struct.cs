@@ -13,6 +13,28 @@
         }
 
 
+        public override bool IsSame(Type other)
+        {
+            var otherStruct = other as TypeStruct;
+            if (otherStruct == null)
+                return false;
+
+            return this.structIndex == otherStruct.structIndex;
+        }
+
+
+        public override bool IsResolved()
+        {
+            return true;
+        }
+
+
+        public override bool IsError()
+        {
+            return false;
+        }
+
+
         public override string GetString(Core.Session session)
         {
             return session.GetStructName(this.structIndex).GetString();
