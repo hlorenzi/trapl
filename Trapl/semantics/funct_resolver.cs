@@ -178,25 +178,35 @@
         {
             if (exprBinOp.oper == Grammar.ASTNodeExprBinaryOp.Operator.Equal)
             {
-                if (exprBinOp.lhsOperand is Grammar.ASTNodeExprNameConcrete)
-                {
-                    var name = NameResolver.Resolve(((Grammar.ASTNodeExprNameConcrete)exprBinOp.lhsOperand).name);
-                    var bindingIndex = FindLocalBinding(name, true);
-                    var registerIndex = funct.localBindings[bindingIndex].registerIndex;
-
-                    // Parse right-hand side expression.
-                    ResolveExpr(
-                        exprBinOp.rhsOperand,
-                        ref curSegment,
-                        Core.DataAccessRegister.ForRegister(exprBinOp.lhsOperand.GetSpan(), registerIndex));
-
-                    // Generate a void store.
-                    funct.AddInstruction(
-                        curSegment,
-                        Core.InstructionMoveLiteralTuple.Empty(exprBinOp.GetSpan(), output));
-
+                var access = ResolveDataAccess(exprBinOp.lhsOperand, ref curSegment, false);
+                if (access == null)
                     return;
-                }
+
+                // Parse right-hand side expression.
+                ResolveExpr(
+                    exprBinOp.rhsOperand,
+                    ref curSegment,
+                    access);
+
+                // Generate a void store.
+                funct.AddInstruction(
+                    curSegment,
+                    Core.InstructionMoveLiteralTuple.Empty(exprBinOp.GetSpan(), output));
+
+                return;
+            }
+            else if (exprBinOp.oper == Grammar.ASTNodeExprBinaryOp.Operator.Dot)
+            {
+                var access = ResolveDataAccess(exprBinOp, ref curSegment, false);
+                if (access == null)
+                    return;
+
+                funct.AddInstruction(curSegment,
+                    Core.InstructionMoveData.Of(
+                        exprBinOp.GetSpan(),
+                        output,
+                        access));
+                return;
             }
 
             throw new System.NotImplementedException();
@@ -215,7 +225,7 @@
             var name = NameResolver.Resolve(((Grammar.ASTNodeExprNameConcrete)exprName).name);
 
             // Try to find a local with the same name.
-            var bindingIndex = FindLocalBinding(name, false);
+            var bindingIndex = FindLocalBinding(name);
             if (bindingIndex >= 0)
             {
                 funct.AddInstruction(curSegment,
@@ -247,7 +257,7 @@
         }
 
 
-        private int FindLocalBinding(Core.Name name, bool throwErrorOnUndeclared)
+        private int FindLocalBinding(Core.Name name)
         {
             for (int i = funct.localBindings.Count - 1; i >= 0; i--)
             {
@@ -257,17 +267,74 @@
                 }
             }
 
-            if (throwErrorOnUndeclared)
+            return -1;
+        }
+
+
+        private Core.DataAccess ResolveDataAccess(Grammar.ASTNodeExpr expr, ref int curSegment, bool allowInnerExpr)
+        {
+            var exprConcreteName = expr as Grammar.ASTNodeExprNameConcrete;
+            if (exprConcreteName != null)
             {
-                /*session.AddMessage(
-                    Diagnostics.MessageKind.Error, 
-                    Diagnostics.MessageCode.Undeclared,
-                    "undeclared '" + name.GetString() + "'",
-                    name.GetSpan());*/
-                throw new Core.CheckException();
+                var name = NameResolver.Resolve(exprConcreteName.name);
+                var bindingIndex = FindLocalBinding(name);
+
+                if (bindingIndex < 0)
+                {
+                    session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.InvalidAssignmentDestination,
+                        "invalid assignment destination",
+                        expr.GetSpan());
+                    return null;
+                }
+
+                var localRegisterIndex = funct.localBindings[bindingIndex].registerIndex;
+                return Core.DataAccessRegister.ForRegister(expr.GetSpan(), localRegisterIndex);
             }
 
-            return -1;
+            var exprDotOp = expr as Grammar.ASTNodeExprBinaryOp;
+            if (exprDotOp != null && exprDotOp.oper == Grammar.ASTNodeExprBinaryOp.Operator.Dot)
+            {
+                var rhsFieldName = exprDotOp.rhsOperand as Grammar.ASTNodeExprNameConcrete;
+                if (rhsFieldName == null)
+                {
+                    session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.Expected,
+                        "expected field name",
+                        exprDotOp.rhsOperand.GetSpan());
+                    return null;
+                }
+
+                var innerAccess = ResolveDataAccess(exprDotOp.lhsOperand, ref curSegment, true);
+                var innerRegAccess = innerAccess as Core.DataAccessRegister;
+                if (innerRegAccess == null)
+                    return null;
+
+                innerRegAccess.AddFieldAccessByName(rhsFieldName.name.GetExcerpt());
+                return innerRegAccess;
+            }
+
+            if (allowInnerExpr)
+            {
+                // Generate a new register for inner expression.
+                var registerIndex = this.funct.CreateRegister(new Core.TypePlaceholder());
+                var access = Core.DataAccessRegister.ForRegister(expr.GetSpan(), registerIndex);
+                ResolveExpr(expr, ref curSegment, access);
+
+                // Create a new access for the same register, in case there's an outer
+                // access modifier (dot operator).
+                access = Core.DataAccessRegister.ForRegister(expr.GetSpan(), registerIndex);
+                return access;
+            }
+
+            session.AddMessage(
+                Diagnostics.MessageKind.Error,
+                Diagnostics.MessageCode.InvalidAssignmentDestination,
+                "invalid assignment destination",
+                expr.GetSpan());
+            return null;
         }
     }
 }

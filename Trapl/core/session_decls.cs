@@ -67,6 +67,12 @@ namespace Trapl.Core
         }
 
 
+        public DeclStruct GetStruct(int structIndex)
+        {
+            return this.declStructs[structIndex];
+        }
+
+
         public DeclFunct GetFunct(int functIndex)
         {
             return this.declFuncts[functIndex];

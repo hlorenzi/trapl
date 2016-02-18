@@ -27,7 +27,8 @@ namespace Trapl.Diagnostics
 
         IncompatibleTypes,
         UncallableType,
-        WrongNumberOfArguments
+        WrongNumberOfArguments,
+        InvalidAssignmentDestination
     }
 
 

@@ -8,6 +8,7 @@ namespace Trapl.Grammar
         public enum Operator
         {
             Equal,
+            Dot,
             Plus, Minus, Asterisk, Slash,
             Ampersand, VerticalBar, Circumflex
         }

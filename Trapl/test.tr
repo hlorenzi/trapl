@@ -1,6 +1,6 @@
-Foo: struct { }
-Bar: struct { }
-Qux: struct { }
+Foo: struct { a: Foo, b: Bar }
+Bar: struct { a: Foo, b: Bar }
+Qux: struct { a: Foo, b: Bar }
 
 
 qux_for_foo: fn(foo: Foo) -> Qux
@@ -15,19 +15,5 @@ test: fn() -> ()
 	let bar: Bar;
 	let qux: Qux;
 
-	foo = (bar);
-	foo = foo;
-	foo = bar;
-	foo = test;
-	foo = test();
-	foo = qux_for_foo(foo);
-	qux = qux_for_foo(foo);
-
-	test();
-	foo();
-	qux_for_foo();
-	qux_for_foo(foo);
-	qux_for_foo(bar);
-
-	let if_result = if foo { bar } else { qux };
+	foo.a = foo;
 }

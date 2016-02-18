@@ -52,7 +52,7 @@ namespace Trapl.Core
         {
             var parameterTypes = new Core.Type[this.parameterNum];
             for (var i = 0; i < this.parameterNum; i++)
-                parameterTypes[i] = this.registerTypes[i];
+                parameterTypes[i] = this.registerTypes[i + 1];
 
             return Core.TypeFunct.Of(this.registerTypes[0], parameterTypes);
         }

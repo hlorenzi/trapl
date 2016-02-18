@@ -61,9 +61,24 @@ namespace Trapl.Semantics
         {
             var regAccess = access as Core.DataAccessRegister;
             if (regAccess != null)
-                return this.funct.registerTypes[regAccess.registerIndex];
+            {
+                var regType = this.funct.registerTypes[regAccess.registerIndex];
+            }
 
-            return null;
+            return new Core.TypeError();
+        }
+
+
+        private Core.Type GetFieldType(Core.Type baseType, Core.FieldAccesses fields, int index)
+        {
+            var baseStruct = baseType as Core.TypeStruct;
+            if (baseStruct == null)
+                return new Core.TypeError();
+
+            if (fields.indices[index] == -1)
+                return new Core.TypePlaceholder();
+
+            return this.session.GetStruct(baseStruct.structIndex).fieldTypes[fields.indices[index]];
         }
 
 

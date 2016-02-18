@@ -576,6 +576,7 @@ namespace Trapl.Grammar
             new Dictionary<TokenKind, ASTNodeExprBinaryOp.Operator>()
             {
                 { TokenKind.Equal, ASTNodeExprBinaryOp.Operator.Equal },
+                { TokenKind.Period, ASTNodeExprBinaryOp.Operator.Dot },
                 { TokenKind.Plus, ASTNodeExprBinaryOp.Operator.Plus },
                 { TokenKind.Minus, ASTNodeExprBinaryOp.Operator.Minus },
                 { TokenKind.Asterisk, ASTNodeExprBinaryOp.Operator.Asterisk },

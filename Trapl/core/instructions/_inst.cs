@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 
 namespace Trapl.Core
@@ -11,6 +12,29 @@ namespace Trapl.Core
         public virtual void PrintToConsole(string indentation = "")
         {
             Console.WriteLine(indentation);
+        }
+    }
+
+
+    public class FieldAccesses
+    {
+        public List<int> indices = new List<int>();
+        public List<string> names = new List<string>();
+
+
+        public string GetString()
+        {
+            var result = "";
+            for (var i = 0; i < this.indices.Count; i++)
+            {
+                result += ".";
+                if (this.names[i] == null)
+                    result += this.indices[i];
+                else
+                    result += this.names[i];
+            }
+
+            return result;
         }
     }
 
@@ -36,6 +60,7 @@ namespace Trapl.Core
     public class DataAccessRegister : DataAccess
     {
         public int registerIndex;
+        public FieldAccesses fieldAccesses = new FieldAccesses();
 
 
         public static DataAccessRegister ForRegister(Diagnostics.Span span, int registerIndex)
@@ -44,9 +69,16 @@ namespace Trapl.Core
         }
 
 
+        public void AddFieldAccessByName(string name)
+        {
+            this.fieldAccesses.indices.Add(-1);
+            this.fieldAccesses.names.Add(name);
+        }
+
+
         public override string GetString()
         {
-            return "#r" + registerIndex;
+            return "#r" + registerIndex + fieldAccesses.GetString();
         }
     }
 }

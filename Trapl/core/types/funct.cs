@@ -66,7 +66,7 @@
 
         public override string GetString(Core.Session session)
         {
-            var result = "(";
+            var result = "fn(";
             for (var i = 0; i < this.parameterTypes.Length; i++)
             {
                 result += this.parameterTypes[i].GetString(session);
