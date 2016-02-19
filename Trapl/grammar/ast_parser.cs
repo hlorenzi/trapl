@@ -379,6 +379,14 @@ namespace Trapl.Grammar
                 this.Match(TokenKind.ParenClose, "expected ')'");
                 return tupleTypeNode;
             }
+            // Parse a placeholder type.
+            else if (this.CurrentIs(TokenKind.Placeholder) && !this.NextIs(TokenKind.DoubleColon))
+            {
+                var placeholderTypeNode = new ASTNodeTypePlaceholder();
+                placeholderTypeNode.SetSpan(this.Current().span);
+                this.Advance();
+                return placeholderTypeNode;
+            }
             // Parse a struct type.
             else
             {

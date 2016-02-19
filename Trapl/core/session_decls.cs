@@ -135,8 +135,8 @@ namespace Trapl.Core
             {
                 this.AddMessage(
                     Diagnostics.MessageKind.Error,
-                    Diagnostics.MessageCode.Undeclared,
-                    "undeclared '" + origName.GetString() + "'",
+                    Diagnostics.MessageCode.Unknown,
+                    "unknown '" + origName.GetString() + "'",
                     span);
                 return false;
             }
@@ -151,7 +151,6 @@ namespace Trapl.Core
                     "'" + this.GetDeclName(decls[1]).GetString() + "'" +
                     (decls.Count > 2 ? ", and other " + (decls.Count - 2) : ""),
                     span);
-
                 return false;
             }
             else
@@ -224,37 +223,6 @@ namespace Trapl.Core
             decl.fieldTypes.Add(fieldType);
             decl.fieldNames.Add(name, fieldIndex);
             return fieldIndex;
-        }
-
-
-        public void SetFunctParameterNumber(int functIndex, int parameterNum)
-        {
-            var decl = this.declFuncts[functIndex];
-            decl.parameterNum = parameterNum;
-        }
-
-
-        public int CreateFunctSegment(int functIndex)
-        {
-            return this.declFuncts[functIndex].CreateSegment();
-        }
-
-
-        public void AddFunctInstruction(int functIndex, int segmentIndex, Instruction inst)
-        {
-            this.declFuncts[functIndex].AddInstruction(segmentIndex, inst);
-        }
-
-
-        public int CreateFunctRegister(int functIndex, Core.Type type)
-        {
-            return this.declFuncts[functIndex].CreateRegister(type);
-        }
-
-
-        public int CreateFunctBinding(int functIndex, Core.Name name, int registerIndex)
-        {
-            return this.declFuncts[functIndex].CreateBinding(name, registerIndex);
         }
 
 

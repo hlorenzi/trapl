@@ -46,6 +46,36 @@ namespace Trapl.Semantics
                         CheckMoveCallResult(instMoveCallResult);
                 }
             }
+
+            var allBindingsResolved = true;
+            foreach (var binding in this.funct.localBindings)
+            {
+                var bindingType = this.funct.registerTypes[binding.registerIndex];
+                if (!bindingType.IsResolved())
+                {
+                    this.session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.InferenceFailed,
+                        "cannot infer type of '" + binding.name.GetString() + "'",
+                        binding.declSpan);
+                    allBindingsResolved = false;
+                }
+            }
+
+            if (allBindingsResolved)
+            {
+                for (var i = 0; i < this.funct.registerTypes.Count; i++)
+                {
+                    var regType = this.funct.registerTypes[i];
+                    if (!regType.IsResolved())
+                    {
+                        this.session.AddMessage(
+                            Diagnostics.MessageKind.Internal,
+                            Diagnostics.MessageCode.InferenceFailed,
+                            "cannot infer type of #r" + i);
+                    }
+                }
+            }
         }
 
 
@@ -67,7 +97,7 @@ namespace Trapl.Semantics
 
         private void CheckMove(Core.DataAccess destination, Core.Type srcType, Diagnostics.Span srcSpan)
         {
-            var destType = GetDataAccessType(destination);
+            var destType = TypeResolver.GetDataAccessType(this.session, this.funct, destination);
             if (destType == null)
                 return;
 
@@ -101,17 +131,20 @@ namespace Trapl.Semantics
 
         private void CheckMoveData(Core.InstructionMoveData inst)
         {
-            CheckMove(inst.destination, GetDataAccessType(inst.source), inst.source.span);
+            CheckMove(
+                inst.destination,
+                TypeResolver.GetDataAccessType(this.session, this.funct, inst.source),
+                inst.source.span);
         }
 
 
         private void CheckMoveTupleLiteral(Core.InstructionMoveLiteralTuple inst)
         {
-            var destType = GetDataAccessType(inst.destination);
+            var destType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.destination);
 
             var tupleElements = new Core.Type[inst.sourceElements.Count];
             for (var i = 0; i < inst.sourceElements.Count; i++)
-                tupleElements[i] = GetDataAccessType(inst.sourceElements[i]);
+                tupleElements[i] = TypeResolver.GetDataAccessType(this.session, this.funct, inst.sourceElements[i]);
 
             var srcTuple = Core.TypeTuple.Of(tupleElements);
 
@@ -121,7 +154,7 @@ namespace Trapl.Semantics
 
         private void CheckMoveFunctLiteral(Core.InstructionMoveLiteralFunct inst)
         {
-            var destType = GetDataAccessType(inst.destination);
+            var destType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.destination);
             var srcType = this.session.GetFunct(inst.functIndex).MakeFunctType();
 
             CheckMove(inst.destination, srcType, inst.span);
@@ -130,8 +163,8 @@ namespace Trapl.Semantics
 
         private void CheckMoveCallResult(Core.InstructionMoveCallResult inst)
         {
-            var destType = GetDataAccessType(inst.destination);
-            var srcType = GetDataAccessType(inst.callTargetSource);
+            var destType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.destination);
+            var srcType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.callTargetSource);
             var srcFunct = srcType as Core.TypeFunct;
 
             if (srcFunct == null)
@@ -156,7 +189,7 @@ namespace Trapl.Semantics
 
             for (var i = 0; i < inst.argumentSources.Length; i++)
             {
-                var argType = GetDataAccessType(inst.argumentSources[i]);
+                var argType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.argumentSources[i]);
                 var paramType = srcFunct.parameterTypes[i];
 
                 if (!paramType.IsSame(argType) &&

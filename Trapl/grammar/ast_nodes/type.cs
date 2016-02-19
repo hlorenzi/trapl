@@ -4,4 +4,10 @@
     {
 
     }
+
+
+    public class ASTNodeTypePlaceholder : ASTNodeType
+    {
+
+    }
 }

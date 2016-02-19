@@ -9,6 +9,7 @@ namespace Trapl.Core
         {
             public Name name;
             public int registerIndex;
+            public Diagnostics.Span declSpan;
         }
 
 
@@ -38,13 +39,20 @@ namespace Trapl.Core
         }
 
 
-        public int CreateBinding(Core.Name name, int registerIndex)
+        public int CreateBinding(Core.Name name, int registerIndex, Diagnostics.Span span)
         {
             var binding = new LocalBinding();
             binding.name = name;
             binding.registerIndex = registerIndex;
+            binding.declSpan = span;
             this.localBindings.Add(binding);
             return this.localBindings.Count - 1;
+        }
+
+
+        public void SetParameterNumber(int num)
+        {
+            this.parameterNum = num;
         }
 
 

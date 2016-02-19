@@ -10,6 +10,12 @@ namespace Trapl.Semantics
             Grammar.ASTNodeType typeNode,
             IList<Core.UseDirective> useDirectives)
         {
+            var typePlaceholderNode = typeNode as Grammar.ASTNodeTypePlaceholder;
+            if (typePlaceholderNode != null)
+            {
+                return new Core.TypePlaceholder();
+            }
+
             var typeStructNode = typeNode as Grammar.ASTNodeTypeStruct;
             if (typeStructNode != null)
             {
@@ -36,6 +42,44 @@ namespace Trapl.Semantics
             }
 
             throw new System.NotImplementedException();
+        }
+
+
+        public static Core.Type GetDataAccessType(
+            Core.Session session,
+            Core.DeclFunct funct,
+            Core.DataAccess access)
+        {
+            var regAccess = access as Core.DataAccessRegister;
+            if (regAccess != null)
+            {
+                return GetFieldType(
+                    session,
+                    funct,
+                    funct.registerTypes[regAccess.registerIndex],
+                    regAccess.fieldAccesses);
+            }
+
+            return new Core.TypeError();
+        }
+
+
+        public static Core.Type GetFieldType(
+            Core.Session session,
+            Core.DeclFunct funct,
+            Core.Type baseType,
+            Core.FieldAccesses fields)
+        {
+            var curType = baseType;
+            for (var i = 0; i < fields.indices.Count; i++)
+            {
+                var curStruct = curType as Core.TypeStruct;
+                if (curStruct == null)
+                    return new Core.TypeError();
+
+                curType = session.GetStruct(curStruct.structIndex).fieldTypes[fields.indices[i]];
+            }
+            return curType;
         }
     }
 }

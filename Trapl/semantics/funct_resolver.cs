@@ -1,4 +1,7 @@
-﻿namespace Trapl.Semantics
+﻿using System.Collections.Generic;
+
+
+namespace Trapl.Semantics
 {
     public class FunctBodyResolver
     {
@@ -125,7 +128,8 @@
 
             funct.CreateBinding(
                 NameResolver.Resolve(((Grammar.ASTNodeExprNameConcrete)exprLet.name).name),
-                registerIndex);
+                registerIndex,
+                exprLet.name.GetSpan());
 
             // Parse type annotation, if there is one.
             if (exprLet.type != null)
@@ -250,8 +254,8 @@
 
             session.AddMessage(
                 Diagnostics.MessageKind.Error,
-                Diagnostics.MessageCode.Undeclared,
-                "undeclared '" + name.GetString() + "'",
+                Diagnostics.MessageCode.Unknown,
+                "unknown '" + name.GetString() + "'",
                 exprName.GetSpan());
             throw new Core.CheckException();
         }
@@ -262,9 +266,7 @@
             for (int i = funct.localBindings.Count - 1; i >= 0; i--)
             {
                 if (funct.localBindings[i].name.Compare(name))
-                {
                     return i;
-                }
             }
 
             return -1;
@@ -279,18 +281,11 @@
                 var name = NameResolver.Resolve(exprConcreteName.name);
                 var bindingIndex = FindLocalBinding(name);
 
-                if (bindingIndex < 0)
+                if (bindingIndex >= 0)
                 {
-                    session.AddMessage(
-                        Diagnostics.MessageKind.Error,
-                        Diagnostics.MessageCode.InvalidAssignmentDestination,
-                        "invalid assignment destination",
-                        expr.GetSpan());
-                    return null;
+                    var localRegisterIndex = funct.localBindings[bindingIndex].registerIndex;
+                    return Core.DataAccessRegister.ForRegister(expr.GetSpan(), localRegisterIndex);
                 }
-
-                var localRegisterIndex = funct.localBindings[bindingIndex].registerIndex;
-                return Core.DataAccessRegister.ForRegister(expr.GetSpan(), localRegisterIndex);
             }
 
             var exprDotOp = expr as Grammar.ASTNodeExprBinaryOp;
@@ -312,7 +307,49 @@
                 if (innerRegAccess == null)
                     return null;
 
-                innerRegAccess.AddFieldAccessByName(rhsFieldName.name.GetExcerpt());
+                // Left-hand side expr type must be resolved for field access.
+                FunctInferencer.DoInference(this.session, this.funct);
+
+                var lhsType = TypeResolver.GetDataAccessType(this.session, this.funct, innerAccess);
+                if (!lhsType.IsResolved() || lhsType.IsError())
+                {
+                    session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.EarlyInferenceFailed,
+                        "type must be known but inference up to this point failed",
+                        exprDotOp.lhsOperand.GetSpan());
+                    return null;
+                }
+
+                var lhsStruct = lhsType as Core.TypeStruct;
+                if (lhsStruct == null)
+                {
+                    session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.WrongFieldAccess,
+                        "field access on '" + lhsType.GetString(this.session) + "'",
+                        exprDotOp.lhsOperand.GetSpan());
+                    return null;
+                }
+
+                var name = NameResolver.Resolve(rhsFieldName.name);
+
+                int fieldIndex;
+                if (!this.session.GetStruct(lhsStruct.structIndex).fieldNames.FindByName(
+                    name, out fieldIndex))
+                {
+                    session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.Unknown,
+                        "unknown field '" + name.GetString() + "' in '" +
+                        lhsType.GetString(this.session) + "'",
+                        exprDotOp.rhsOperand.GetSpan(),
+                        exprDotOp.lhsOperand.GetSpan());
+                    return null;
+                }
+
+                innerRegAccess.AddFieldAccess(fieldIndex);
+                innerRegAccess.span = innerRegAccess.span.Merge(exprDotOp.rhsOperand.GetSpan());
                 return innerRegAccess;
             }
 
@@ -331,7 +368,7 @@
 
             session.AddMessage(
                 Diagnostics.MessageKind.Error,
-                Diagnostics.MessageCode.InvalidAssignmentDestination,
+                Diagnostics.MessageCode.InvalidAccess,
                 "invalid assignment destination",
                 expr.GetSpan());
             return null;

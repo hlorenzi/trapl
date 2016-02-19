@@ -19,20 +19,13 @@ namespace Trapl.Core
     public class FieldAccesses
     {
         public List<int> indices = new List<int>();
-        public List<string> names = new List<string>();
 
 
         public string GetString()
         {
             var result = "";
             for (var i = 0; i < this.indices.Count; i++)
-            {
-                result += ".";
-                if (this.names[i] == null)
-                    result += this.indices[i];
-                else
-                    result += this.names[i];
-            }
+                result += "." + this.indices[i];
 
             return result;
         }
@@ -69,10 +62,9 @@ namespace Trapl.Core
         }
 
 
-        public void AddFieldAccessByName(string name)
+        public void AddFieldAccess(int index)
         {
-            this.fieldAccesses.indices.Add(-1);
-            this.fieldAccesses.names.Add(name);
+            this.fieldAccesses.indices.Add(index);
         }
 
 

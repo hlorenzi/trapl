@@ -19,18 +19,20 @@
                     "in funct '" + binding.name.GetString() + "'",
                     binding.declNode.GetSpan());
 
-                session.CreateFunctRegister(binding.declIndex,
+                var funct = session.GetFunct(binding.declIndex);
+
+                funct.CreateRegister(
                     TypeResolver.Resolve(session, binding.declNode.returnType, binding.useDirectives));
 
                 foreach (var paramNode in binding.declNode.parameters)
                 {
                     var paramName = NameResolver.Resolve(paramNode.name);
                     var paramType = TypeResolver.Resolve(session, paramNode.type, binding.useDirectives);
-                    var paramReg = session.CreateFunctRegister(binding.declIndex, paramType);
-                    session.CreateFunctBinding(binding.declIndex, paramName, paramReg);
+                    var paramReg = funct.CreateRegister(paramType);
+                    funct.CreateBinding(paramName, paramReg, paramNode.name.GetSpan());
                 }
 
-                session.SetFunctParameterNumber(binding.declIndex, binding.declNode.parameters.Count);
+                funct.SetParameterNumber(binding.declNode.parameters.Count);
 
                 session.PopContext();
             }

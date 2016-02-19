@@ -57,31 +57,6 @@ namespace Trapl.Semantics
         }
 
 
-        private Core.Type GetDataAccessType(Core.DataAccess access)
-        {
-            var regAccess = access as Core.DataAccessRegister;
-            if (regAccess != null)
-            {
-                var regType = this.funct.registerTypes[regAccess.registerIndex];
-            }
-
-            return new Core.TypeError();
-        }
-
-
-        private Core.Type GetFieldType(Core.Type baseType, Core.FieldAccesses fields, int index)
-        {
-            var baseStruct = baseType as Core.TypeStruct;
-            if (baseStruct == null)
-                return new Core.TypeError();
-
-            if (fields.indices[index] == -1)
-                return new Core.TypePlaceholder();
-
-            return this.session.GetStruct(baseStruct.structIndex).fieldTypes[fields.indices[index]];
-        }
-
-
         private bool ApplyToDataAccess(Core.DataAccess access, Core.Type type)
         {
             var regAccess = access as Core.DataAccessRegister;
@@ -97,8 +72,8 @@ namespace Trapl.Semantics
 
         private void ApplyRuleForMoveData(ref bool appliedRule, Core.InstructionMoveData inst)
         {
-            var destType = GetDataAccessType(inst.destination);
-            var srcType = GetDataAccessType(inst.source);
+            var destType = TypeResolver.GetDataAccessType(session, funct, inst.destination);
+            var srcType = TypeResolver.GetDataAccessType(session, funct, inst.source);
 
             var inferredDest = TypeInferencer.Try(session, srcType, ref destType);
             var inferredSrc = TypeInferencer.Try(session, destType, ref srcType);
@@ -113,11 +88,11 @@ namespace Trapl.Semantics
 
         private void ApplyRuleForMoveTupleLiteral(ref bool appliedRule, Core.InstructionMoveLiteralTuple inst)
         {
-            var destType = GetDataAccessType(inst.destination);
+            var destType = TypeResolver.GetDataAccessType(session, funct, inst.destination);
 
             var tupleElements = new Core.Type[inst.sourceElements.Count];
             for (var i = 0; i < inst.sourceElements.Count; i++)
-                tupleElements[i] = GetDataAccessType(inst.sourceElements[i]);
+                tupleElements[i] = TypeResolver.GetDataAccessType(session, funct, inst.sourceElements[i]);
 
             var srcTuple = Core.TypeTuple.Of(tupleElements);
             var srcType = (Core.Type)srcTuple;
@@ -138,8 +113,8 @@ namespace Trapl.Semantics
 
         private void ApplyRuleForMoveCallResult(ref bool appliedRule, Core.InstructionMoveCallResult inst)
         {
-            var destType = GetDataAccessType(inst.destination);
-            var callType = GetDataAccessType(inst.callTargetSource);
+            var destType = TypeResolver.GetDataAccessType(session, funct, inst.destination);
+            var callType = TypeResolver.GetDataAccessType(session, funct, inst.callTargetSource);
             var callFunct = callType as Core.TypeFunct;
             if (callFunct == null)
                 return;
@@ -179,7 +154,7 @@ namespace Trapl.Semantics
 
         private void ApplyRuleForMoveFunctLiteral(ref bool appliedRule, Core.InstructionMoveLiteralFunct inst)
         {
-            var destType = GetDataAccessType(inst.destination);
+            var destType = TypeResolver.GetDataAccessType(session, funct, inst.destination);
             var srcType = (Core.Type)this.session.GetFunct(inst.functIndex).MakeFunctType();
 
             var inferredDest = TypeInferencer.Try(session, srcType, ref destType);

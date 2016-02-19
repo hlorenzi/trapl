@@ -6,7 +6,7 @@ namespace Trapl.Diagnostics
 {
 	public enum MessageKind
     {
-		Info, Style, Warning, Error
+		Info, Style, Warning, Error, Internal
     }
 
 
@@ -20,7 +20,7 @@ namespace Trapl.Diagnostics
         Expected,
         UnmatchedElse,
 
-        Undeclared,
+        Unknown,
         DuplicateDeclaration,
         AmbiguousDeclaration,
         WrongDeclarationKind,
@@ -28,7 +28,10 @@ namespace Trapl.Diagnostics
         IncompatibleTypes,
         UncallableType,
         WrongNumberOfArguments,
-        InvalidAssignmentDestination
+        InvalidAccess,
+        WrongFieldAccess,
+        EarlyInferenceFailed,
+        InferenceFailed
     }
 
 
@@ -169,6 +172,7 @@ namespace Trapl.Diagnostics
         {
             switch (kind)
             {
+                case MessageKind.Internal: return "internal compiler error";
                 case MessageKind.Error: return "error";
                 case MessageKind.Warning: return "warning";
                 case MessageKind.Style: return "style";
@@ -182,6 +186,7 @@ namespace Trapl.Diagnostics
         {
             switch (kind)
             {
+                case MessageKind.Internal: return ConsoleColor.Red;
                 case MessageKind.Error: return ConsoleColor.Red;
                 case MessageKind.Warning: return ConsoleColor.Yellow;
                 case MessageKind.Style: return ConsoleColor.Magenta;
@@ -195,6 +200,7 @@ namespace Trapl.Diagnostics
         {
             switch (kind)
             {
+                case MessageKind.Internal: return ConsoleColor.DarkRed;
                 case MessageKind.Error: return ConsoleColor.DarkRed;
                 case MessageKind.Warning: return ConsoleColor.DarkYellow;
                 case MessageKind.Style: return ConsoleColor.DarkMagenta;
