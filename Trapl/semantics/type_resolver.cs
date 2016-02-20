@@ -8,11 +8,22 @@ namespace Trapl.Semantics
         public static Core.Type Resolve(
             Core.Session session,
             Grammar.ASTNodeType typeNode,
-            IList<Core.UseDirective> useDirectives)
+            IList<Core.UseDirective> useDirectives,
+            bool mustBeResolved)
         {
             var typePlaceholderNode = typeNode as Grammar.ASTNodeTypePlaceholder;
             if (typePlaceholderNode != null)
             {
+                if (mustBeResolved)
+                {
+                    session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.Expected,
+                        "type must be known",
+                        typeNode.GetSpan());
+                    return new Core.TypeError();
+                }
+                
                 return new Core.TypePlaceholder();
             }
 
@@ -36,7 +47,7 @@ namespace Trapl.Semantics
             {
                 var elementTypes = new Core.Type[typeTupleNode.elements.Count];
                 for (var i = 0; i < typeTupleNode.elements.Count; i++)
-                    elementTypes[i] = Resolve(session, typeTupleNode.elements[i], useDirectives);
+                    elementTypes[i] = Resolve(session, typeTupleNode.elements[i], useDirectives, mustBeResolved);
 
                 return Core.TypeTuple.Of(elementTypes);
             }

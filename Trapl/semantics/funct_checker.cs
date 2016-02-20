@@ -33,6 +33,14 @@ namespace Trapl.Semantics
                     if (instMoveData != null)
                         CheckMoveData(instMoveData);
 
+                    var instMoveLitBool = (inst as Core.InstructionMoveLiteralBool);
+                    if (instMoveLitBool != null)
+                        CheckMoveBoolLiteral(instMoveLitBool);
+
+                    var instMoveLitInt = (inst as Core.InstructionMoveLiteralInt);
+                    if (instMoveLitInt != null)
+                        CheckMoveIntLiteral(instMoveLitInt);
+
                     var instMoveTuple = (inst as Core.InstructionMoveLiteralTuple);
                     if (instMoveTuple != null)
                         CheckMoveTupleLiteral(instMoveTuple);
@@ -135,6 +143,20 @@ namespace Trapl.Semantics
                 inst.destination,
                 TypeResolver.GetDataAccessType(this.session, this.funct, inst.source),
                 inst.source.span);
+        }
+
+
+        private void CheckMoveBoolLiteral(Core.InstructionMoveLiteralBool inst)
+        {
+            var destType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.destination);
+            CheckMove(inst.destination, Core.TypeStruct.Of(session.PrimitiveBool), inst.span);
+        }
+
+
+        private void CheckMoveIntLiteral(Core.InstructionMoveLiteralInt inst)
+        {
+            var destType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.destination);
+            CheckMove(inst.destination, inst.type, inst.span);
         }
 
 

@@ -37,6 +37,14 @@ namespace Trapl.Semantics
                         if (instMoveData != null)
                             ApplyRuleForMoveData(ref appliedSomeRule, instMoveData);
 
+                        var instMoveLitBool = (inst as Core.InstructionMoveLiteralBool);
+                        if (instMoveLitBool != null)
+                            ApplyRuleForMoveBoolLiteral(ref appliedSomeRule, instMoveLitBool);
+
+                        var instMoveLitInt = (inst as Core.InstructionMoveLiteralInt);
+                        if (instMoveLitInt != null)
+                            ApplyRuleForMoveIntLiteral(ref appliedSomeRule, instMoveLitInt);
+
                         var instMoveLitTuple = (inst as Core.InstructionMoveLiteralTuple);
                         if (instMoveLitTuple != null)
                             ApplyRuleForMoveTupleLiteral(ref appliedSomeRule, instMoveLitTuple);
@@ -83,6 +91,30 @@ namespace Trapl.Semantics
 
             if (inferredSrc)
                 appliedRule = ApplyToDataAccess(inst.source, destType);
+        }
+
+
+        private void ApplyRuleForMoveBoolLiteral(ref bool appliedRule, Core.InstructionMoveLiteralBool inst)
+        {
+            var destType = TypeResolver.GetDataAccessType(session, funct, inst.destination);
+            var srcType = Core.TypeStruct.Of(session.PrimitiveBool);
+
+            var inferredDest = TypeInferencer.Try(session, srcType, ref destType);
+
+            if (inferredDest)
+                appliedRule = ApplyToDataAccess(inst.destination, destType);
+        }
+
+
+        private void ApplyRuleForMoveIntLiteral(ref bool appliedRule, Core.InstructionMoveLiteralInt inst)
+        {
+            var destType = TypeResolver.GetDataAccessType(session, funct, inst.destination);
+            var srcType = Core.TypeStruct.Of(session.PrimitiveInt);
+
+            var inferredDest = TypeInferencer.Try(session, srcType, ref destType);
+
+            if (inferredDest)
+                appliedRule = ApplyToDataAccess(inst.destination, destType);
         }
 
 

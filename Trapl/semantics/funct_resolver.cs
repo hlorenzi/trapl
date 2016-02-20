@@ -44,6 +44,8 @@ namespace Trapl.Semantics
                 this.ResolveExprBinaryOp((Grammar.ASTNodeExprBinaryOp)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprName)
                 this.ResolveExprName((Grammar.ASTNodeExprName)expr, ref curSegment, outputReg);
+            else if (expr is Grammar.ASTNodeExprLiteralBool)
+                this.ResolveExprLiteralBool((Grammar.ASTNodeExprLiteralBool)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprLiteralInt)
                 this.ResolveExprLiteralInt((Grammar.ASTNodeExprLiteralInt)expr, ref curSegment, outputReg);
             else
@@ -135,7 +137,7 @@ namespace Trapl.Semantics
             if (exprLet.type != null)
             {
                 funct.registerTypes[registerIndex] =
-                    TypeResolver.Resolve(session, exprLet.type, useDirectives);
+                    TypeResolver.Resolve(session, exprLet.type, useDirectives, false);
             }
 
             // Parse init expression, if there is one.
@@ -217,10 +219,24 @@ namespace Trapl.Semantics
         }
 
 
+        private void ResolveExprLiteralBool(Grammar.ASTNodeExprLiteralBool exprLiteralBool, ref int curSegment, Core.DataAccess output)
+        {
+            funct.AddInstruction(curSegment,
+                Core.InstructionMoveLiteralBool.Of(
+                    exprLiteralBool.GetSpan(),
+                    output,
+                    exprLiteralBool.value));
+        }
+
+
         private void ResolveExprLiteralInt(Grammar.ASTNodeExprLiteralInt exprLiteralInt, ref int curSegment, Core.DataAccess output)
         {
             funct.AddInstruction(curSegment,
-                Core.InstructionMoveLiteralInt.Of(exprLiteralInt.GetSpan(), output, System.Convert.ToInt64(exprLiteralInt.GetExcerpt())));
+                Core.InstructionMoveLiteralInt.Of(
+                    exprLiteralInt.GetSpan(),
+                    output,
+                    Core.TypeStruct.Of(session.PrimitiveInt),
+                    System.Convert.ToInt64(exprLiteralInt.GetExcerpt())));
         }
 
 

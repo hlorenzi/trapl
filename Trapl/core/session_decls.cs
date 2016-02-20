@@ -27,12 +27,21 @@ namespace Trapl.Core
 
                 return this.kind == other.kind && this.index == other.index;
             }
+
+
+            public override int GetHashCode()
+            {
+                return base.GetHashCode();
+            }
         }
 
 
         private NameTree<DeclReference> declTree = new NameTree<DeclReference>();
         private List<DeclStruct> declStructs = new List<DeclStruct>();
         private List<DeclFunct> declFuncts = new List<DeclFunct>();
+        private int primitiveBool = -1;
+        private int primitiveInt = -1;
+        private int primitiveUInt = -1;
 
 
         public int CreateStruct(Name name)
@@ -79,13 +88,24 @@ namespace Trapl.Core
         }
 
 
-        public int GetDecl(Name name)
+        public int PrimitiveBool
         {
-            DeclReference decl;
-            if (!this.declTree.FindByName(name, out decl))
-                throw new ArgumentException("not found");
+            get { return primitiveBool; }
+            set { primitiveBool = value; }
+        }
 
-            return decl.index;
+
+        public int PrimitiveInt
+        {
+            get { return primitiveInt; }
+            set { primitiveInt = value; }
+        }
+
+
+        public int PrimitiveUInt
+        {
+            get { return primitiveUInt; }
+            set { primitiveUInt = value; }
         }
 
 
@@ -107,7 +127,7 @@ namespace Trapl.Core
             DeclReference decl;
             var foundDecls = new List<DeclReference>();
 
-            if (!isAbsolutePath)
+            if (!isAbsolutePath && useDirectives != null)
             {
                 foreach (var directive in useDirectives)
                 {
@@ -213,16 +233,6 @@ namespace Trapl.Core
                 throw new ArgumentException("struct not found");
 
             return name;
-        }
-
-
-        public int AddStructField(int structIndex, Name name, Type fieldType)
-        {
-            var decl = this.declStructs[structIndex];
-            var fieldIndex = decl.fieldTypes.Count;
-            decl.fieldTypes.Add(fieldType);
-            decl.fieldNames.Add(name, fieldIndex);
-            return fieldIndex;
         }
 
 

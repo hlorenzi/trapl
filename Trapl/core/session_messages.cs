@@ -45,5 +45,27 @@ namespace Trapl.Core
             foreach (var message in this.messages)
                 message.PrintToConsole(this);
         }
+
+
+        public bool HasInternalErrors()
+        {
+            foreach (var message in this.messages)
+            {
+                if (message.GetKind() == Diagnostics.MessageKind.Internal)
+                    return true;
+            }
+            return false;
+        }
+
+
+        public bool HasErrors()
+        {
+            foreach (var message in this.messages)
+            {
+                if (message.GetKind() == Diagnostics.MessageKind.Error)
+                    return true;
+            }
+            return false;
+        }
     }
 }

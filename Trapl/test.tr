@@ -11,17 +11,5 @@ qux_for_foo: fn(foo: Foo) -> Qux
 
 test: fn() -> ()
 {
-	let foo: Foo;
-	let bar: Bar;
-	let qux: Qux;
-	let foo2: _;
-
-	foo2 = foo;
-	foo2.b.b = foo;
-	qux_for_foo(foo.b.a).b.x = foo.a;
-	qux_for_foo(foo.b.a).b.a = qux_for_foo(foo.b.a).b.a;
-	abababa.x = foo;
-	foo3.a = foo;
-	qux_for_foo.a = foo;
-	foo = qux_for_foo.a;
+	let x = true;
 }

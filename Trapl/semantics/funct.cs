@@ -22,12 +22,12 @@
                 var funct = session.GetFunct(binding.declIndex);
 
                 funct.CreateRegister(
-                    TypeResolver.Resolve(session, binding.declNode.returnType, binding.useDirectives));
+                    TypeResolver.Resolve(session, binding.declNode.returnType, binding.useDirectives, true));
 
                 foreach (var paramNode in binding.declNode.parameters)
                 {
                     var paramName = NameResolver.Resolve(paramNode.name);
-                    var paramType = TypeResolver.Resolve(session, paramNode.type, binding.useDirectives);
+                    var paramType = TypeResolver.Resolve(session, paramNode.type, binding.useDirectives, true);
                     var paramReg = funct.CreateRegister(paramType);
                     funct.CreateBinding(paramName, paramReg, paramNode.name.GetSpan());
                 }
