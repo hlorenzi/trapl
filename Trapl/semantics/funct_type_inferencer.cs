@@ -1,13 +1,10 @@
-﻿using System.Collections.Generic;
-
-
-namespace Trapl.Semantics
+﻿namespace Trapl.Semantics
 {
-    public class FunctInferencer
+    public class FunctTypeInferencer
     {
         public static void DoInference(Core.Session session, Core.DeclFunct funct)
         {
-            var inferencer = new FunctInferencer(session, funct);
+            var inferencer = new FunctTypeInferencer(session, funct);
             inferencer.ApplyRules();
         }
 
@@ -16,7 +13,7 @@ namespace Trapl.Semantics
         private Core.DeclFunct funct;
 
 
-        private FunctInferencer(Core.Session session, Core.DeclFunct funct)
+        private FunctTypeInferencer(Core.Session session, Core.DeclFunct funct)
         {
             this.session = session;
             this.funct = funct;
@@ -33,6 +30,10 @@ namespace Trapl.Semantics
                 {
                     foreach (var inst in segment.instructions)
                     {
+                        var instBranch = (inst as Core.InstructionBranch);
+                        if (instBranch != null)
+                            ApplyRuleForBranch(ref appliedSomeRule, instBranch);
+
                         var instMoveData = (inst as Core.InstructionMoveData);
                         if (instMoveData != null)
                             ApplyRuleForMoveData(ref appliedSomeRule, instMoveData);
@@ -75,6 +76,18 @@ namespace Trapl.Semantics
             }
 
             return false;
+        }
+
+
+        private void ApplyRuleForBranch(ref bool appliedRule, Core.InstructionBranch inst)
+        {
+            var destType = Core.TypeStruct.Of(session.PrimitiveBool);
+            var srcType = TypeResolver.GetDataAccessType(session, funct, inst.conditionReg);
+
+            var inferredSrc = TypeInferencer.Try(session, destType, ref srcType);
+
+            if (inferredSrc)
+                appliedRule = ApplyToDataAccess(inst.conditionReg, destType);
         }
 
 

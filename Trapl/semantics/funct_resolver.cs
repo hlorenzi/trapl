@@ -18,8 +18,9 @@ namespace Trapl.Semantics
             var curSegment = funct.CreateSegment();
             ResolveExpr(topExpr, ref curSegment, Core.DataAccessRegister.ForRegister(topExpr.GetSpan(), 0));
             funct.AddInstruction(curSegment, new Core.InstructionEnd());
-            FunctInferencer.DoInference(this.session, this.funct);
-            FunctChecker.Check(this.session, this.funct);
+            FunctTypeInferencer.DoInference(this.session, this.funct);
+            FunctTypeChecker.Check(this.session, this.funct);
+            FunctInitChecker.Check(this.session, this.funct);
         }
 
 
@@ -324,7 +325,7 @@ namespace Trapl.Semantics
                     return null;
 
                 // Left-hand side expr type must be resolved for field access.
-                FunctInferencer.DoInference(this.session, this.funct);
+                FunctTypeInferencer.DoInference(this.session, this.funct);
 
                 var lhsType = TypeResolver.GetDataAccessType(this.session, this.funct, innerAccess);
                 if (!lhsType.IsResolved() || lhsType.IsError())

@@ -1,13 +1,10 @@
-﻿using System.Collections.Generic;
-
-
-namespace Trapl.Semantics
+﻿namespace Trapl.Semantics
 {
-    public class FunctChecker
+    public class FunctTypeChecker
     {
         public static void Check(Core.Session session, Core.DeclFunct funct)
         {
-            var checker = new FunctChecker(session, funct);
+            var checker = new FunctTypeChecker(session, funct);
             checker.Check();
         }
 
@@ -16,7 +13,7 @@ namespace Trapl.Semantics
         private Core.DeclFunct funct;
 
 
-        private FunctChecker(Core.Session session, Core.DeclFunct funct)
+        private FunctTypeChecker(Core.Session session, Core.DeclFunct funct)
         {
             this.session = session;
             this.funct = funct;
@@ -29,6 +26,10 @@ namespace Trapl.Semantics
             {
                 foreach (var inst in segment.instructions)
                 {
+                    var instBranch = (inst as Core.InstructionBranch);
+                    if (instBranch != null)
+                        CheckBranch(instBranch);
+
                     var instMoveData = (inst as Core.InstructionMoveData);
                     if (instMoveData != null)
                         CheckMoveData(instMoveData);
@@ -87,16 +88,6 @@ namespace Trapl.Semantics
         }
 
 
-        private Core.Type GetDataAccessType(Core.DataAccess access)
-        {
-            var regAccess = access as Core.DataAccessRegister;
-            if (regAccess != null)
-                return this.funct.registerTypes[regAccess.registerIndex];
-
-            return null;
-        }
-
-
         private bool ShouldDiagnose(Core.Type type)
         {
             return type.IsResolved() && !type.IsError();
@@ -133,6 +124,23 @@ namespace Trapl.Semantics
                         srcSpan,
                         destination.span);
                 }
+            }
+        }
+
+
+        private void CheckBranch(Core.InstructionBranch inst)
+        {
+            var destType = Core.TypeStruct.Of(session.PrimitiveBool);
+            var srcType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.conditionReg);
+
+            if (!srcType.IsSame(destType) &&
+                ShouldDiagnose(srcType))
+            {
+                this.session.AddMessage(
+                    Diagnostics.MessageKind.Error,
+                    Diagnostics.MessageCode.IncompatibleTypes,
+                    "branching on '" + srcType.GetString(this.session) + "'",
+                    inst.conditionReg.span);
             }
         }
 

@@ -64,7 +64,7 @@ namespace Trapl.Semantics
             var regAccess = access as Core.DataAccessRegister;
             if (regAccess != null)
             {
-                return GetFieldType(
+                return GetFinalFieldType(
                     session,
                     funct,
                     funct.registerTypes[regAccess.registerIndex],
@@ -75,21 +75,52 @@ namespace Trapl.Semantics
         }
 
 
+        public static int GetFieldNum(
+            Core.Session session,
+            Core.DeclFunct funct,
+            Core.Type baseType)
+        {
+            var baseStruct = baseType as Core.TypeStruct;
+            if (baseStruct != null)
+                return session.GetStruct(baseStruct.structIndex).fieldTypes.Count;
+
+            var baseTuple = baseType as Core.TypeTuple;
+            if (baseTuple != null)
+                return baseTuple.elementTypes.Length;
+
+            return 0;
+        }
+
+
         public static Core.Type GetFieldType(
+            Core.Session session,
+            Core.DeclFunct funct,
+            Core.Type baseType,
+            int fieldIndex)
+        {
+            var baseStruct = baseType as Core.TypeStruct;
+            if (baseStruct != null)
+                return session.GetStruct(baseStruct.structIndex).fieldTypes[fieldIndex];
+
+            var baseTuple = baseType as Core.TypeTuple;
+            if (baseTuple != null)
+                return baseTuple.elementTypes[fieldIndex];
+
+            return new Core.TypeError();
+        }
+
+
+        public static Core.Type GetFinalFieldType(
             Core.Session session,
             Core.DeclFunct funct,
             Core.Type baseType,
             Core.FieldAccesses fields)
         {
             var curType = baseType;
-            for (var i = 0; i < fields.indices.Count; i++)
-            {
-                var curStruct = curType as Core.TypeStruct;
-                if (curStruct == null)
-                    return new Core.TypeError();
 
-                curType = session.GetStruct(curStruct.structIndex).fieldTypes[fields.indices[i]];
-            }
+            for (var i = 0; i < fields.indices.Count; i++)
+                curType = GetFieldType(session, funct, curType, fields.indices[i]);
+
             return curType;
         }
     }

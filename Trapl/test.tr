@@ -1,15 +1,38 @@
-Foo: struct { a: Foo, b: Bar }
-Bar: struct { a: Foo, b: Bar }
-Qux: struct { a: Foo, b: Bar }
-
-
-qux_for_foo: fn(foo: Foo) -> Qux
+Point: struct
 {
-
+	x: Int,
+	y: Int
 }
 
 
 test: fn() -> ()
 {
-	let x = true;
+	let cond: Bool;
+	let p: Point;
+	let q: Point;
+	let u: Point;
+	let value: Int;
+
+	q.x = 123;
+
+	if cond
+	{
+		q.y = 42;
+
+		p.x = q.x;
+		p.y = q.y;
+
+		let r = p;
+	}
+	else
+	{
+		p.y = value;
+
+		let t: Point;
+		t.x = q.x;
+		t.y = q.y;
+	};
+
+	let s = p;
+	let v = u;
 }
