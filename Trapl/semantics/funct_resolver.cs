@@ -5,28 +5,39 @@ namespace Trapl.Semantics
 {
     public class FunctBodyResolver
     {
-        public FunctBodyResolver(Core.Session session, Core.DeclFunct funct, Core.UseDirective[] useDirectives)
+        public static bool Resolve(
+            Core.Session session,
+            Core.DeclFunct funct,
+            Core.UseDirective[] useDirectives,
+            Grammar.ASTNodeExpr bodyExpr)
         {
-            this.session = session;
-            this.funct = funct;
-            this.useDirectives = useDirectives;
-        }
-
-
-        public void Resolve(Grammar.ASTNodeExpr topExpr)
-        {
-            var curSegment = funct.CreateSegment();
-            ResolveExpr(topExpr, ref curSegment, Core.DataAccessRegister.ForRegister(topExpr.GetSpan(), 0));
-            funct.AddInstruction(curSegment, new Core.InstructionEnd());
-            FunctTypeInferencer.DoInference(this.session, this.funct);
-            FunctTypeChecker.Check(this.session, this.funct);
-            FunctInitChecker.Check(this.session, this.funct);
+            var resolver = new FunctBodyResolver(session, funct, useDirectives);
+            resolver.Resolve(bodyExpr);
+            return resolver.foundErrors;
         }
 
 
         private Core.Session session;
         private Core.DeclFunct funct;
         private Core.UseDirective[] useDirectives;
+        private bool foundErrors;
+
+
+        private FunctBodyResolver(Core.Session session, Core.DeclFunct funct, Core.UseDirective[] useDirectives)
+        {
+            this.session = session;
+            this.funct = funct;
+            this.useDirectives = useDirectives;
+            this.foundErrors = false;
+        }
+
+
+        private void Resolve(Grammar.ASTNodeExpr bodyExpr)
+        {
+            var curSegment = funct.CreateSegment();
+            ResolveExpr(bodyExpr, ref curSegment, Core.DataAccessRegister.ForRegister(bodyExpr.GetSpan(), 0));
+            funct.AddInstruction(curSegment, new Core.InstructionEnd());
+        }
 
 
         private void ResolveExpr(Grammar.ASTNodeExpr expr, ref int curSegment, Core.DataAccess outputReg)
@@ -269,6 +280,7 @@ namespace Trapl.Semantics
                 return;
             }
 
+            this.foundErrors = true;
             session.AddMessage(
                 Diagnostics.MessageKind.Error,
                 Diagnostics.MessageCode.Unknown,
@@ -292,6 +304,15 @@ namespace Trapl.Semantics
 
         private Core.DataAccess ResolveDataAccess(Grammar.ASTNodeExpr expr, ref int curSegment, bool allowInnerExpr)
         {
+            while (true)
+            {
+                var exprParenthesized = expr as Grammar.ASTNodeExprParenthesized;
+                if (exprParenthesized != null)
+                    expr = exprParenthesized.innerExpr;
+                else
+                    break;
+            }
+
             var exprConcreteName = expr as Grammar.ASTNodeExprNameConcrete;
             if (exprConcreteName != null)
             {
@@ -308,17 +329,6 @@ namespace Trapl.Semantics
             var exprDotOp = expr as Grammar.ASTNodeExprBinaryOp;
             if (exprDotOp != null && exprDotOp.oper == Grammar.ASTNodeExprBinaryOp.Operator.Dot)
             {
-                var rhsFieldName = exprDotOp.rhsOperand as Grammar.ASTNodeExprNameConcrete;
-                if (rhsFieldName == null)
-                {
-                    session.AddMessage(
-                        Diagnostics.MessageKind.Error,
-                        Diagnostics.MessageCode.Expected,
-                        "expected field name",
-                        exprDotOp.rhsOperand.GetSpan());
-                    return null;
-                }
-
                 var innerAccess = ResolveDataAccess(exprDotOp.lhsOperand, ref curSegment, true);
                 var innerRegAccess = innerAccess as Core.DataAccessRegister;
                 if (innerRegAccess == null)
@@ -328,8 +338,82 @@ namespace Trapl.Semantics
                 FunctTypeInferencer.DoInference(this.session, this.funct);
 
                 var lhsType = TypeResolver.GetDataAccessType(this.session, this.funct, innerAccess);
-                if (!lhsType.IsResolved() || lhsType.IsError())
+
+                var lhsStruct = lhsType as Core.TypeStruct;
+                if (lhsStruct != null && lhsType.IsResolved())
                 {
+                    var rhsFieldName = exprDotOp.rhsOperand as Grammar.ASTNodeExprNameConcrete;
+                    if (rhsFieldName == null)
+                    {
+                        this.foundErrors = true;
+                        session.AddMessage(
+                            Diagnostics.MessageKind.Error,
+                            Diagnostics.MessageCode.Expected,
+                            "expected field name",
+                            exprDotOp.rhsOperand.GetSpan());
+                        return null;
+                    }
+
+                    var name = NameResolver.Resolve(rhsFieldName.name);
+
+                    int fieldIndex;
+                    if (!this.session.GetStruct(lhsStruct.structIndex).fieldNames.FindByName(
+                        name, out fieldIndex))
+                    {
+                        this.foundErrors = true;
+                        session.AddMessage(
+                            Diagnostics.MessageKind.Error,
+                            Diagnostics.MessageCode.Unknown,
+                            "unknown field '" + name.GetString() + "' in '" +
+                            lhsType.GetString(this.session) + "'",
+                            exprDotOp.rhsOperand.GetSpan(),
+                            exprDotOp.lhsOperand.GetSpan());
+                        return null;
+                    }
+
+                    innerRegAccess.AddFieldAccess(fieldIndex);
+                    innerRegAccess.span = innerRegAccess.span.Merge(exprDotOp.rhsOperand.GetSpan());
+                    return innerRegAccess;
+                }
+
+                var lhsTuple = lhsType as Core.TypeTuple;
+                if (lhsTuple != null)
+                {
+                    var rhsFieldIndex = exprDotOp.rhsOperand as Grammar.ASTNodeExprLiteralInt;
+                    if (rhsFieldIndex == null)
+                    {
+                        this.foundErrors = true;
+                        session.AddMessage(
+                            Diagnostics.MessageKind.Error,
+                            Diagnostics.MessageCode.Expected,
+                            "expected field index",
+                            exprDotOp.rhsOperand.GetSpan());
+                        return null;
+                    }
+
+                    var fieldIndex = System.Convert.ToInt32(rhsFieldIndex.value);
+
+                    if (fieldIndex < 0 || fieldIndex >= lhsTuple.elementTypes.Length)
+                    {
+                        this.foundErrors = true;
+                        session.AddMessage(
+                            Diagnostics.MessageKind.Error,
+                            Diagnostics.MessageCode.Unknown,
+                            "invalid field index for '" +
+                            lhsType.GetString(this.session) + "'",
+                            exprDotOp.rhsOperand.GetSpan(),
+                            exprDotOp.lhsOperand.GetSpan());
+                        return null;
+                    }
+
+                    innerRegAccess.AddFieldAccess(fieldIndex);
+                    innerRegAccess.span = innerRegAccess.span.Merge(exprDotOp.rhsOperand.GetSpan());
+                    return innerRegAccess;
+                }
+
+                if (!lhsType.IsResolved())
+                {
+                    this.foundErrors = true;
                     session.AddMessage(
                         Diagnostics.MessageKind.Error,
                         Diagnostics.MessageCode.EarlyInferenceFailed,
@@ -338,36 +422,13 @@ namespace Trapl.Semantics
                     return null;
                 }
 
-                var lhsStruct = lhsType as Core.TypeStruct;
-                if (lhsStruct == null)
-                {
-                    session.AddMessage(
-                        Diagnostics.MessageKind.Error,
-                        Diagnostics.MessageCode.WrongFieldAccess,
-                        "field access on '" + lhsType.GetString(this.session) + "'",
-                        exprDotOp.lhsOperand.GetSpan());
-                    return null;
-                }
-
-                var name = NameResolver.Resolve(rhsFieldName.name);
-
-                int fieldIndex;
-                if (!this.session.GetStruct(lhsStruct.structIndex).fieldNames.FindByName(
-                    name, out fieldIndex))
-                {
-                    session.AddMessage(
-                        Diagnostics.MessageKind.Error,
-                        Diagnostics.MessageCode.Unknown,
-                        "unknown field '" + name.GetString() + "' in '" +
-                        lhsType.GetString(this.session) + "'",
-                        exprDotOp.rhsOperand.GetSpan(),
-                        exprDotOp.lhsOperand.GetSpan());
-                    return null;
-                }
-
-                innerRegAccess.AddFieldAccess(fieldIndex);
-                innerRegAccess.span = innerRegAccess.span.Merge(exprDotOp.rhsOperand.GetSpan());
-                return innerRegAccess;
+                this.foundErrors = true;
+                session.AddMessage(
+                    Diagnostics.MessageKind.Error,
+                    Diagnostics.MessageCode.WrongFieldAccess,
+                    "field access on '" + lhsType.GetString(this.session) + "'",
+                    exprDotOp.lhsOperand.GetSpan());
+                return null;
             }
 
             if (allowInnerExpr)
@@ -383,6 +444,7 @@ namespace Trapl.Semantics
                 return access;
             }
 
+            this.foundErrors = true;
             session.AddMessage(
                 Diagnostics.MessageKind.Error,
                 Diagnostics.MessageCode.InvalidAccess,

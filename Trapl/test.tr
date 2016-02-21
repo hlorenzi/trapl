@@ -35,4 +35,17 @@ test: fn() -> ()
 
 	let s = p;
 	let v = u;
+
+
+	let tuple: (Int, Int, Bool);
+	tuple.0 = 123;
+	tuple.1 = 456;
+
+	let t1 = tuple.2;
+	let tupleCopy = tuple;
+
+	tuple.2 = false;
+	let tupleCopy2 = tuple;
+
+	let x: (Point, Int); (x.0).x = 0;
 }

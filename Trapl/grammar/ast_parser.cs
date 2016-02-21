@@ -645,7 +645,19 @@ namespace Trapl.Grammar
                 if (binaryMatch.associativity == OperatorModel.Associativity.Right)
                     rhsNode = this.ParseExpr();
                 else
-                    rhsNode = this.ParseBinaryOp(level + 1);
+                {
+                    if (binaryMatch.tokenKind == TokenKind.Period)
+                    {
+                        if (this.CurrentIs(TokenKind.Number))
+                            rhsNode = this.ParseExprLiteralInt();
+                        else if (this.CurrentIs(TokenKind.Identifier))
+                            rhsNode = this.ParseExprName();
+                        else
+                            throw this.FatalBefore(MessageCode.Expected, "expected field name or index");
+                    }
+                    else
+                        rhsNode = this.ParseBinaryOp(level + 1);
+                }
 
                 binaryOpNode.SetLeftOperandNode(lhsNode);
                 binaryOpNode.SetRightOperandNode(rhsNode);

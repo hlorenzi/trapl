@@ -52,7 +52,7 @@ namespace Trapl.Grammar
         }
 
 
-        public void PrintDebug(Core.TextInput src)
+        public void PrintDebug()
         {
             foreach (var token in this.tokens)
             {

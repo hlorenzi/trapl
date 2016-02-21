@@ -47,8 +47,19 @@
                     "in funct '" + binding.name.GetString() + "'",
                     binding.declNode.GetSpan());
 
-                var bodyConverter = new FunctBodyResolver(session, session.GetFunct(binding.declIndex), binding.useDirectives);
-                bodyConverter.Resolve(binding.declNode.bodyExpression);
+                var funct = session.GetFunct(binding.declIndex);
+
+                var foundErrors = FunctBodyResolver.Resolve(
+                    this.session, funct, binding.useDirectives, binding.declNode.bodyExpression);
+
+                if (!foundErrors)
+                    FunctTypeInferencer.DoInference(this.session, funct);
+
+                if (!foundErrors)
+                    foundErrors = FunctTypeChecker.Check(this.session, funct);
+
+                if (!foundErrors)
+                    foundErrors = FunctInitChecker.Check(this.session, funct);
 
                 session.PopContext();
             }

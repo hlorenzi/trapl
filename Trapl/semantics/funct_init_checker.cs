@@ -5,7 +5,7 @@ namespace Trapl.Semantics
 {
     public class FunctInitChecker
     {
-        public static void Check(Core.Session session, Core.DeclFunct funct)
+        public static bool Check(Core.Session session, Core.DeclFunct funct)
         {
             var checker = new FunctInitChecker(session, funct);
 
@@ -20,11 +20,13 @@ namespace Trapl.Semantics
             }
 
             checker.Check(0, statusList);
+            return checker.foundErrors;
         }
 
 
         private Core.Session session;
         private Core.DeclFunct funct;
+        private bool foundErrors;
 
 
         private class InitStatus
@@ -125,6 +127,7 @@ namespace Trapl.Semantics
         {
             this.session = session;
             this.funct = funct;
+            this.foundErrors = false;
         }
 
 
@@ -222,6 +225,7 @@ namespace Trapl.Semantics
 
             if (!isInitialized)
             {
+                this.foundErrors = true;
                 this.session.AddMessage(
                     Diagnostics.MessageKind.Error,
                     Diagnostics.MessageCode.UninitializedUse,
@@ -245,11 +249,11 @@ namespace Trapl.Semantics
 
             for (var i = 0; i < destReg.fieldAccesses.indices.Count; i++)
             {
-                destType = TypeResolver.GetFieldType(
-                    this.session, this.funct, destType, destReg.fieldAccesses.indices[i]);
-
                 if (!destInit.hasFields)
                     destInit.ConvertToFields(TypeResolver.GetFieldNum(this.session, this.funct, destType));
+
+                destType = TypeResolver.GetFieldType(
+                    this.session, this.funct, destType, destReg.fieldAccesses.indices[i]);
 
                 destInit = destInit.fieldStatuses[destReg.fieldAccesses.indices[i]];
 

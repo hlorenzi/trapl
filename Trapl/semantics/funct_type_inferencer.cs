@@ -71,6 +71,10 @@
             var regAccess = access as Core.DataAccessRegister;
             if (regAccess != null)
             {
+                // No field type inference for now.
+                if (regAccess.fieldAccesses.indices.Count > 0)
+                    return false;
+
                 this.funct.registerTypes[regAccess.registerIndex] = type;
                 return true;
             }

@@ -2,21 +2,24 @@
 {
     public class FunctTypeChecker
     {
-        public static void Check(Core.Session session, Core.DeclFunct funct)
+        public static bool Check(Core.Session session, Core.DeclFunct funct)
         {
             var checker = new FunctTypeChecker(session, funct);
             checker.Check();
+            return checker.foundErrors;
         }
 
 
         private Core.Session session;
         private Core.DeclFunct funct;
+        private bool foundErrors;
 
 
         private FunctTypeChecker(Core.Session session, Core.DeclFunct funct)
         {
             this.session = session;
             this.funct = funct;
+            this.foundErrors = false;
         }
 
 
@@ -56,7 +59,6 @@
                 }
             }
 
-            var allBindingsResolved = true;
             foreach (var binding in this.funct.localBindings)
             {
                 var bindingType = this.funct.registerTypes[binding.registerIndex];
@@ -67,11 +69,11 @@
                         Diagnostics.MessageCode.InferenceFailed,
                         "cannot infer type of '" + binding.name.GetString() + "'",
                         binding.declSpan);
-                    allBindingsResolved = false;
+                    this.foundErrors = true;
                 }
             }
 
-            if (allBindingsResolved)
+            if (!this.foundErrors)
             {
                 for (var i = 0; i < this.funct.registerTypes.Count; i++)
                 {
@@ -107,6 +109,7 @@
                 var destReg = destination as Core.DataAccessRegister;
                 if (destReg != null && destReg.registerIndex == 0)
                 {
+                    this.foundErrors = true;
                     this.session.AddMessage(
                         Diagnostics.MessageKind.Error,
                         Diagnostics.MessageCode.IncompatibleTypes,
@@ -116,6 +119,7 @@
                 }
                 else
                 {
+                    this.foundErrors = true;
                     this.session.AddMessage(
                         Diagnostics.MessageKind.Error,
                         Diagnostics.MessageCode.IncompatibleTypes,
@@ -136,6 +140,7 @@
             if (!srcType.IsSame(destType) &&
                 ShouldDiagnose(srcType))
             {
+                this.foundErrors = true;
                 this.session.AddMessage(
                     Diagnostics.MessageKind.Error,
                     Diagnostics.MessageCode.IncompatibleTypes,
@@ -199,6 +204,7 @@
 
             if (srcFunct == null)
             {
+                this.foundErrors = true;
                 this.session.AddMessage(
                     Diagnostics.MessageKind.Error,
                     Diagnostics.MessageCode.UncallableType,
@@ -209,6 +215,7 @@
 
             if (inst.argumentSources.Length != srcFunct.parameterTypes.Length)
             {
+                this.foundErrors = true;
                 this.session.AddMessage(
                     Diagnostics.MessageKind.Error,
                     Diagnostics.MessageCode.WrongNumberOfArguments,
@@ -226,6 +233,7 @@
                     ShouldDiagnose(paramType) &&
                     ShouldDiagnose(argType))
                 {
+                    this.foundErrors = true;
                     this.session.AddMessage(
                         Diagnostics.MessageKind.Error,
                         Diagnostics.MessageCode.IncompatibleTypes,
