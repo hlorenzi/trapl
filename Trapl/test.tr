@@ -5,47 +5,20 @@ Point: struct
 }
 
 
-test: fn() -> ()
+returnsInt: fn() -> Int
 {
-	let cond: Bool;
-	let p: Point;
-	let q: Point;
-	let u: Point;
-	let value: Int;
-
-	q.x = 123;
-
-	if cond
-	{
-		q.y = 42;
-
-		p.x = q.x;
-		p.y = q.y;
-
-		let r = p;
-	}
-	else
-	{
-		p.y = value;
-
-		let t: Point;
-		t.x = q.x;
-		t.y = q.y;
-	};
-
-	let s = p;
-	let v = u;
+	ret = 0;
+}
 
 
-	let tuple: (Int, Int, Bool);
-	tuple.0 = 123;
-	tuple.1 = 456;
+returnsPoint: fn() -> Point
+{
+	ret.x = 0;
+	ret.y = 0;
+}
 
-	let t1 = tuple.2;
-	let tupleCopy = tuple;
 
-	tuple.2 = false;
-	let tupleCopy2 = tuple;
-
-	let x: (Point, Int); (x.0).x = 0;
+returnsPointErr: fn() -> Point
+{
+	ret.x = 0;
 }

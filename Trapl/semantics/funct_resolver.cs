@@ -35,8 +35,8 @@ namespace Trapl.Semantics
         private void Resolve(Grammar.ASTNodeExpr bodyExpr)
         {
             var curSegment = funct.CreateSegment();
-            ResolveExpr(bodyExpr, ref curSegment, Core.DataAccessRegister.ForRegister(bodyExpr.GetSpan(), 0));
-            funct.AddInstruction(curSegment, new Core.InstructionEnd());
+            ResolveExpr(bodyExpr, ref curSegment, new Core.DataAccessDiscard());
+            funct.AddInstruction(curSegment, new Core.InstructionEnd { span = bodyExpr.GetSpan().JustAfter() });
         }
 
 
@@ -254,6 +254,31 @@ namespace Trapl.Semantics
 
         private void ResolveExprName(Grammar.ASTNodeExprName exprName, ref int curSegment, Core.DataAccess output)
         {
+            var exprNameRet = exprName as Grammar.ASTNodeExprNameRet;
+            if (exprNameRet != null)
+            {
+                funct.AddInstruction(curSegment,
+                    Core.InstructionMoveData.Of(
+                        exprName.GetSpan(),
+                        output,
+                        Core.DataAccessRegister.ForRegister(
+                            exprName.GetSpan(),
+                            funct.localBindings[0].registerIndex)));
+                return;
+            }
+
+            var exprNamePlaceholder = exprName as Grammar.ASTNodeExprNamePlaceholder;
+            if (exprNamePlaceholder != null)
+            {
+                this.foundErrors = true;
+                session.AddMessage(
+                    Diagnostics.MessageKind.Error,
+                    Diagnostics.MessageCode.Unknown,
+                    "binding name must be known",
+                    exprName.GetSpan());
+                throw new Core.CheckException();
+            }
+
             var name = NameResolver.Resolve(((Grammar.ASTNodeExprNameConcrete)exprName).name);
 
             // Try to find a local with the same name.
@@ -324,6 +349,12 @@ namespace Trapl.Semantics
                     var localRegisterIndex = funct.localBindings[bindingIndex].registerIndex;
                     return Core.DataAccessRegister.ForRegister(expr.GetSpan(), localRegisterIndex);
                 }
+            }
+
+            var exprNameRet = expr as Grammar.ASTNodeExprNameRet;
+            if (exprNameRet != null)
+            {
+                return Core.DataAccessRegister.ForRegister(expr.GetSpan(), 0);
             }
 
             var exprDotOp = expr as Grammar.ASTNodeExprBinaryOp;

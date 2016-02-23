@@ -431,8 +431,8 @@ namespace Trapl.Grammar
                 throw this.FatalCurrent(MessageCode.UnmatchedElse, "unmatched 'else'");
             else if (this.CurrentIs(TokenKind.KeywordWhile))
                 return this.ParseExprWhile();
-            else if (this.CurrentIs(TokenKind.KeywordReturn))
-                return this.ParseExprReturn();
+            else if (this.CurrentIs(TokenKind.KeywordEnd))
+                return this.ParseExprEnd();
             else
                 return this.ParseBinaryOp(0);
         }
@@ -497,17 +497,11 @@ namespace Trapl.Grammar
         }
 
 
-        public ASTNodeExprReturn ParseExprReturn()
+        public ASTNodeExprEnd ParseExprEnd()
         {
-            var retNode = new ASTNodeExprReturn();
+            var retNode = new ASTNodeExprEnd();
             retNode.SetSpan(this.Current().span);
-            this.Match(TokenKind.KeywordReturn, "expected 'return'");
-            if (!this.CurrentIs(TokenKind.Semicolon) &&
-                !this.CurrentIs(TokenKind.BraceClose) &&
-                !this.CurrentIs(TokenKind.ParenClose))
-            {
-                retNode.SetExpressionNode(this.ParseExpr());
-            }
+            this.Match(TokenKind.KeywordEnd, "expected 'end'");
             return retNode;
         }
 
@@ -742,7 +736,9 @@ namespace Trapl.Grammar
                 return this.ParseExprLiteralInt();
             else if (this.CurrentIs(TokenKind.BooleanTrue) || this.CurrentIs(TokenKind.BooleanFalse))
                 return this.ParseExprLiteralBool();
-            else if (this.CurrentIs(TokenKind.Identifier) || this.CurrentIs(TokenKind.Placeholder))
+            else if (this.CurrentIs(TokenKind.Identifier) ||
+                    this.CurrentIs(TokenKind.Placeholder) ||
+                    this.CurrentIs(TokenKind.KeywordRet))
                 return this.ParseExprName();
             else
                 throw this.FatalBefore(MessageCode.Expected, "expected expression");
@@ -783,6 +779,12 @@ namespace Trapl.Grammar
                 var placeholderNode = new ASTNodeExprNamePlaceholder();
                 placeholderNode.SetSpan(this.Advance().span);
                 return placeholderNode;
+            }
+            else if (this.CurrentIs(TokenKind.KeywordRet))
+            {
+                var retNode = new ASTNodeExprNameRet();
+                retNode.SetSpan(this.Advance().span);
+                return retNode;
             }
             else
             {

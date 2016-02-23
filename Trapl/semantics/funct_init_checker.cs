@@ -177,7 +177,10 @@ namespace Trapl.Semantics
 
                 var instEnd = (inst as Core.InstructionEnd);
                 if (instEnd != null)
+                {
+                    CheckEnd(statusList, instEnd);
                     return;
+                }
             }
         }
 
@@ -268,6 +271,20 @@ namespace Trapl.Semantics
         private void CheckBranch(List<InitStatus> statusList, Core.InstructionBranch inst)
         {
             CheckSource(statusList, inst.conditionReg);
+        }
+
+
+        private void CheckEnd(List<InitStatus> statusList, Core.InstructionEnd inst)
+        {
+            if (!statusList[0].IsInitialized())
+            {
+                this.foundErrors = true;
+                this.session.AddMessage(
+                    Diagnostics.MessageKind.Error,
+                    Diagnostics.MessageCode.UninitializedUse,
+                    "ret possibly uninitialized",
+                    inst.span);
+            }
         }
 
 

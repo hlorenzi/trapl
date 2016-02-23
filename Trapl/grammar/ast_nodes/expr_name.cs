@@ -29,6 +29,12 @@ namespace Trapl.Grammar
     }
 
 
+    public class ASTNodeExprNameRet : ASTNodeExprName
+    {
+
+    }
+
+
     public class ASTNodeExprNamePlaceholder : ASTNodeExprName
     {
 

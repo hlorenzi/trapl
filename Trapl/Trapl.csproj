@@ -71,7 +71,7 @@
     <Compile Include="grammar\ast_nodes\expr_let.cs" />
     <Compile Include="grammar\ast_nodes\expr_literals.cs" />
     <Compile Include="grammar\ast_nodes\expr_parenthesized.cs" />
-    <Compile Include="grammar\ast_nodes\expr_return.cs" />
+    <Compile Include="grammar\ast_nodes\expr_end.cs" />
     <Compile Include="grammar\ast_nodes\expr_unaryop.cs" />
     <Compile Include="grammar\ast_nodes\expr_while.cs" />
     <Compile Include="grammar\ast_nodes\lifetime.cs" />
