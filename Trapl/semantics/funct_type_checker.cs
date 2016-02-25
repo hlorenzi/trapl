@@ -144,7 +144,7 @@
                 this.session.AddMessage(
                     Diagnostics.MessageKind.Error,
                     Diagnostics.MessageCode.IncompatibleTypes,
-                    "branching on '" + srcType.GetString(this.session) + "'",
+                    "using '" + srcType.GetString(this.session) + "' as condition",
                     inst.conditionReg.span);
             }
         }

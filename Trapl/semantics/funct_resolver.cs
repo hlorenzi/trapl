@@ -50,6 +50,8 @@ namespace Trapl.Semantics
                 this.ResolveExprIf((Grammar.ASTNodeExprIf)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprLet)
                 this.ResolveExprLet((Grammar.ASTNodeExprLet)expr, ref curSegment, outputReg);
+            else if (expr is Grammar.ASTNodeExprReturn)
+                this.ResolveExprReturn((Grammar.ASTNodeExprReturn)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprCall)
                 this.ResolveExprCall((Grammar.ASTNodeExprCall)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprBinaryOp)
@@ -162,6 +164,32 @@ namespace Trapl.Semantics
             // Generate a void store.
             funct.AddInstruction(curSegment,
                 Core.InstructionMoveLiteralTuple.Empty(exprLet.GetSpan(), output));
+        }
+
+
+        private void ResolveExprReturn(Grammar.ASTNodeExprReturn exprRet, ref int curSegment, Core.DataAccess output)
+        {
+            // Parse returned expr, if there is one.
+            if (exprRet.expr != null)
+            {
+                ResolveExpr(exprRet.expr, ref curSegment,
+                    Core.DataAccessRegister.ForRegister(exprRet.expr.GetSpan(), 0));
+            }
+            // Else, return a void.
+            else
+            {
+                funct.AddInstruction(curSegment,
+                    Core.InstructionMoveLiteralTuple.Empty(
+                        exprRet.GetSpan(),
+                        Core.DataAccessRegister.ForRegister(exprRet.expr.GetSpan(), 0)));
+            }
+
+            // End funct.
+            funct.AddInstruction(curSegment, new Core.InstructionEnd());
+
+            // Generate a void store.
+            funct.AddInstruction(curSegment,
+                Core.InstructionMoveLiteralTuple.Empty(exprRet.GetSpan(), output));
         }
 
 
