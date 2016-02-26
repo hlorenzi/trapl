@@ -21,8 +21,8 @@
 
                 var funct = session.GetFunct(binding.declIndex);
 
-                funct.CreateRegister(
-                    TypeResolver.Resolve(session, binding.declNode.returnType, binding.useDirectives, true));
+                funct.returnType =
+                    TypeResolver.Resolve(session, binding.declNode.returnType, binding.useDirectives, true);
 
                 foreach (var paramNode in binding.declNode.parameters)
                 {

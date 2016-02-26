@@ -44,10 +44,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="core\decl_funct.cs" />
-    <Compile Include="core\instructions\inst_flow.cs" />
+    <Compile Include="core\instructions\data_access.cs" />
+    <Compile Include="core\instructions\segment_flow.cs" />
     <Compile Include="core\instructions\inst_move.cs" />
-    <Compile Include="core\instructions\_inst.cs" />
-    <Compile Include="core\instructions\_segment.cs" />
+    <Compile Include="core\instructions\inst.cs" />
+    <Compile Include="core\instructions\segment.cs" />
     <Compile Include="core\types\funct.cs" />
     <Compile Include="core\types\placeholder.cs" />
     <Compile Include="core\use_directive.cs" />

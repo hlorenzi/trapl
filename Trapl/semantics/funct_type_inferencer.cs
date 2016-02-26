@@ -30,10 +30,6 @@
                 {
                     foreach (var inst in segment.instructions)
                     {
-                        var instBranch = (inst as Core.InstructionBranch);
-                        if (instBranch != null)
-                            ApplyRuleForBranch(ref appliedSomeRule, instBranch);
-
                         var instMoveData = (inst as Core.InstructionMoveData);
                         if (instMoveData != null)
                             ApplyRuleForMoveData(ref appliedSomeRule, instMoveData);
@@ -58,6 +54,14 @@
                         if (instMoveCallResult != null)
                             ApplyRuleForMoveCallResult(ref appliedSomeRule, instMoveCallResult);
                     }
+
+                    var flowBranch = (segment.outFlow as Core.SegmentFlowBranch);
+                    if (flowBranch != null)
+                        ApplyRuleForBranch(ref appliedSomeRule, flowBranch);
+
+                    var flowRet = (segment.outFlow as Core.SegmentFlowReturn);
+                    if (flowRet != null)
+                        ApplyRuleForReturn(ref appliedSomeRule, flowRet);
                 }
 
                 if (!appliedSomeRule)
@@ -83,15 +87,27 @@
         }
 
 
-        private void ApplyRuleForBranch(ref bool appliedRule, Core.InstructionBranch inst)
+        private void ApplyRuleForReturn(ref bool appliedRule, Core.SegmentFlowReturn flow)
         {
-            var destType = Core.TypeStruct.Of(session.PrimitiveBool);
-            var srcType = TypeResolver.GetDataAccessType(session, funct, inst.conditionReg);
+            var destType = funct.GetReturnType();
+            var srcType = TypeResolver.GetDataAccessType(session, funct, flow.returnedData);
 
             var inferredSrc = TypeInferencer.Try(session, destType, ref srcType);
 
             if (inferredSrc)
-                appliedRule = ApplyToDataAccess(inst.conditionReg, destType);
+                appliedRule = ApplyToDataAccess(flow.returnedData, destType);
+        }
+
+
+        private void ApplyRuleForBranch(ref bool appliedRule, Core.SegmentFlowBranch flow)
+        {
+            var destType = Core.TypeStruct.Of(session.PrimitiveBool);
+            var srcType = TypeResolver.GetDataAccessType(session, funct, flow.conditionReg);
+
+            var inferredSrc = TypeInferencer.Try(session, destType, ref srcType);
+
+            if (inferredSrc)
+                appliedRule = ApplyToDataAccess(flow.conditionReg, destType);
         }
 
 

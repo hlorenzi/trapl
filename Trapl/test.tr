@@ -5,10 +5,10 @@ Point: struct
 }
 
 
-test: fn() -> ()
+test: fn() -> Int
 {
 	if true
-		{ return {} }
+		{ return 123 }
 	else
 		{ return {} }
 }

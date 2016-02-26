@@ -158,26 +158,30 @@ namespace Trapl.Semantics
                 var instMoveCallResult = (inst as Core.InstructionMoveCallResult);
                 if (instMoveCallResult != null)
                     CheckMoveCallResult(statusList, instMoveCallResult);
+            }
 
-                var instBranch = (inst as Core.InstructionBranch);
-                if (instBranch != null)
-                {
-                    CheckBranch(statusList, instBranch);
-                    this.Check(instBranch.destinationSegmentIfTaken, CloneStatuses(statusList));
-                    this.Check(instBranch.destinationSegmentIfNotTaken, CloneStatuses(statusList));
-                    return;
-                }
+            var flow = this.funct.segments[segmentIndex].outFlow;
+            var flowBranch = (flow as Core.SegmentFlowBranch);
+            if (flowBranch != null)
+            {
+                CheckBranch(statusList, flowBranch);
+                this.Check(flowBranch.destinationSegmentIfTaken, CloneStatuses(statusList));
+                this.Check(flowBranch.destinationSegmentIfNotTaken, CloneStatuses(statusList));
+                return;
+            }
 
-                var instGoto = (inst as Core.InstructionGoto);
-                if (instGoto != null)
-                {
-                    this.Check(instGoto.destinationSegment, statusList);
-                    return;
-                }
+            var flowGoto = (flow as Core.SegmentFlowGoto);
+            if (flowGoto != null)
+            {
+                this.Check(flowGoto.destinationSegment, statusList);
+                return;
+            }
 
-                var instEnd = (inst as Core.InstructionEnd);
-                if (instEnd != null)
-                    return;
+            var flowEnd = (flow as Core.SegmentFlowReturn);
+            if (flowEnd != null)
+            {
+                CheckReturn(statusList, flowEnd);
+                return;
             }
         }
 
@@ -265,9 +269,15 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckBranch(List<InitStatus> statusList, Core.InstructionBranch inst)
+        private void CheckReturn(List<InitStatus> statusList, Core.SegmentFlowReturn flow)
         {
-            CheckSource(statusList, inst.conditionReg);
+            CheckSource(statusList, flow.returnedData);
+        }
+
+
+        private void CheckBranch(List<InitStatus> statusList, Core.SegmentFlowBranch flow)
+        {
+            CheckSource(statusList, flow.conditionReg);
         }
 
 

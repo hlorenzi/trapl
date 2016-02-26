@@ -3,7 +3,19 @@
 
 namespace Trapl.Core
 {
-    public class InstructionEnd : Instruction
+    public abstract class SegmentFlow
+    {
+        public Diagnostics.Span span;
+
+
+        public virtual void PrintToConsole(string indentation = "")
+        {
+            Console.WriteLine(indentation);
+        }
+    }
+
+
+    public class SegmentFlowEnd : SegmentFlow
     {
         public override void PrintToConsole(string indentation = "")
         {
@@ -15,14 +27,36 @@ namespace Trapl.Core
     }
 
 
-    public class InstructionGoto : Instruction
+    public class SegmentFlowReturn : SegmentFlow
+    {
+        public DataAccess returnedData;
+
+
+        public static SegmentFlowReturn Returning(Diagnostics.Span span, DataAccess returnedData)
+        {
+            return new SegmentFlowReturn { span = span, returnedData = returnedData };
+        }
+
+
+        public override void PrintToConsole(string indentation = "")
+        {
+            Console.Write(indentation);
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write("ret ");
+            Console.ResetColor();
+            Console.WriteLine(this.returnedData.GetString());
+        }
+    }
+
+
+    public class SegmentFlowGoto : SegmentFlow
     {
         public int destinationSegment;
 
 
-        public static InstructionGoto To(int destinationSegment)
+        public static SegmentFlowGoto To(int destinationSegment)
         {
-            return new InstructionGoto { destinationSegment = destinationSegment };
+            return new SegmentFlowGoto { destinationSegment = destinationSegment };
         }
 
 
@@ -33,12 +67,11 @@ namespace Trapl.Core
             Console.Write("goto ");
             Console.ResetColor();
             Console.WriteLine("#s" + this.destinationSegment.ToString());
-            Console.ResetColor();
         }
     }
 
 
-    public class InstructionBranch : Instruction
+    public class SegmentFlowBranch : SegmentFlow
     {
         public DataAccess conditionReg;
         public int destinationSegmentIfTaken;

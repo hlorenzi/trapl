@@ -4,18 +4,6 @@ using System.Collections.Generic;
 
 namespace Trapl.Core
 {
-    public abstract class Instruction
-    {
-        public Diagnostics.Span span;
-
-
-        public virtual void PrintToConsole(string indentation = "")
-        {
-            Console.WriteLine(indentation);
-        }
-    }
-
-
     public class FieldAccesses
     {
         public List<int> indices = new List<int>();

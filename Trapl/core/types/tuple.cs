@@ -60,6 +60,12 @@
         }
 
 
+        public override bool IsEmptyTuple()
+        {
+            return this.elementTypes.Length == 0;
+        }
+
+
         public override string GetString(Core.Session session)
         {
             var result = "(";

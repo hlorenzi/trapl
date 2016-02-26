@@ -20,6 +20,12 @@
         }
 
 
+        public virtual bool IsEmptyTuple()
+        {
+            return false;
+        }
+
+
         public abstract string GetString(Core.Session session);
     }
 

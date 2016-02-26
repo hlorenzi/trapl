@@ -322,9 +322,9 @@ namespace Trapl.Core
                 Console.Out.WriteLine();
 
                 for (var j = 0; j < decl.segments[i].instructions.Count; j++)
-                {
                     decl.segments[i].instructions[j].PrintToConsole(indentation + "  ");
-                }
+
+                decl.segments[i].outFlow.PrintToConsole(indentation + "  ");
             }
         }
     }

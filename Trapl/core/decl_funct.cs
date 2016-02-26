@@ -13,6 +13,7 @@ namespace Trapl.Core
         }
 
 
+        public Type returnType;
         public List<Type> registerTypes = new List<Type>();
         public int parameterNum;
         public List<LocalBinding> localBindings = new List<LocalBinding>();
@@ -29,6 +30,12 @@ namespace Trapl.Core
         public void AddInstruction(int segmentIndex, Instruction inst)
         {
             this.segments[segmentIndex].instructions.Add(inst);
+        }
+
+
+        public void SetSegmentFlow(int segmentIndex, SegmentFlow flow)
+        {
+            this.segments[segmentIndex].SetFlow(flow);
         }
 
 
@@ -56,13 +63,19 @@ namespace Trapl.Core
         }
 
 
+        public Core.Type GetReturnType()
+        {
+            return this.returnType;
+        }
+
+
         public Core.TypeFunct MakeFunctType()
         {
             var parameterTypes = new Core.Type[this.parameterNum];
             for (var i = 0; i < this.parameterNum; i++)
-                parameterTypes[i] = this.registerTypes[i + 1];
+                parameterTypes[i] = this.registerTypes[i];
 
-            return Core.TypeFunct.Of(this.registerTypes[0], parameterTypes);
+            return Core.TypeFunct.Of(this.returnType, parameterTypes);
         }
     }
 }
