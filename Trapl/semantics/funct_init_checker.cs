@@ -177,10 +177,10 @@ namespace Trapl.Semantics
                 return;
             }
 
-            var flowEnd = (flow as Core.SegmentFlowReturn);
+            var flowEnd = (flow as Core.SegmentFlowEnd);
             if (flowEnd != null)
             {
-                CheckReturn(statusList, flowEnd);
+                CheckEnd(statusList, flowEnd);
                 return;
             }
         }
@@ -230,11 +230,22 @@ namespace Trapl.Semantics
             if (!isInitialized)
             {
                 this.foundErrors = true;
-                this.session.AddMessage(
-                    Diagnostics.MessageKind.Error,
-                    Diagnostics.MessageCode.UninitializedUse,
-                    "use of possibly uninitialized value",
-                    source.span);
+                if (srcReg.registerIndex == 0)
+                {
+                    this.session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.UninitializedUse,
+                        "not returning a value",
+                        source.span);
+                }
+                else
+                {
+                    this.session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.UninitializedUse,
+                        "use of possibly uninitialized value",
+                        source.span);
+                }
             }
         }
 
@@ -269,9 +280,9 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckReturn(List<InitStatus> statusList, Core.SegmentFlowReturn flow)
+        private void CheckEnd(List<InitStatus> statusList, Core.SegmentFlowEnd flow)
         {
-            CheckSource(statusList, flow.returnedData);
+            CheckSource(statusList, Core.DataAccessRegister.ForRegister(flow.span, 0));
         }
 
 

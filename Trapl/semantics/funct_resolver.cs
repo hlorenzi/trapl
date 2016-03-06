@@ -34,14 +34,13 @@ namespace Trapl.Semantics
 
         private void Resolve(Grammar.ASTNodeExpr bodyExpr)
         {
-            var curSegment = funct.CreateSegment();
+            var curSegment = funct.CreateSegment(bodyExpr.GetSpan().JustBefore());
 
-            var returnAccess = new Core.DataAccessDiscard();
-
-            ResolveExpr(bodyExpr, ref curSegment, returnAccess);
+            ResolveExpr(bodyExpr, ref curSegment, new Core.DataAccessDiscard());
 
             if (funct.segments[curSegment].outFlow == null)
-                funct.SetSegmentFlow(curSegment, new Core.SegmentFlowEnd());
+                funct.SetSegmentFlow(curSegment,
+                    new Core.SegmentFlowEnd { span = funct.segments[curSegment].GetSpan().JustAfter() });
         }
 
 
@@ -113,7 +112,7 @@ namespace Trapl.Semantics
             funct.SetSegmentFlow(curSegment, flowBranch);
 
             // Parse true branch.
-            var trueSegment = funct.CreateSegment();
+            var trueSegment = funct.CreateSegment(exprIf.trueBranchExpr.GetSpan().JustBefore());
             flowBranch.destinationSegmentIfTaken = trueSegment;
 
             ResolveExpr(exprIf.trueBranchExpr, ref trueSegment, output);
@@ -121,12 +120,12 @@ namespace Trapl.Semantics
             // Parse false branch, if there is one.
             if (exprIf.falseBranchExpr != null)
             {
-                var falseSegment = funct.CreateSegment();
+                var falseSegment = funct.CreateSegment(exprIf.falseBranchExpr.GetSpan().JustBefore());
                 flowBranch.destinationSegmentIfNotTaken = falseSegment;
 
                 ResolveExpr(exprIf.falseBranchExpr, ref falseSegment, output);
 
-                var afterSegment = funct.CreateSegment();
+                var afterSegment = funct.CreateSegment(exprIf.GetSpan().JustAfter());
                 funct.SetSegmentFlow(trueSegment, Core.SegmentFlowGoto.To(afterSegment));
                 funct.SetSegmentFlow(falseSegment, Core.SegmentFlowGoto.To(afterSegment));
                 curSegment = afterSegment;
@@ -134,7 +133,7 @@ namespace Trapl.Semantics
             // Or else, just route the false segment path to the next segment.
             else
             {
-                var afterSegment = funct.CreateSegment();
+                var afterSegment = funct.CreateSegment(exprIf.GetSpan().JustAfter());
                 funct.SetSegmentFlow(trueSegment, Core.SegmentFlowGoto.To(afterSegment));
                 flowBranch.destinationSegmentIfNotTaken = afterSegment;
                 curSegment = afterSegment;
@@ -181,27 +180,23 @@ namespace Trapl.Semantics
             // Parse returned expr, if there is one.
             if (exprRet.expr != null)
             {
-                var regIndex = funct.CreateRegister(new Core.TypePlaceholder());
-                var regAccess = Core.DataAccessRegister.ForRegister(exprRet.expr.GetSpan(), regIndex);
+                ResolveExpr(exprRet.expr, ref curSegment,
+                    Core.DataAccessRegister.ForRegister(exprRet.expr.GetSpan(), 0));
 
-                ResolveExpr(exprRet.expr, ref curSegment, regAccess);
-
-                funct.SetSegmentFlow(curSegment, Core.SegmentFlowReturn.Returning(exprRet.GetSpan(), regAccess));
+                funct.SetSegmentFlow(curSegment, new Core.SegmentFlowEnd());
             }
             // Else, return a void.
             else
             {
-                var regIndex = funct.CreateRegister(Core.TypeTuple.Empty());
-                var regAccess = Core.DataAccessRegister.ForRegister(exprRet.expr.GetSpan(), regIndex);
-
                 funct.AddInstruction(curSegment,
-                    Core.InstructionMoveLiteralTuple.Empty(exprRet.GetSpan(), regAccess));
+                    Core.InstructionMoveLiteralTuple.Empty(
+                        exprRet.GetSpan(), Core.DataAccessRegister.ForRegister(exprRet.expr.GetSpan(), 0)));
 
-                funct.SetSegmentFlow(curSegment, Core.SegmentFlowReturn.Returning(exprRet.GetSpan(), regAccess));
+                funct.SetSegmentFlow(curSegment, new Core.SegmentFlowEnd());
             }
 
             // Create next unlinked segment.
-            curSegment = funct.CreateSegment();
+            curSegment = funct.CreateSegment(exprRet.GetSpan().JustAfter());
         }
 
 

@@ -58,10 +58,6 @@
                     var flowBranch = (segment.outFlow as Core.SegmentFlowBranch);
                     if (flowBranch != null)
                         ApplyRuleForBranch(ref appliedSomeRule, flowBranch);
-
-                    var flowRet = (segment.outFlow as Core.SegmentFlowReturn);
-                    if (flowRet != null)
-                        ApplyRuleForReturn(ref appliedSomeRule, flowRet);
                 }
 
                 if (!appliedSomeRule)
@@ -84,18 +80,6 @@
             }
 
             return false;
-        }
-
-
-        private void ApplyRuleForReturn(ref bool appliedRule, Core.SegmentFlowReturn flow)
-        {
-            var destType = funct.GetReturnType();
-            var srcType = TypeResolver.GetDataAccessType(session, funct, flow.returnedData);
-
-            var inferredSrc = TypeInferencer.Try(session, destType, ref srcType);
-
-            if (inferredSrc)
-                appliedRule = ApplyToDataAccess(flow.returnedData, destType);
         }
 
 

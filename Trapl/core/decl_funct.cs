@@ -13,16 +13,15 @@ namespace Trapl.Core
         }
 
 
-        public Type returnType;
         public List<Type> registerTypes = new List<Type>();
         public int parameterNum;
         public List<LocalBinding> localBindings = new List<LocalBinding>();
         public List<InstructionSegment> segments = new List<InstructionSegment>();
 
 
-        public int CreateSegment()
+        public int CreateSegment(Diagnostics.Span span)
         {
-            this.segments.Add(new InstructionSegment());
+            this.segments.Add(new InstructionSegment { span = span });
             return this.segments.Count - 1;
         }
 
@@ -65,7 +64,7 @@ namespace Trapl.Core
 
         public Core.Type GetReturnType()
         {
-            return this.returnType;
+            return this.registerTypes[0];
         }
 
 
@@ -73,9 +72,9 @@ namespace Trapl.Core
         {
             var parameterTypes = new Core.Type[this.parameterNum];
             for (var i = 0; i < this.parameterNum; i++)
-                parameterTypes[i] = this.registerTypes[i];
+                parameterTypes[i] = this.registerTypes[i + 1];
 
-            return Core.TypeFunct.Of(this.returnType, parameterTypes);
+            return Core.TypeFunct.Of(this.registerTypes[0], parameterTypes);
         }
     }
 }

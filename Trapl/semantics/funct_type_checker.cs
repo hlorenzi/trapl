@@ -57,10 +57,6 @@
                 var flowBranch = (segment.outFlow as Core.SegmentFlowBranch);
                 if (flowBranch != null)
                     CheckBranch(flowBranch);
-
-                var flowRet = (segment.outFlow as Core.SegmentFlowReturn);
-                if (flowRet != null)
-                    CheckReturn(flowRet);
             }
 
             foreach (var binding in this.funct.localBindings)
@@ -111,33 +107,28 @@
                 ShouldDiagnose(destType))
             {
                 this.foundErrors = true;
-                this.session.AddMessage(
-                    Diagnostics.MessageKind.Error,
-                    Diagnostics.MessageCode.IncompatibleTypes,
-                    "moving '" + srcType.GetString(this.session) + "' " +
-                    "into '" + destType.GetString(this.session) + "'",
-                    srcSpan,
-                    destination.span);
-            }
-        }
 
-
-        private void CheckReturn(Core.SegmentFlowReturn flow)
-        {
-            var destType = funct.GetReturnType();
-            var srcType = TypeResolver.GetDataAccessType(this.session, this.funct, flow.returnedData);
-
-            if (!srcType.IsSame(destType) &&
-                ShouldDiagnose(srcType) &&
-                ShouldDiagnose(destType))
-            {
-                this.foundErrors = true;
-                this.session.AddMessage(
-                    Diagnostics.MessageKind.Error,
-                    Diagnostics.MessageCode.IncompatibleTypes,
-                    "returning '" + srcType.GetString(this.session) + "' " +
-                    "but expecting '" + destType.GetString(this.session) + "'",
-                    flow.returnedData.span);
+                var destReg = destination as Core.DataAccessRegister;
+                if (destReg != null && destReg.registerIndex == 0)
+                {
+                    this.session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.IncompatibleTypes,
+                        "returning '" + srcType.GetString(this.session) + "' " +
+                        "but expecting '" + destType.GetString(this.session) + "'",
+                        srcSpan,
+                        destination.span);
+                }
+                else
+                {
+                    this.session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.IncompatibleTypes,
+                        "moving '" + srcType.GetString(this.session) + "' " +
+                        "into '" + destType.GetString(this.session) + "'",
+                        srcSpan,
+                        destination.span);
+                }
             }
         }
 
