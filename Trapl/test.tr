@@ -9,3 +9,33 @@ test: fn() -> ()
 {
 	return 123
 }
+
+test2: fn() -> ()
+{
+	123
+}
+
+test3: fn() -> ()
+{
+	
+}
+
+test4: fn() -> Int
+{
+	return 123
+}
+
+test5: fn() -> Int
+{
+	123
+}
+
+test6: fn() -> Int
+{
+	if true { 123 } else { 456 }
+}
+
+test7: fn() -> Int
+{
+	
+}

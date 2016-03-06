@@ -35,6 +35,15 @@ namespace Trapl.Diagnostics
         }
 
 
+        public Span Displace(int startDelta, int endDelta)
+        {
+            return new Span(
+                this.unit,
+                this.start + startDelta,
+                this.end + endDelta);
+        }
+
+
         public Span JustBefore()
         {
             return new Span(this.unit, this.start, this.start);

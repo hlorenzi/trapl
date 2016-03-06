@@ -27,6 +27,7 @@ namespace Trapl.Semantics
         private Core.Session session;
         private Core.DeclFunct funct;
         private bool foundErrors;
+        private HashSet<Diagnostics.Span> alreadyReportedSet = new HashSet<Diagnostics.Span>();
 
 
         private class InitStatus
@@ -180,6 +181,17 @@ namespace Trapl.Semantics
             var flowEnd = (flow as Core.SegmentFlowEnd);
             if (flowEnd != null)
             {
+                // Generate a void return.
+                if (funct.GetReturnType().IsEmptyTuple() &&
+                    !CheckSource(statusList, Core.DataAccessRegister.ForRegister(flowEnd.span, 0)))
+                {
+                    var retEmptyTuple = Core.InstructionMoveLiteralTuple.Empty(flowEnd.span,
+                        Core.DataAccessRegister.ForRegister(flowEnd.span, 0));
+
+                    this.funct.AddInstruction(segmentIndex, retEmptyTuple);
+                    CheckMoveTupleLiteral(statusList, retEmptyTuple);
+                }
+
                 CheckEnd(statusList, flowEnd);
                 return;
             }
@@ -195,11 +207,11 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckSource(List<InitStatus> statusList, Core.DataAccess source)
+        private bool CheckSource(List<InitStatus> statusList, Core.DataAccess source)
         {
             var srcReg = source as Core.DataAccessRegister;
             if (srcReg == null)
-                return;
+                return true;
 
             var srcType = this.funct.registerTypes[srcReg.registerIndex];
             var srcInit = statusList[srcReg.registerIndex];
@@ -227,15 +239,29 @@ namespace Trapl.Semantics
                 }
             }
 
-            if (!isInitialized)
+            return isInitialized;
+        }
+
+
+        private void ValidateSource(List<InitStatus> statusList, Core.DataAccess source)
+        {
+            var srcReg = source as Core.DataAccessRegister;
+
+            if (!CheckSource(statusList, source))
             {
+                if (this.alreadyReportedSet.Contains(source.span))
+                    return;
+
                 this.foundErrors = true;
+                this.alreadyReportedSet.Add(source.span);
+
                 if (srcReg.registerIndex == 0)
                 {
                     this.session.AddMessage(
                         Diagnostics.MessageKind.Error,
                         Diagnostics.MessageCode.UninitializedUse,
-                        "not returning a value",
+                        "not returning a value but expecting '" +
+                            funct.GetReturnType().GetString(session) + "'",
                         source.span);
                 }
                 else
@@ -282,19 +308,19 @@ namespace Trapl.Semantics
 
         private void CheckEnd(List<InitStatus> statusList, Core.SegmentFlowEnd flow)
         {
-            CheckSource(statusList, Core.DataAccessRegister.ForRegister(flow.span, 0));
+            ValidateSource(statusList, Core.DataAccessRegister.ForRegister(flow.span, 0));
         }
 
 
         private void CheckBranch(List<InitStatus> statusList, Core.SegmentFlowBranch flow)
         {
-            CheckSource(statusList, flow.conditionReg);
+            ValidateSource(statusList, flow.conditionReg);
         }
 
 
         private void CheckMoveData(List<InitStatus> statusList, Core.InstructionMoveData inst)
         {
-            CheckSource(statusList, inst.source);
+            ValidateSource(statusList, inst.source);
             InitDestination(statusList, inst.destination);
         }
 
@@ -314,7 +340,7 @@ namespace Trapl.Semantics
         private void CheckMoveTupleLiteral(List<InitStatus> statusList, Core.InstructionMoveLiteralTuple inst)
         {
             for (var i = 0; i < inst.sourceElements.Count; i++)
-                CheckSource(statusList, inst.sourceElements[i]);
+                ValidateSource(statusList, inst.sourceElements[i]);
 
             InitDestination(statusList, inst.destination);
         }
@@ -328,10 +354,10 @@ namespace Trapl.Semantics
 
         private void CheckMoveCallResult(List<InitStatus> statusList, Core.InstructionMoveCallResult inst)
         {
-            CheckSource(statusList, inst.callTargetSource);
+            ValidateSource(statusList, inst.callTargetSource);
 
             for (var i = 0; i < inst.argumentSources.Length; i++)
-                CheckSource(statusList, inst.argumentSources[i]);
+                ValidateSource(statusList, inst.argumentSources[i]);
 
             InitDestination(statusList, inst.destination);
         }

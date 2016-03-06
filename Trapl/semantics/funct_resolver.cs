@@ -77,7 +77,7 @@ namespace Trapl.Semantics
             if (exprBlock.subexprs.Count == 0)
             {
                 funct.AddInstruction(curSegment,
-                    Core.InstructionMoveLiteralTuple.Empty(exprBlock.GetSpan(), outputReg));
+                    Core.InstructionMoveLiteralTuple.Empty(exprBlock.GetSpan().Displace(1, -1), outputReg));
                 return;
             }
 
