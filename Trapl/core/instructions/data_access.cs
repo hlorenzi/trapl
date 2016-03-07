@@ -42,6 +42,7 @@ namespace Trapl.Core
     {
         public int registerIndex;
         public FieldAccesses fieldAccesses = new FieldAccesses();
+        public bool dereference;
 
 
         public static DataAccessRegister ForRegister(Diagnostics.Span span, int registerIndex)

@@ -53,6 +53,10 @@
                         var instMoveCallResult = (inst as Core.InstructionMoveCallResult);
                         if (instMoveCallResult != null)
                             ApplyRuleForMoveCallResult(ref appliedSomeRule, instMoveCallResult);
+
+                        var instMoveAddr = (inst as Core.InstructionMoveAddr);
+                        if (instMoveAddr != null)
+                            ApplyRuleForMoveAddr(ref appliedSomeRule, instMoveAddr);
                     }
 
                     var flowBranch = (segment.outFlow as Core.SegmentFlowBranch);
@@ -139,8 +143,8 @@
         {
             var destType = TypeResolver.GetDataAccessType(session, funct, inst.destination);
 
-            var tupleElements = new Core.Type[inst.sourceElements.Count];
-            for (var i = 0; i < inst.sourceElements.Count; i++)
+            var tupleElements = new Core.Type[inst.sourceElements.Length];
+            for (var i = 0; i < inst.sourceElements.Length; i++)
                 tupleElements[i] = TypeResolver.GetDataAccessType(session, funct, inst.sourceElements[i]);
 
             var srcTuple = Core.TypeTuple.Of(tupleElements);
@@ -154,7 +158,7 @@
 
             if (inferredSrc)
             {
-                for (var i = 0; i < inst.sourceElements.Count; i++)
+                for (var i = 0; i < inst.sourceElements.Length; i++)
                     appliedRule = ApplyToDataAccess(inst.sourceElements[i], srcTuple.elementTypes[i]);
             }
         }
@@ -234,6 +238,19 @@
                     ref routine.registers[inst.destination.registerIndex].type))
                     this.appliedAnyRule = true;
             }*/
+        }
+
+
+        private void ApplyRuleForMoveAddr(ref bool appliedRule, Core.InstructionMoveAddr inst)
+        {
+            var destType = TypeResolver.GetDataAccessType(session, funct, inst.destination);
+            var srcType = Core.TypePointer.MutableOf(
+                TypeResolver.GetDataAccessType(session, funct, inst.source));
+
+            var inferredDest = TypeInferencer.Try(session, srcType, ref destType);
+
+            if (inferredDest)
+                appliedRule = ApplyToDataAccess(inst.destination, destType);
         }
     }
 }

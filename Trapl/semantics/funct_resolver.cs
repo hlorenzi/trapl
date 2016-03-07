@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-
-
-namespace Trapl.Semantics
+﻿namespace Trapl.Semantics
 {
     public class FunctBodyResolver
     {
@@ -58,6 +55,8 @@ namespace Trapl.Semantics
                 this.ResolveExprReturn((Grammar.ASTNodeExprReturn)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprCall)
                 this.ResolveExprCall((Grammar.ASTNodeExprCall)expr, ref curSegment, outputReg);
+            else if (expr is Grammar.ASTNodeExprUnaryOp)
+                this.ResolveExprUnaryOp((Grammar.ASTNodeExprUnaryOp)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprBinaryOp)
                 this.ResolveExprBinaryOp((Grammar.ASTNodeExprBinaryOp)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprName)
@@ -224,6 +223,27 @@ namespace Trapl.Semantics
             // Generate call instruction.
             funct.AddInstruction(curSegment,
                 Core.InstructionMoveCallResult.For(exprCall.GetSpan(), output, callTargetReg, argumentRegs));
+        }
+
+
+        private void ResolveExprUnaryOp(Grammar.ASTNodeExprUnaryOp exprUnOp, ref int curSegment, Core.DataAccess output)
+        {
+            if (exprUnOp.oper == Grammar.ASTNodeExprUnaryOp.Operator.Ampersand)
+            {
+                // Parse addressed expression.
+                var access = ResolveDataAccess(exprUnOp.operand, ref curSegment, false);
+                if (access == null)
+                    return;
+
+                // Store pointer.
+                funct.AddInstruction(
+                    curSegment,
+                    Core.InstructionMoveAddr.Of(exprUnOp.GetSpan(), output, access));
+
+                return;
+            }
+
+            throw new System.NotImplementedException();
         }
 
 
@@ -461,7 +481,7 @@ namespace Trapl.Semantics
                 session.AddMessage(
                     Diagnostics.MessageKind.Error,
                     Diagnostics.MessageCode.WrongFieldAccess,
-                    "field access on '" + lhsType.GetString(this.session) + "'",
+                    "attempted field access on '" + lhsType.GetString(this.session) + "'",
                     exprDotOp.lhsOperand.GetSpan());
                 return null;
             }
@@ -483,7 +503,7 @@ namespace Trapl.Semantics
             session.AddMessage(
                 Diagnostics.MessageKind.Error,
                 Diagnostics.MessageCode.InvalidAccess,
-                "invalid assignment destination",
+                "expression has no address",
                 expr.GetSpan());
             return null;
         }

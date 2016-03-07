@@ -178,8 +178,8 @@
         {
             var destType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.destination);
 
-            var tupleElements = new Core.Type[inst.sourceElements.Count];
-            for (var i = 0; i < inst.sourceElements.Count; i++)
+            var tupleElements = new Core.Type[inst.sourceElements.Length];
+            for (var i = 0; i < inst.sourceElements.Length; i++)
                 tupleElements[i] = TypeResolver.GetDataAccessType(this.session, this.funct, inst.sourceElements[i]);
 
             var srcTuple = Core.TypeTuple.Of(tupleElements);

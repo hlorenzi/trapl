@@ -33,6 +33,31 @@
         }
 
 
+        public override bool IsSame(Type other)
+        {
+            var otherPointer = other as Core.TypePointer;
+            if (otherPointer == null)
+                return false;
+
+            if (this.mutable != otherPointer.mutable)
+                return false;
+
+            return this.pointedToType.IsSame(otherPointer.pointedToType);
+        }
+
+
+        public override bool IsResolved()
+        {
+            return this.pointedToType.IsResolved();
+        }
+
+
+        public override bool IsError()
+        {
+            return this.pointedToType.IsError();
+        }
+
+
         public override string GetString(Core.Session session)
         {
             return "*" + (this.mutable ? "mut " : "") + this.pointedToType.GetString(session);

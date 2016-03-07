@@ -45,6 +45,13 @@
   <ItemGroup>
     <Compile Include="core\decl_funct.cs" />
     <Compile Include="core\instructions\data_access.cs" />
+    <Compile Include="core\instructions\inst_move_addr.cs" />
+    <Compile Include="core\instructions\inst_move_bool.cs" />
+    <Compile Include="core\instructions\inst_move_call.cs" />
+    <Compile Include="core\instructions\inst_move_data.cs" />
+    <Compile Include="core\instructions\inst_move_funct.cs" />
+    <Compile Include="core\instructions\inst_move_int.cs" />
+    <Compile Include="core\instructions\inst_move_tuple.cs" />
     <Compile Include="core\instructions\segment_flow.cs" />
     <Compile Include="core\instructions\inst_move.cs" />
     <Compile Include="core\instructions\inst.cs" />

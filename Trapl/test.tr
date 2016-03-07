@@ -7,35 +7,13 @@ Point: struct
 
 test: fn() -> ()
 {
-	return 123
-}
+	let x = 123;
+	let y = &x;
 
-test2: fn() -> ()
-{
-	123
-}
+	let p: Point;
+	let q = &p;
+	let qx = &p.x;
+	let qy = &p.y;
 
-test3: fn() -> ()
-{
-	
-}
-
-test4: fn() -> Int
-{
-	return 123
-}
-
-test5: fn() -> Int
-{
-	123
-}
-
-test6: fn() -> Int
-{
-	if true { 123 } else { 456 }
-}
-
-test7: fn() -> Int
-{
-	
+	let z = &x;
 }

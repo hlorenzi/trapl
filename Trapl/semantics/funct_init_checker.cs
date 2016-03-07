@@ -339,7 +339,7 @@ namespace Trapl.Semantics
 
         private void CheckMoveTupleLiteral(List<InitStatus> statusList, Core.InstructionMoveLiteralTuple inst)
         {
-            for (var i = 0; i < inst.sourceElements.Count; i++)
+            for (var i = 0; i < inst.sourceElements.Length; i++)
                 ValidateSource(statusList, inst.sourceElements[i]);
 
             InitDestination(statusList, inst.destination);
