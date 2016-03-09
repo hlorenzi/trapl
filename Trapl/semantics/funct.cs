@@ -49,6 +49,8 @@
 
                 var funct = session.GetFunct(binding.declIndex);
 
+                binding.declNode.PrintDebugRecursive("");
+
                 var foundErrors = FunctBodyResolver.Resolve(
                     this.session, funct, binding.useDirectives, binding.declNode.bodyExpression);
 

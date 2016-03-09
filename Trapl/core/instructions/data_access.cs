@@ -59,7 +59,7 @@ namespace Trapl.Core
 
         public override string GetString()
         {
-            return "#r" + registerIndex + fieldAccesses.GetString();
+            return (dereference ? "@" : "") + "#r" + registerIndex + fieldAccesses.GetString();
         }
     }
 }

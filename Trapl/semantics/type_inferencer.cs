@@ -17,9 +17,7 @@ namespace Trapl.Semantics
             {
                 var refTo = (Core.TypePointer)typeTo;
                 var refFrom = (Core.TypePointer)typeFrom;
-                var result = Try(session, refFrom.pointedToType, ref refTo.pointedToType);
-                result |= Try(session, refTo.pointedToType, ref refFrom.pointedToType);
-                return result;
+                return Try(session, refFrom.pointedToType, ref refTo.pointedToType);
             }
 
             /*else if (typeTo is TypeStruct && typeFrom is TypeStruct)

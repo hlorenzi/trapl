@@ -561,11 +561,13 @@ namespace Trapl.Grammar
                 new OperatorModel(OperatorModel.Associativity.Unary, TokenKind.ExclamationMark)
             },
             new List<OperatorModel> {
-                new OperatorModel(OperatorModel.Associativity.Unary, TokenKind.At),
                 new OperatorModel(OperatorModel.Associativity.Unary, TokenKind.Ampersand)
             },
             new List<OperatorModel> {
                 new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Period)
+            },
+            new List<OperatorModel> {
+                new OperatorModel(OperatorModel.Associativity.Unary, TokenKind.At)
             }
         };
 

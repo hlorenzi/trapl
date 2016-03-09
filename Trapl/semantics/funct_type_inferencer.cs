@@ -164,6 +164,26 @@
         }
 
 
+        private void ApplyRuleForMoveAddr(ref bool appliedRule, Core.InstructionMoveAddr inst)
+        {
+            var destType = TypeResolver.GetDataAccessType(session, funct, inst.destination);
+
+            var srcPtr = Core.TypePointer.MutableOf(
+                TypeResolver.GetDataAccessType(session, funct, inst.source));
+
+            var srcType = (Core.Type)srcPtr;
+
+            var inferredDest = TypeInferencer.Try(session, srcType, ref destType);
+            var inferredSrc = TypeInferencer.Try(session, destType, ref srcType);
+
+            if (inferredDest)
+                appliedRule = ApplyToDataAccess(inst.destination, destType);
+
+            if (inferredSrc)
+                appliedRule = ApplyToDataAccess(inst.source, srcPtr.pointedToType);
+        }
+
+
         private void ApplyRuleForMoveCallResult(ref bool appliedRule, Core.InstructionMoveCallResult inst)
         {
             var destType = TypeResolver.GetDataAccessType(session, funct, inst.destination);
@@ -238,19 +258,6 @@
                     ref routine.registers[inst.destination.registerIndex].type))
                     this.appliedAnyRule = true;
             }*/
-        }
-
-
-        private void ApplyRuleForMoveAddr(ref bool appliedRule, Core.InstructionMoveAddr inst)
-        {
-            var destType = TypeResolver.GetDataAccessType(session, funct, inst.destination);
-            var srcType = Core.TypePointer.MutableOf(
-                TypeResolver.GetDataAccessType(session, funct, inst.source));
-
-            var inferredDest = TypeInferencer.Try(session, srcType, ref destType);
-
-            if (inferredDest)
-                appliedRule = ApplyToDataAccess(inst.destination, destType);
         }
     }
 }

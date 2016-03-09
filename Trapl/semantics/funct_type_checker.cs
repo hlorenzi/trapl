@@ -45,6 +45,10 @@
                     if (instMoveTuple != null)
                         CheckMoveTupleLiteral(instMoveTuple);
 
+                    var instMoveAddr = (inst as Core.InstructionMoveAddr);
+                    if (instMoveAddr != null)
+                        CheckMoveAddr(instMoveAddr);
+
                     var instMoveFunct = (inst as Core.InstructionMoveLiteralFunct);
                     if (instMoveFunct != null)
                         CheckMoveFunctLiteral(instMoveFunct);
@@ -98,6 +102,8 @@
 
         private void CheckMove(Core.DataAccess destination, Core.Type srcType, Diagnostics.Span srcSpan)
         {
+            TypeResolver.ValidateDataAccess(this.session, this.funct, destination);
+
             var destType = TypeResolver.GetDataAccessType(this.session, this.funct, destination);
             if (destType == null)
                 return;
@@ -185,6 +191,16 @@
             var srcTuple = Core.TypeTuple.Of(tupleElements);
 
             CheckMove(inst.destination, srcTuple, inst.span);
+        }
+
+
+        private void CheckMoveAddr(Core.InstructionMoveAddr inst)
+        {
+            var destType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.destination);
+            var srcType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.source);
+            var srcPtr = Core.TypePointer.Of(true, srcType);
+
+            CheckMove(inst.destination, srcPtr, inst.span);
         }
 
 

@@ -381,6 +381,32 @@
                 }
             }
 
+            var exprDereference = expr as Grammar.ASTNodeExprUnaryOp;
+            if (exprDereference != null && exprDereference.oper == Grammar.ASTNodeExprUnaryOp.Operator.At)
+            {
+                var innerAccess = ResolveDataAccess(exprDereference.operand, ref curSegment, true);
+                var innerRegAccess = innerAccess as Core.DataAccessRegister;
+                if (innerRegAccess == null)
+                    return null;
+
+                if (innerRegAccess.dereference)
+                {
+                    var regPtr = funct.CreateRegister(new Core.TypePlaceholder());
+                    var storePtr = Core.InstructionMoveAddr.Of(
+                        innerRegAccess.span,
+                        Core.DataAccessRegister.ForRegister(innerRegAccess.span, regPtr),
+                        innerRegAccess);
+
+                    funct.AddInstruction(curSegment, storePtr);
+
+                    innerRegAccess = Core.DataAccessRegister.ForRegister(
+                        innerRegAccess.span, regPtr);
+                }
+
+                innerRegAccess.dereference = true;
+                return innerRegAccess;
+            }
+
             var exprDotOp = expr as Grammar.ASTNodeExprBinaryOp;
             if (exprDotOp != null && exprDotOp.oper == Grammar.ASTNodeExprBinaryOp.Operator.Dot)
             {

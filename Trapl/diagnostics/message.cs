@@ -32,7 +32,8 @@ namespace Trapl.Diagnostics
         WrongFieldAccess,
         EarlyInferenceFailed,
         InferenceFailed,
-        UninitializedUse
+        UninitializedUse,
+        CannotDereferenceType
     }
 
 

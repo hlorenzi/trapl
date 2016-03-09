@@ -213,6 +213,10 @@ namespace Trapl.Semantics
             if (srcReg == null)
                 return true;
 
+            /* debug */
+            if (srcReg.dereference)
+                return true;
+
             var srcType = this.funct.registerTypes[srcReg.registerIndex];
             var srcInit = statusList[srcReg.registerIndex];
 
@@ -280,6 +284,9 @@ namespace Trapl.Semantics
         {
             var destReg = destination as Core.DataAccessRegister;
             if (destReg == null)
+                return;
+
+            /* debug */ if (destReg.dereference)
                 return;
 
             var destType = this.funct.registerTypes[destReg.registerIndex];

@@ -56,6 +56,36 @@ namespace Trapl.Semantics
         }
 
 
+        public static void ValidateDataAccess(
+            Core.Session session,
+            Core.DeclFunct funct,
+            Core.DataAccess access)
+        {
+            var regAccess = access as Core.DataAccessRegister;
+            if (regAccess != null)
+            {
+                var type = GetFinalFieldType(
+                    session,
+                    funct,
+                    funct.registerTypes[regAccess.registerIndex],
+                    regAccess.fieldAccesses);
+
+                if (regAccess.dereference)
+                {
+                    var typePtr = type as Core.TypePointer;
+                    if (typePtr == null)
+                    {
+                        session.AddMessage(
+                            Diagnostics.MessageKind.Error,
+                            Diagnostics.MessageCode.CannotDereferenceType,
+                            "dereferencing '" + type.GetString(session) + "'",
+                            access.span);
+                    }
+                }
+            }
+        }
+
+
         public static Core.Type GetDataAccessType(
             Core.Session session,
             Core.DeclFunct funct,
@@ -64,11 +94,22 @@ namespace Trapl.Semantics
             var regAccess = access as Core.DataAccessRegister;
             if (regAccess != null)
             {
-                return GetFinalFieldType(
+                var type = GetFinalFieldType(
                     session,
                     funct,
                     funct.registerTypes[regAccess.registerIndex],
                     regAccess.fieldAccesses);
+
+                if (regAccess.dereference)
+                {
+                    var typePtr = type as Core.TypePointer;
+                    if (typePtr == null)
+                        return new Core.TypeError();
+
+                    return typePtr.pointedToType;
+                }
+
+                return type;
             }
 
             return new Core.TypeError();

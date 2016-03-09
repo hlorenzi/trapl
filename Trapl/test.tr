@@ -16,4 +16,9 @@ test: fn() -> ()
 	let qy = &p.y;
 
 	let z = &x;
+
+	@z = 0;
+	@q.x = 0;
+	@(@q.x) = 0;
+	@qy = 0;
 }
