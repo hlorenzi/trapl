@@ -85,7 +85,7 @@ namespace Trapl.Semantics
 
             public void ConvertToFields(int fieldNum)
             {
-                if (fieldNum > 0)
+                if (!this.hasFields && fieldNum > 0)
                 {
                     this.hasFields = true;
                     this.fieldStatuses = new InitStatus[fieldNum];
@@ -152,6 +152,10 @@ namespace Trapl.Semantics
                 if (instMoveTuple != null)
                     CheckMoveTupleLiteral(statusList, instMoveTuple);
 
+                var instMoveAddr = (inst as Core.InstructionMoveAddr);
+                if (instMoveAddr != null)
+                    CheckMoveAddr(statusList, instMoveAddr);
+
                 var instMoveFunct = (inst as Core.InstructionMoveLiteralFunct);
                 if (instMoveFunct != null)
                     CheckMoveFunctLiteral(statusList, instMoveFunct);
@@ -209,48 +213,19 @@ namespace Trapl.Semantics
 
         private bool CheckSource(List<InitStatus> statusList, Core.DataAccess source)
         {
-            var srcReg = source as Core.DataAccessRegister;
-            if (srcReg == null)
-                return true;
+            InitStatus baseStatus;
+            Core.Type baseType;
+            GetStatusRecursive(statusList, source, out baseStatus, out baseType);
 
-            /* debug */
-            if (srcReg.dereference)
-                return true;
+            if (baseStatus != null)
+                return baseStatus.IsInitialized();
 
-            var srcType = this.funct.registerTypes[srcReg.registerIndex];
-            var srcInit = statusList[srcReg.registerIndex];
-
-            var isInitialized = srcInit.IsInitialized();
-
-            if (!isInitialized)
-            {
-                for (var i = 0; i < srcReg.fieldAccesses.indices.Count; i++)
-                {
-                    srcType = TypeResolver.GetFieldType(
-                        this.session, this.funct, srcType, srcReg.fieldAccesses.indices[i]);
-
-                    if (!srcInit.hasFields)
-                    {
-                        isInitialized = srcInit.IsInitialized();
-                        break;
-                    }
-
-                    srcInit = srcInit.fieldStatuses[srcReg.fieldAccesses.indices[i]];
-
-                    isInitialized = srcInit.IsInitialized();
-                    if (isInitialized)
-                        break;
-                }
-            }
-
-            return isInitialized;
+            return true;
         }
 
 
         private void ValidateSource(List<InitStatus> statusList, Core.DataAccess source)
         {
-            var srcReg = source as Core.DataAccessRegister;
-
             if (!CheckSource(statusList, source))
             {
                 if (this.alreadyReportedSet.Contains(source.span))
@@ -259,7 +234,8 @@ namespace Trapl.Semantics
                 this.foundErrors = true;
                 this.alreadyReportedSet.Add(source.span);
 
-                if (srcReg.registerIndex == 0)
+                var srcReg = source as Core.DataAccessRegister;
+                if (srcReg != null && srcReg.registerIndex == 0)
                 {
                     this.session.AddMessage(
                         Diagnostics.MessageKind.Error,
@@ -282,34 +258,51 @@ namespace Trapl.Semantics
 
         private void InitDestination(List<InitStatus> statusList, Core.DataAccess destination)
         {
-            var destReg = destination as Core.DataAccessRegister;
-            if (destReg == null)
-                return;
+            InitStatus baseStatus;
+            Core.Type baseType;
+            GetStatusRecursive(statusList, destination, out baseStatus, out baseType);
 
-            /* debug */ if (destReg.dereference)
-                return;
+            if (baseStatus != null)
+                baseStatus.SetStatus(true);
+        }
 
-            var destType = this.funct.registerTypes[destReg.registerIndex];
-            var destInit = statusList[destReg.registerIndex];
 
-            if (destInit.IsInitialized())
-                return;
+        private void GetStatusRecursive(List<InitStatus> statusList, Core.DataAccess access, out InitStatus baseStatus, out Core.Type baseType)
+        {
+            baseStatus = null;
+            baseType = null;
 
-            for (var i = 0; i < destReg.fieldAccesses.indices.Count; i++)
+            var accessField = access as Core.DataAccessField;
+            if (accessField != null)
             {
-                if (!destInit.hasFields)
-                    destInit.ConvertToFields(TypeResolver.GetFieldNum(this.session, this.funct, destType));
+                GetStatusRecursive(statusList, accessField.baseAccess, out baseStatus, out baseType);
 
-                destType = TypeResolver.GetFieldType(
-                    this.session, this.funct, destType, destReg.fieldAccesses.indices[i]);
-
-                destInit = destInit.fieldStatuses[destReg.fieldAccesses.indices[i]];
-
-                if (destInit.IsInitialized())
+                if (baseStatus == null)
                     return;
+
+                var fieldNum = TypeResolver.GetFieldNum(session, funct, baseType);
+                baseStatus.ConvertToFields(fieldNum);
+
+                baseStatus = baseStatus.fieldStatuses[accessField.fieldIndex];
+                baseType = TypeResolver.GetFieldType(session, funct, baseType, accessField.fieldIndex);
+                return;
             }
 
-            destInit.SetStatus(true);
+            var accessReg = access as Core.DataAccessRegister;
+            if (accessReg != null)
+            {
+                baseType = TypeResolver.GetDataAccessType(session, funct, accessReg);
+                baseStatus = statusList[accessReg.registerIndex];
+                return;
+            }
+
+            var accessDeref = access as Core.DataAccessDereference;
+            if (accessDeref != null)
+            {
+                ValidateSource(statusList, accessDeref.innerAccess);
+                baseStatus = null;
+                return;
+            }
         }
 
 
@@ -349,6 +342,13 @@ namespace Trapl.Semantics
             for (var i = 0; i < inst.sourceElements.Length; i++)
                 ValidateSource(statusList, inst.sourceElements[i]);
 
+            InitDestination(statusList, inst.destination);
+        }
+
+
+        private void CheckMoveAddr(List<InitStatus> statusList, Core.InstructionMoveAddr inst)
+        {
+            ValidateSource(statusList, inst.source);
             InitDestination(statusList, inst.destination);
         }
 

@@ -102,7 +102,11 @@
 
         private void CheckMove(Core.DataAccess destination, Core.Type srcType, Diagnostics.Span srcSpan)
         {
-            TypeResolver.ValidateDataAccess(this.session, this.funct, destination);
+            if (!TypeResolver.ValidateDataAccess(this.session, this.funct, destination))
+            {
+                this.foundErrors = true;
+                return;
+            }
 
             var destType = TypeResolver.GetDataAccessType(this.session, this.funct, destination);
             if (destType == null)
@@ -141,6 +145,12 @@
 
         private void CheckBranch(Core.SegmentFlowBranch flow)
         {
+            if (!TypeResolver.ValidateDataAccess(this.session, this.funct, flow.conditionReg))
+            {
+                this.foundErrors = true;
+                return;
+            }
+
             var destType = Core.TypeStruct.Of(session.PrimitiveBool);
             var srcType = TypeResolver.GetDataAccessType(this.session, this.funct, flow.conditionReg);
 
@@ -159,6 +169,12 @@
 
         private void CheckMoveData(Core.InstructionMoveData inst)
         {
+            if (!TypeResolver.ValidateDataAccess(this.session, this.funct, inst.source))
+            {
+                this.foundErrors = true;
+                return;
+            }
+
             CheckMove(
                 inst.destination,
                 TypeResolver.GetDataAccessType(this.session, this.funct, inst.source),
@@ -186,7 +202,15 @@
 
             var tupleElements = new Core.Type[inst.sourceElements.Length];
             for (var i = 0; i < inst.sourceElements.Length; i++)
+            {
+                if (!TypeResolver.ValidateDataAccess(this.session, this.funct, inst.sourceElements[i]))
+                {
+                    this.foundErrors = true;
+                    return;
+                }
+
                 tupleElements[i] = TypeResolver.GetDataAccessType(this.session, this.funct, inst.sourceElements[i]);
+            }
 
             var srcTuple = Core.TypeTuple.Of(tupleElements);
 
@@ -196,6 +220,12 @@
 
         private void CheckMoveAddr(Core.InstructionMoveAddr inst)
         {
+            if (!TypeResolver.ValidateDataAccess(this.session, this.funct, inst.source))
+            {
+                this.foundErrors = true;
+                return;
+            }
+
             var destType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.destination);
             var srcType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.source);
             var srcPtr = Core.TypePointer.Of(true, srcType);
@@ -214,7 +244,13 @@
 
 
         private void CheckMoveCallResult(Core.InstructionMoveCallResult inst)
-        {
+        { 
+            if (!TypeResolver.ValidateDataAccess(this.session, this.funct, inst.callTargetSource))
+            {
+                this.foundErrors = true;
+                return;
+            }
+
             var destType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.destination);
             var srcType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.callTargetSource);
             var srcFunct = srcType as Core.TypeFunct;
@@ -225,7 +261,7 @@
                 this.session.AddMessage(
                     Diagnostics.MessageKind.Error,
                     Diagnostics.MessageCode.UncallableType,
-                    "calling '" + srcType.GetString(this.session) + "'",
+                    "calling '" + srcType.GetString(this.session) + "', which is not a funct",
                     inst.callTargetSource.span);
                 return;
             }
@@ -243,6 +279,12 @@
 
             for (var i = 0; i < inst.argumentSources.Length; i++)
             {
+                if (!TypeResolver.ValidateDataAccess(this.session, this.funct, inst.argumentSources[i]))
+                {
+                    this.foundErrors = true;
+                    return;
+                }
+
                 var argType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.argumentSources[i]);
                 var paramType = srcFunct.parameterTypes[i];
 

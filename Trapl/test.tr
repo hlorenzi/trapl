@@ -1,24 +1,19 @@
 Point: struct
 {
 	x: Int,
-	y: Int
+	y: Int,
+	z: &Int
 }
 
 
 test: fn() -> ()
 {
-	let x = 123;
-	let y = &x;
-
+	let x = 0;
+	let px = &x;
 	let p: Point;
-	let q = &p;
-	let qx = &p.x;
-	let qy = &p.y;
 
-	let z = &x;
+	let y = p.z;
 
-	@z = 0;
-	@q.x = 0;
-	@(@q.x) = 0;
-	@qy = 0;
+	let dx = @px;
+	let dz = @(p.z);
 }

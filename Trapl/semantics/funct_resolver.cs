@@ -242,6 +242,20 @@
 
                 return;
             }
+            else if (exprUnOp.oper == Grammar.ASTNodeExprUnaryOp.Operator.At)
+            {
+                // Parse addressed expression.
+                var access = ResolveDataAccess(exprUnOp, ref curSegment, false);
+                if (access == null)
+                    return;
+
+                // Store pointer.
+                funct.AddInstruction(
+                    curSegment,
+                    Core.InstructionMoveData.Of(exprUnOp.GetSpan(), output, access));
+
+                return;
+            }
 
             throw new System.NotImplementedException();
         }
@@ -385,40 +399,24 @@
             if (exprDereference != null && exprDereference.oper == Grammar.ASTNodeExprUnaryOp.Operator.At)
             {
                 var innerAccess = ResolveDataAccess(exprDereference.operand, ref curSegment, true);
-                var innerRegAccess = innerAccess as Core.DataAccessRegister;
-                if (innerRegAccess == null)
-                    return null;
-
-                if (innerRegAccess.dereference)
-                {
-                    var regPtr = funct.CreateRegister(new Core.TypePlaceholder());
-                    var storePtr = Core.InstructionMoveAddr.Of(
-                        innerRegAccess.span,
-                        Core.DataAccessRegister.ForRegister(innerRegAccess.span, regPtr),
-                        innerRegAccess);
-
-                    funct.AddInstruction(curSegment, storePtr);
-
-                    innerRegAccess = Core.DataAccessRegister.ForRegister(
-                        innerRegAccess.span, regPtr);
-                }
-
-                innerRegAccess.dereference = true;
-                return innerRegAccess;
+                return Core.DataAccessDereference.Of(exprDereference.GetSpan(), innerAccess);
             }
 
             var exprDotOp = expr as Grammar.ASTNodeExprBinaryOp;
             if (exprDotOp != null && exprDotOp.oper == Grammar.ASTNodeExprBinaryOp.Operator.Dot)
             {
-                var innerAccess = ResolveDataAccess(exprDotOp.lhsOperand, ref curSegment, true);
-                var innerRegAccess = innerAccess as Core.DataAccessRegister;
-                if (innerRegAccess == null)
-                    return null;
+                var baseAccess = ResolveDataAccess(exprDotOp.lhsOperand, ref curSegment, true);
 
                 // Left-hand side expr type must be resolved for field access.
                 FunctTypeInferencer.DoInference(this.session, this.funct);
 
-                var lhsType = TypeResolver.GetDataAccessType(this.session, this.funct, innerAccess);
+                if (!TypeResolver.ValidateDataAccess(this.session, this.funct, baseAccess))
+                {
+                    this.foundErrors = true;
+                    return null;
+                }
+
+                var lhsType = TypeResolver.GetDataAccessType(this.session, this.funct, baseAccess);
 
                 var lhsStruct = lhsType as Core.TypeStruct;
                 if (lhsStruct != null && lhsType.IsResolved())
@@ -452,9 +450,7 @@
                         return null;
                     }
 
-                    innerRegAccess.AddFieldAccess(fieldIndex);
-                    innerRegAccess.span = innerRegAccess.span.Merge(exprDotOp.rhsOperand.GetSpan());
-                    return innerRegAccess;
+                    return Core.DataAccessField.Of(exprDotOp.GetSpan(), baseAccess, fieldIndex);
                 }
 
                 var lhsTuple = lhsType as Core.TypeTuple;
@@ -487,12 +483,10 @@
                         return null;
                     }
 
-                    innerRegAccess.AddFieldAccess(fieldIndex);
-                    innerRegAccess.span = innerRegAccess.span.Merge(exprDotOp.rhsOperand.GetSpan());
-                    return innerRegAccess;
+                    return Core.DataAccessField.Of(exprDotOp.GetSpan(), baseAccess, fieldIndex);
                 }
 
-                if (!lhsType.IsResolved())
+                if (!lhsType.IsError() && !lhsType.IsResolved())
                 {
                     this.foundErrors = true;
                     session.AddMessage(

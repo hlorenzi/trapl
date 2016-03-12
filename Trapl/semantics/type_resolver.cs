@@ -52,37 +52,38 @@ namespace Trapl.Semantics
                 return Core.TypeTuple.Of(elementTypes);
             }
 
+            var typeRefNode = typeNode as Grammar.ASTNodeTypeReference;
+            if (typeRefNode != null)
+            {
+                return Core.TypePointer.MutableOf(
+                    Resolve(session, typeRefNode.referenced, useDirectives, mustBeResolved));
+            }
+
             throw new System.NotImplementedException();
         }
 
 
-        public static void ValidateDataAccess(
+        public static bool ValidateDataAccess(
             Core.Session session,
             Core.DeclFunct funct,
             Core.DataAccess access)
         {
-            var regAccess = access as Core.DataAccessRegister;
-            if (regAccess != null)
+            var regDeref = access as Core.DataAccessDereference;
+            if (regDeref != null)
             {
-                var type = GetFinalFieldType(
-                    session,
-                    funct,
-                    funct.registerTypes[regAccess.registerIndex],
-                    regAccess.fieldAccesses);
-
-                if (regAccess.dereference)
+                var innerType = GetDataAccessType(session, funct, regDeref.innerAccess);
+                var innerPtr = innerType as Core.TypePointer;
+                if (innerPtr == null)
                 {
-                    var typePtr = type as Core.TypePointer;
-                    if (typePtr == null)
-                    {
-                        session.AddMessage(
-                            Diagnostics.MessageKind.Error,
-                            Diagnostics.MessageCode.CannotDereferenceType,
-                            "dereferencing '" + type.GetString(session) + "'",
-                            access.span);
-                    }
+                    session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.CannotDereferenceType,
+                        "dereferencing '" + innerType.GetString(session) + "'",
+                        access.span);
+                    return false;
                 }
             }
+            return true;
         }
 
 
@@ -94,22 +95,26 @@ namespace Trapl.Semantics
             var regAccess = access as Core.DataAccessRegister;
             if (regAccess != null)
             {
-                var type = GetFinalFieldType(
-                    session,
-                    funct,
-                    funct.registerTypes[regAccess.registerIndex],
-                    regAccess.fieldAccesses);
+                return funct.registerTypes[regAccess.registerIndex];
+            }
 
-                if (regAccess.dereference)
-                {
-                    var typePtr = type as Core.TypePointer;
-                    if (typePtr == null)
-                        return new Core.TypeError();
+            var regField = access as Core.DataAccessField;
+            if (regField != null)
+            {
+                return GetFieldType(
+                    session, funct, GetDataAccessType(session, funct, regField.baseAccess),
+                    regField.fieldIndex);
+            }
 
-                    return typePtr.pointedToType;
-                }
+            var regDeref = access as Core.DataAccessDereference;
+            if (regDeref != null)
+            {
+                var innerType = GetDataAccessType(session, funct, regDeref.innerAccess);
+                var innerPtr = innerType as Core.TypePointer;
+                if (innerPtr == null)
+                    return new Core.TypeError();
 
-                return type;
+                return innerPtr.pointedToType;
             }
 
             return new Core.TypeError();
@@ -148,21 +153,6 @@ namespace Trapl.Semantics
                 return baseTuple.elementTypes[fieldIndex];
 
             return new Core.TypeError();
-        }
-
-
-        public static Core.Type GetFinalFieldType(
-            Core.Session session,
-            Core.DeclFunct funct,
-            Core.Type baseType,
-            Core.FieldAccesses fields)
-        {
-            var curType = baseType;
-
-            for (var i = 0; i < fields.indices.Count; i++)
-                curType = GetFieldType(session, funct, curType, fields.indices[i]);
-
-            return curType;
         }
     }
 }
