@@ -6,14 +6,16 @@ Point: struct
 }
 
 
-test: fn() -> ()
+get_ptr: fn() -> &Int
 {
 	let x = 0;
-	let px = &x;
-	let p: Point;
+	return &x;
+}
 
-	let y = p.z;
 
-	let dx = @px;
-	let dz = @(p.z);
+test: fn() -> ()
+{
+	let p = Point { x: 0, y: @get_ptr(), z: get_ptr() };
+
+	let p: &Int = &0;
 }

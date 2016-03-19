@@ -677,7 +677,7 @@ namespace Trapl.Grammar
 
         public ASTNodeExpr ParseExprCall()
         {
-            var calledNode = this.ParseExprLeaf();
+            var calledNode = this.ParseStructLiteral();
             if (this.CurrentIsNot(TokenKind.ParenOpen))
                 return calledNode;
 
@@ -700,38 +700,38 @@ namespace Trapl.Grammar
         }
 
 
-        /*public ASTNode ParseStructLiteral()
-        {
-            var targetNode = this.ParseLeafExpression();
+        public ASTNodeExpr ParseStructLiteral()
+        { 
+            var structNameOrExprNode = this.ParseExprLeaf();
             if (this.CurrentIsNot(TokenKind.BraceOpen) || this.insideCondition.Peek())
-                return targetNode;
+                return structNameOrExprNode;
 
-            if (targetNode.kind != ASTNodeKind.Name)
-                return targetNode;
+            var structNameNode = structNameOrExprNode as ASTNodeExprName;
+            if (structNameNode == null)
+                return structNameOrExprNode;
 
-            var typeNode = new ASTNode(ASTNodeKind.Type);
-            typeNode.AddChild(targetNode);
+            var structNode = new ASTNodeExprLiteralStruct();
+            structNode.SetNameNode(structNameNode);
 
-            var node = new ASTNode(ASTNodeKind.StructLiteral);
-            node.AddChild(typeNode);
-            node.AddSpan(this.Current().span);
-            this.Match(TokenKind.BraceOpen, MessageCode.Expected, "expected '{'");
+            this.Match(TokenKind.BraceOpen, "expected '{'");
 
             while (this.CurrentIsNot(TokenKind.BraceClose))
             {
-                var member = new ASTNode(ASTNodeKind.StructFieldInit);
-                member.AddChild(this.ParseName(false));
-                this.Match(TokenKind.Colon, MessageCode.Expected, "expected ':'");
-                member.AddChild(ParseExpression());
-                node.AddChild(member);
+                var fieldNode = new ASTNodeExprLiteralStructField();
+                fieldNode.SetNameNode(this.ParseName(false, false));
+                this.Match(TokenKind.Colon, "expected ':'");
+                fieldNode.SetExprNode(this.ParseExpr());
+
+                structNode.AddFieldExpr(fieldNode);
                 this.MatchListSeparator(TokenKind.Comma, TokenKind.BraceClose,
                     MessageCode.Expected, "expected ',' or '}'");
             }
-            node.AddSpan(this.Current().span);
-            this.Match(TokenKind.BraceClose, MessageCode.Expected, "expected '}'");
 
-            return node;
-        }*/
+            structNode.AddSpan(this.Current().span);
+            this.Match(TokenKind.BraceClose, "expected '}'");
+
+            return structNode;
+        }
 
 
         public ASTNodeExpr ParseExprLeaf()

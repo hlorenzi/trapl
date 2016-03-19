@@ -30,16 +30,7 @@ namespace Trapl.Semantics
             var typeStructNode = typeNode as Grammar.ASTNodeTypeStruct;
             if (typeStructNode != null)
             {
-                var name = NameResolver.Resolve(typeStructNode.name);
-
-                var foundDecls = session.GetDeclsWithUseDirectives(name, typeStructNode.name.path.isRooted, useDirectives);
-                if (!session.ValidateSingleDecl(foundDecls, name, typeStructNode.name.GetSpan()))
-                    return new Core.TypeError();
-
-                if (!session.ValidateAsType(foundDecls[0], name, typeStructNode.name.GetSpan()))
-                    return new Core.TypeError();
-
-                return Core.TypeStruct.Of(foundDecls[0].index);
+                return ResolveStruct(session, typeStructNode.name, useDirectives, mustBeResolved);
             }
 
             var typeTupleNode = typeNode as Grammar.ASTNodeTypeTuple;
@@ -60,6 +51,50 @@ namespace Trapl.Semantics
             }
 
             throw new System.NotImplementedException();
+        }
+
+
+        public static Core.Type ResolveStruct(
+            Core.Session session,
+            Grammar.ASTNodeName nameNode,
+            IList<Core.UseDirective> useDirectives,
+            bool mustBeResolved)
+        {
+            var name = NameResolver.Resolve(nameNode);
+
+            var foundDecls = session.GetDeclsWithUseDirectives(name, nameNode.path.isRooted, useDirectives);
+            if (!session.ValidateSingleDecl(foundDecls, name, nameNode.GetSpan()))
+                return new Core.TypeError();
+
+            if (!session.ValidateAsType(foundDecls[0], name, nameNode.GetSpan()))
+                return new Core.TypeError();
+
+            return Core.TypeStruct.Of(foundDecls[0].index);
+        }
+
+
+        public static Core.Type ResolveStruct(
+            Core.Session session,
+            Grammar.ASTNodeExprName nameNode,
+            IList<Core.UseDirective> useDirectives,
+            bool mustBeResolved)
+        {
+            var nameConcreteNode = nameNode as Grammar.ASTNodeExprNameConcrete;
+            if (nameConcreteNode == null)
+            {
+                if (mustBeResolved)
+                {
+                    session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.Expected,
+                        "type must be known",
+                        nameNode.GetSpan());
+                }
+
+                return new Core.TypeError();
+            }
+
+            return ResolveStruct(session, nameConcreteNode.name, useDirectives, mustBeResolved);
         }
 
 

@@ -1,4 +1,7 @@
-﻿namespace Trapl.Semantics
+﻿using System.Collections.Generic;
+
+
+namespace Trapl.Semantics
 {
     public class FunctBodyResolver
     {
@@ -65,6 +68,8 @@
                 this.ResolveExprLiteralBool((Grammar.ASTNodeExprLiteralBool)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprLiteralInt)
                 this.ResolveExprLiteralInt((Grammar.ASTNodeExprLiteralInt)expr, ref curSegment, outputReg);
+            else if (expr is Grammar.ASTNodeExprLiteralStruct)
+                this.ResolveExprLiteralStruct((Grammar.ASTNodeExprLiteralStruct)expr, ref curSegment, outputReg);
             else
                 throw new System.NotImplementedException();
         }
@@ -231,7 +236,7 @@
             if (exprUnOp.oper == Grammar.ASTNodeExprUnaryOp.Operator.Ampersand)
             {
                 // Parse addressed expression.
-                var access = ResolveDataAccess(exprUnOp.operand, ref curSegment, false);
+                var access = ResolveDataAccess(exprUnOp.operand, ref curSegment, true);
                 if (access == null)
                     return;
 
@@ -318,6 +323,83 @@
                     output,
                     Core.TypeStruct.Of(session.PrimitiveInt),
                     System.Convert.ToInt64(exprLiteralInt.GetExcerpt())));
+        }
+
+
+        private void ResolveExprLiteralStruct(Grammar.ASTNodeExprLiteralStruct exprLiteralStruct, ref int curSegment, Core.DataAccess output)
+        {
+            var type = TypeResolver.ResolveStruct(session, exprLiteralStruct.name, useDirectives, true);
+            if (!type.IsResolved())
+                return;
+
+            var typeStruct = type as Core.TypeStruct;
+            var reg = funct.CreateRegister(type);
+            var initFields = new Dictionary<int, Diagnostics.Span>();
+
+            foreach (var fieldInit in exprLiteralStruct.fields)
+            {
+                var name = NameResolver.Resolve(fieldInit.name);
+
+                int fieldIndex;
+                if (!this.session.GetStruct(typeStruct.structIndex).fieldNames.FindByName(name, out fieldIndex))
+                {
+                    this.foundErrors = true;
+                    session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.Unknown,
+                        "unknown field '" + name.GetString() + "' in '" +
+                        type.GetString(this.session) + "'",
+                        fieldInit.name.GetSpan());
+                    continue;
+                }
+
+                if (initFields.ContainsKey(fieldIndex))
+                {
+                    this.foundErrors = true;
+                    session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.Unknown,
+                        "duplicate field '" + name.GetString() + "' initialization",
+                        fieldInit.name.GetSpan(),
+                        initFields[fieldIndex]);
+                    continue;
+                }
+
+                initFields.Add(fieldIndex, fieldInit.name.GetSpan());
+
+                var accessField = Core.DataAccessField.Of(
+                    fieldInit.name.GetSpan(),
+                    Core.DataAccessRegister.ForRegister(exprLiteralStruct.name.GetSpan(), reg),
+                    fieldIndex);
+
+                this.ResolveExpr(fieldInit.expr, ref curSegment, accessField);
+            }
+
+            funct.AddInstruction(curSegment, Core.InstructionMoveData.Of(
+                exprLiteralStruct.GetSpan(), output,
+                Core.DataAccessRegister.ForRegister(exprLiteralStruct.name.GetSpan(), reg)));
+
+            var missingFields = new List<int>();
+            for (var i = 0; i < session.GetStruct(typeStruct.structIndex).fieldTypes.Count; i++)
+            {
+                if (!initFields.ContainsKey(i))
+                    missingFields.Add(i);
+            }
+
+            if (missingFields.Count > 0)
+            {
+                Core.Name fieldName;
+                session.GetStruct(typeStruct.structIndex).fieldNames.FindByValue(missingFields[0], out fieldName);
+
+                this.foundErrors = true;
+                session.AddMessage(
+                    Diagnostics.MessageKind.Error,
+                    Diagnostics.MessageCode.Unknown,
+                    "missing initializer" + (missingFields.Count > 1 ? "s" : "") +
+                    " for field '" + fieldName.GetString() + "'" +
+                    (missingFields.Count > 1 ? " and other " + (missingFields.Count - 1) : ""),
+                    exprLiteralStruct.GetSpan());
+            }
         }
 
 
@@ -514,7 +596,7 @@
                 ResolveExpr(expr, ref curSegment, access);
 
                 // Create a new access for the same register, in case there's an outer
-                // access modifier (dot operator).
+                // access modifier.
                 access = Core.DataAccessRegister.ForRegister(expr.GetSpan(), registerIndex);
                 return access;
             }

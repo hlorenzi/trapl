@@ -59,6 +59,7 @@
     <Compile Include="core\types\funct.cs" />
     <Compile Include="core\types\placeholder.cs" />
     <Compile Include="core\use_directive.cs" />
+    <Compile Include="grammar\ast_nodes\expr_literal_struct.cs" />
     <Compile Include="semantics\funct_init_checker.cs" />
     <Compile Include="semantics\funct_type_checker.cs" />
     <Compile Include="semantics\funct_resolver.cs" />

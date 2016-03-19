@@ -33,6 +33,7 @@ namespace Trapl.Grammar
             this.span = this.span.Merge(span);
         }
 
+
         public string GetExcerpt()
         {
             return this.span.GetExcerpt();

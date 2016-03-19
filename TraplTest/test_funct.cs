@@ -139,39 +139,42 @@ namespace TraplTest
             Funct("").Ok();
 
             Funct("let i: Int = 0; let j = i").Ok();
-            Funct("let i: Int = 0; let j = &i").Ok();
             Funct("let i: Int;     let j = i").Fail();
+
+            Funct("let i: &Int = &0; let j = i").Ok();
+            Funct("let i: &Int;      let j = i").Fail();
+
+            Funct("let i: Int = 0; let j = &i").Ok();
             Funct("let i: Int;     let j = &i").Fail();
 
-            Funct("let d: Data; d.i = 0; let i = d.i").Ok();
+            Funct("let d = Data { i: 0, b: true, p: &0 }").Ok();
+            Funct("let d = Data {       b: true, p: &0 }").Fail();
+            Funct("let d = Data { i: 0,          p: &0 }").Fail();
+            Funct("let d = Data { i: 0, b: true,       }").Fail();
+            Funct("let d = Data {                      }").Fail();
+
+            Funct("let d: Data; d.i = 0; let i =  d.i").Ok();
             Funct("let d: Data; d.i = 0; let i = &d.i").Ok();
-            Funct("let d: Data;          let i = d.i").Fail();
+            Funct("let d: Data;          let i =  d.i").Fail();
             Funct("let d: Data;          let i = &d.i").Fail();
 
-            Funct("let d: Data; let i = 0; d.i = 0; d.b = true; d.p = &i; let d2 = &d").Ok();
-            Funct("let d: Data; let i = 0;          d.b = true; d.p = &i; let d2 = &d").Fail();
-            Funct("let d: Data; let i = 0; d.i = 0;             d.p = &i; let d2 = &d").Fail();
-            Funct("let d: Data; let i = 0; d.i = 0; d.b = true;           let d2 = &d").Fail();
-            Funct("let d: Data;                                           let d2 = &d").Fail();
+            Funct("let d: Data; d.i = 0; d.b = true; d.p = &0; let d2 = &d").Ok();
+            Funct("let d: Data;          d.b = true; d.p = &0; let d2 = &d").Fail();
+            Funct("let d: Data; d.i = 0;             d.p = &0; let d2 = &d").Fail();
+            Funct("let d: Data; d.i = 0; d.b = true;           let d2 = &d").Fail();
+            Funct("let d: Data;                                let d2 = &d").Fail();
 
-            Funct("let d: Data; let i = 0; d.p = &i").Ok();
-            Funct("let d: Data;            d.p = &i").Fail();
+            Funct("let p: &Int = &0; let i = @p").Ok();
+            Funct("let p: &Int;      let i = @p").Fail();
 
-            Funct("let i = 0;  let pi = &i;  let vi = @pi").Ok();
-            Funct("let i = 0;                let vi = @pi").Fail();
-            Funct("let i: Int; let pi = &i;  let vi = @pi").Fail();
+            Funct("let d: Data; d.p = &0; let vi = @(d.p)").Ok();
+            Funct("let d: Data;           let vi = @(d.p)").Fail();
 
-            Funct("let pi: &Int; let i = 0; pi = &i; let vi = @pi").Ok();
-            Funct("let pi: &Int;                     let vi = @pi").Fail();
-
-            Funct("let d: Data; let i = 0; d.p = &i; let vi = @(d.p)").Ok();
-            Funct("let d: Data;                      let vi = @(d.p)").Fail();
-
-            Funct("let d: Data; let i = 0; d.i = 0; d.b = true; d.p = &i; let d2 = &d; let d3 = @d2").Ok();
-            Funct("let d: Data; let i = 0; d.i = 0; d.b = true; d.p = &i; let d2 = &d; let j = @d2.i").Ok();
-            Funct("let d: Data; let i = 0; d.i = 0; d.b = true; d.p = &i; let d2 = &d; let j = @d2.b").Ok();
-            Funct("let d: Data; let i = 0; d.i = 0; d.b = true; d.p = &i; let d2 = &d; let j = @d2.p").Ok();
-            Funct("let d: Data; let i = 0; d.i = 0; d.b = true; d.p = &i; let d2 = &d; let j = @(@d2.p)").Ok();
+            Funct("let d: Data; d.i = 0; d.b = true; d.p = &0; let pd = &d; let j = @pd").Ok();
+            Funct("let d: Data; d.i = 0; d.b = true; d.p = &0; let pd = &d; let i = @pd.i").Ok();
+            Funct("let d: Data; d.i = 0; d.b = true; d.p = &0; let pd = &d; let b = @pd.b").Ok();
+            Funct("let d: Data; d.i = 0; d.b = true; d.p = &0; let pd = &d; let p = @pd.p").Ok();
+            Funct("let d: Data; d.i = 0; d.b = true; d.p = &0; let pd = &d; let i = @(@pd.p)").Ok();
 
             Funct("let i: Int; if true { i = 1 } else { i = 0 }; let j = i").Ok();
             Funct("let i: Int; if true { i = 1 } else {       }; let j = i").Fail();
@@ -180,6 +183,8 @@ namespace TraplTest
             Funct("let i: Int; if true { i = 1; let j = i } else { i = 0; let j = i }").Ok();
             Funct("let i: Int; if true { i = 1; let j = i } else {                  }").Ok();
             Funct("let i: Int; if true {                  } else { i = 0; let j = i }").Ok();
+            Funct("let i: Int; if true { i = 1; let j = i } else {        let j = i }").Fail();
+            Funct("let i: Int; if true {        let j = i } else { i = 0; let j = i }").Fail();
         }
     }
 }
