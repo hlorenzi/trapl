@@ -34,10 +34,10 @@
             if (otherPointer == null)
                 return false;
 
-            if (!this.pointedToType.IsConvertibleTo(otherPointer.pointedToType))
+            if (!this.pointedToType.IsSame(otherPointer.pointedToType))
                 return false;
 
-            if (this.mutable && !otherPointer.mutable)
+            if (!this.mutable && otherPointer.mutable)
                 return false;
 
             return true;

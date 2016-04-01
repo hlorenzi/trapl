@@ -45,6 +45,10 @@
                     if (instMoveTuple != null)
                         CheckMoveTupleLiteral(instMoveTuple);
 
+                    var instMoveStruct = (inst as Core.InstructionMoveLiteralStruct);
+                    if (instMoveStruct != null)
+                        CheckMoveStructLiteral(instMoveStruct);
+
                     var instMoveAddr = (inst as Core.InstructionMoveAddr);
                     if (instMoveAddr != null)
                         CheckMoveAddr(instMoveAddr);
@@ -154,7 +158,7 @@
             var destType = Core.TypeStruct.Of(session.PrimitiveBool);
             var srcType = TypeResolver.GetDataAccessType(this.session, this.funct, flow.conditionReg);
 
-            if (!srcType.IsSame(destType) &&
+            if (!srcType.IsConvertibleTo(destType) &&
                 ShouldDiagnose(srcType))
             {
                 this.foundErrors = true;
@@ -215,6 +219,38 @@
             var srcTuple = Core.TypeTuple.Of(tupleElements);
 
             CheckMove(inst.destination, srcTuple, inst.span);
+        }
+
+
+        private void CheckMoveStructLiteral(Core.InstructionMoveLiteralStruct inst)
+        {
+            for (var i = 0; i < inst.fieldSources.Length; i++)
+            {
+                if (!TypeResolver.ValidateDataAccess(this.session, this.funct, inst.fieldSources[i]))
+                {
+                    this.foundErrors = true;
+                    return;
+                }
+
+                var fieldDestType = TypeResolver.GetFieldType(this.session, this.funct, Core.TypeStruct.Of(inst.structIndex), i);
+                var fieldSrcType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.fieldSources[i]);
+
+                if (!fieldSrcType.IsConvertibleTo(fieldDestType) &&
+                    ShouldDiagnose(fieldSrcType))
+                {
+                    this.foundErrors = true;
+                    this.session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.IncompatibleTypes,
+                        "moving '" + fieldSrcType.GetString(this.session) + "' " +
+                        "into '" + fieldDestType.GetString(this.session) + "' field",
+                        inst.fieldSources[i].span,
+                        inst.fieldDestSpans[i]);
+                }
+            }
+
+            var destType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.destination);
+            CheckMove(inst.destination, Core.TypeStruct.Of(inst.structIndex), inst.span);
         }
 
 
@@ -288,7 +324,7 @@
                 var argType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.argumentSources[i]);
                 var paramType = srcFunct.parameterTypes[i];
 
-                if (!paramType.IsSame(argType) &&
+                if (!paramType.IsConvertibleTo(argType) &&
                     ShouldDiagnose(paramType) &&
                     ShouldDiagnose(argType))
                 {

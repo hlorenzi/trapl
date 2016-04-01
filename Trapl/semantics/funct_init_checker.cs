@@ -16,7 +16,7 @@ namespace Trapl.Semantics
                 if (i > 0 && i < funct.parameterNum)
                     statusList.Add(new InitStatus(true));
                 else
-                    statusList.Add(new InitStatus(TypeResolver.GetFieldNum(session, funct, funct.registerTypes[i])));
+                    statusList.Add(new InitStatus(false));
             }
 
             checker.CheckSegment(0, statusList);
@@ -34,94 +34,30 @@ namespace Trapl.Semantics
         private class InitStatus
         {
             public int initCounter;
-            public bool hasFields;
             public bool fullyInitialized;
-            public InitStatus[] fieldStatuses = new InitStatus[0];
-
-
-            private InitStatus()
-            {
-
-            }
 
 
             public InitStatus(bool fullyInitialized)
             {
-                this.hasFields = false;
                 this.fullyInitialized = fullyInitialized;
-            }
-
-
-            public InitStatus(int fieldNum)
-            {
-                if (fieldNum == 0)
-                {
-                    this.hasFields = false;
-                    this.fullyInitialized = false;
-                }
-                else
-                {
-                    this.hasFields = true;
-                    this.fieldStatuses = new InitStatus[fieldNum];
-                    for (var i = 0; i < fieldNum; i++)
-                        this.fieldStatuses[i] = new InitStatus(false);
-                }
             }
 
 
             public InitStatus Clone()
             {
-                var other = new InitStatus
-                {
-                    hasFields = this.hasFields,
-                    fullyInitialized = this.fullyInitialized,
-                    fieldStatuses = new InitStatus[this.fieldStatuses.Length]
-                };
-
-                for (var i = 0; i < this.fieldStatuses.Length; i++)
-                    other.fieldStatuses[i] = this.fieldStatuses[i].Clone();
-
-                return other;
-            }
-
-
-            public void ConvertToFields(int fieldNum)
-            {
-                if (!this.hasFields && fieldNum > 0)
-                {
-                    this.hasFields = true;
-                    this.fieldStatuses = new InitStatus[fieldNum];
-                    for (var i = 0; i < fieldNum; i++)
-                        this.fieldStatuses[i] = new InitStatus(this.fullyInitialized);
-                }
+                return new InitStatus(this.fullyInitialized);
             }
 
 
             public void SetStatus(bool initialized)
             {
-                if (!this.hasFields)
-                    this.fullyInitialized = initialized;
-                else
-                {
-                    foreach (var field in this.fieldStatuses)
-                        field.SetStatus(initialized);
-                }
+                this.fullyInitialized = initialized;
             }
 
 
             public bool IsInitialized()
             {
-                if (!this.hasFields)
-                    return this.fullyInitialized;
-                else
-                {
-                    foreach (var field in this.fieldStatuses)
-                    {
-                        if (!field.IsInitialized())
-                            return false;
-                    }
-                    return true;
-                }
+                return this.fullyInitialized;
             }
 
             
@@ -142,22 +78,19 @@ namespace Trapl.Semantics
 
         private void CheckUnusedMutabilities(List<InitStatus> statusList)
         {
-            if (!this.foundErrors)
+            foreach (var binding in this.funct.localBindings)
             {
-                foreach (var binding in this.funct.localBindings)
-                {
-                    var status = statusList[binding.registerIndex];
-                    var regMutability = this.funct.registerMutabilities[binding.registerIndex];
+                var status = statusList[binding.registerIndex];
+                var regMutability = this.funct.registerMutabilities[binding.registerIndex];
 
-                    if (regMutability && status.initCounter == 1)
-                    {
-                        this.session.AddMessage(
-                            Diagnostics.MessageKind.Warning,
-                            Diagnostics.MessageCode.UnusedMutability,
-                            "'" + binding.name.GetString() + "' does not need to be mutable",
-                            binding.declSpan);
-                        this.foundErrors = true;
-                    }
+                if (regMutability && status.initCounter == 1)
+                {
+                    this.session.AddMessage(
+                        Diagnostics.MessageKind.Warning,
+                        Diagnostics.MessageCode.UnusedMutability,
+                        "'" + binding.name.GetString() + "' does not need to be mutable",
+                        binding.declSpan);
+                    this.foundErrors = true;
                 }
             }
         }
@@ -284,17 +217,7 @@ namespace Trapl.Semantics
             var accessField = access as Core.DataAccessField;
             if (accessField != null)
             {
-                InitStatus baseStatus;
-                Core.Type baseType;
-                GetStatusRecursive(statusList, accessField.baseAccess, out baseStatus, out baseType);
-
-                if (baseStatus == null || !baseStatus.IsInitialized())
-                    return false;
-
-                if (!baseStatus.hasFields)
-                    return false;
-
-                return baseStatus.fieldStatuses[accessField.fieldIndex].IsInitialized();
+                return CheckSourceRecursive(statusList, accessField.baseAccess);
             }
 
             var accessReg = access as Core.DataAccessRegister;
@@ -313,17 +236,31 @@ namespace Trapl.Semantics
         }
 
 
-        private void InitDestination(List<InitStatus> statusList, Core.DataAccess destination)
+        private void CheckAndInitDestination(List<InitStatus> statusList, Core.DataAccess destination)
         {
-            InitStatus baseStatus;
-            Core.Type baseType;
-            InitDestinationRecursive(statusList, destination, out baseStatus, out baseType);
+            CheckAndInitDestinationRecursive(statusList, destination);
+        }
 
-            if (baseStatus != null)
+
+        private void CheckAndInitDestinationRecursive(List<InitStatus> statusList, Core.DataAccess access)
+        {
+            var accessField = access as Core.DataAccessField;
+            if (accessField != null)
             {
-                if (baseStatus.IsInitialized())
+                if (ValidateSource(statusList, accessField.baseAccess))
+                    CheckAndInitDestinationRecursive(statusList, accessField.baseAccess);
+
+                return;
+            }
+
+            var accessReg = access as Core.DataAccessRegister;
+            if (accessReg != null)
+            {
+                var status = statusList[accessReg.registerIndex];
+
+                if (status.IsInitialized())
                 {
-                    var destMut = TypeResolver.GetDataAccessMutability(this.session, this.funct, destination);
+                    var destMut = TypeResolver.GetDataAccessMutability(this.session, this.funct, accessReg);
                     if (!destMut)
                     {
                         this.foundErrors = true;
@@ -331,92 +268,33 @@ namespace Trapl.Semantics
                             Diagnostics.MessageKind.Error,
                             Diagnostics.MessageCode.IncompatibleMutability,
                             "value is not mutable",
-                            destination.span);
+                            accessReg.span);
                     }
                 }
 
-                baseStatus.SetStatus(true);
-                baseStatus.IncrementCounter();
-            }
-        }
-
-
-        private void InitDestinationRecursive(List<InitStatus> statusList, Core.DataAccess access, out InitStatus baseStatus, out Core.Type baseType)
-        {
-            baseStatus = null;
-            baseType = null;
-
-            var accessField = access as Core.DataAccessField;
-            if (accessField != null)
-            {
-                if (!ValidateSource(statusList, accessField.baseAccess))
-                    return;
-
-                GetStatusRecursive(statusList, accessField.baseAccess, out baseStatus, out baseType);
-
-                if (baseStatus == null)
-                    return;
-
-                var fieldNum = TypeResolver.GetFieldNum(session, funct, baseType);
-                baseStatus.ConvertToFields(fieldNum);
-
-                baseStatus = baseStatus.fieldStatuses[accessField.fieldIndex];
-                baseType = TypeResolver.GetFieldType(session, funct, baseType, accessField.fieldIndex);
-                return;
-            }
-
-            var accessReg = access as Core.DataAccessRegister;
-            if (accessReg != null)
-            {
-                baseType = TypeResolver.GetDataAccessType(session, funct, accessReg);
-                baseStatus = statusList[accessReg.registerIndex];
+                status.SetStatus(true);
+                status.IncrementCounter();
                 return;
             }
 
             var accessDeref = access as Core.DataAccessDereference;
             if (accessDeref != null)
             {
-                ValidateSource(statusList, accessDeref.innerAccess);
-                baseStatus = null;
-                return;
-            }
-        }
+                if (ValidateSource(statusList, accessDeref.innerAccess))
+                {
+                    var destType = TypeResolver.GetDataAccessType(this.session, this.funct, accessDeref.innerAccess);
+                    var destPtr = destType as Core.TypePointer;
+                    if (destPtr != null && !destPtr.mutable)
+                    {
+                        this.foundErrors = true;
+                        this.session.AddMessage(
+                            Diagnostics.MessageKind.Error,
+                            Diagnostics.MessageCode.IncompatibleMutability,
+                            "value through pointer is not mutable",
+                            accessDeref.innerAccess.span);
+                    }
+                }
 
-
-        private void GetStatusRecursive(List<InitStatus> statusList, Core.DataAccess access, out InitStatus baseStatus, out Core.Type baseType)
-        {
-            baseStatus = null;
-            baseType = null;
-
-            var accessField = access as Core.DataAccessField;
-            if (accessField != null)
-            {
-                GetStatusRecursive(statusList, accessField.baseAccess, out baseStatus, out baseType);
-
-                if (baseStatus == null)
-                    return;
-
-                var fieldNum = TypeResolver.GetFieldNum(session, funct, baseType);
-                baseStatus.ConvertToFields(fieldNum);
-
-                baseStatus = baseStatus.fieldStatuses[accessField.fieldIndex];
-                baseType = TypeResolver.GetFieldType(session, funct, baseType, accessField.fieldIndex);
-                return;
-            }
-
-            var accessReg = access as Core.DataAccessRegister;
-            if (accessReg != null)
-            {
-                baseType = TypeResolver.GetDataAccessType(session, funct, accessReg);
-                baseStatus = statusList[accessReg.registerIndex];
-                return;
-            }
-
-            var accessDeref = access as Core.DataAccessDereference;
-            if (accessDeref != null)
-            {
-                ValidateSource(statusList, accessDeref.innerAccess);
-                baseStatus = null;
                 return;
             }
         }
@@ -437,19 +315,19 @@ namespace Trapl.Semantics
         private void CheckMoveData(List<InitStatus> statusList, Core.InstructionMoveData inst)
         {
             ValidateSource(statusList, inst.source);
-            InitDestination(statusList, inst.destination);
+            CheckAndInitDestination(statusList, inst.destination);
         }
 
 
         private void CheckMoveBoolLiteral(List<InitStatus> statusList, Core.InstructionMoveLiteralBool inst)
         {
-            InitDestination(statusList, inst.destination);
+            CheckAndInitDestination(statusList, inst.destination);
         }
 
 
         private void CheckMoveIntLiteral(List<InitStatus> statusList, Core.InstructionMoveLiteralInt inst)
         {
-            InitDestination(statusList, inst.destination);
+            CheckAndInitDestination(statusList, inst.destination);
         }
 
 
@@ -458,7 +336,7 @@ namespace Trapl.Semantics
             for (var i = 0; i < inst.sourceElements.Length; i++)
                 ValidateSource(statusList, inst.sourceElements[i]);
 
-            InitDestination(statusList, inst.destination);
+            CheckAndInitDestination(statusList, inst.destination);
         }
 
 
@@ -467,20 +345,20 @@ namespace Trapl.Semantics
             for (var i = 0; i < inst.fieldSources.Length; i++)
                 ValidateSource(statusList, inst.fieldSources[i]);
 
-            InitDestination(statusList, inst.destination);
+            CheckAndInitDestination(statusList, inst.destination);
         }
 
 
         private void CheckMoveAddr(List<InitStatus> statusList, Core.InstructionMoveAddr inst)
         {
             ValidateSource(statusList, inst.source);
-            InitDestination(statusList, inst.destination);
+            CheckAndInitDestination(statusList, inst.destination);
         }
 
 
         private void CheckMoveFunctLiteral(List<InitStatus> statusList, Core.InstructionMoveLiteralFunct inst)
         {
-            InitDestination(statusList, inst.destination);
+            CheckAndInitDestination(statusList, inst.destination);
         }
 
 
@@ -491,7 +369,7 @@ namespace Trapl.Semantics
             for (var i = 0; i < inst.argumentSources.Length; i++)
                 ValidateSource(statusList, inst.argumentSources[i]);
 
-            InitDestination(statusList, inst.destination);
+            CheckAndInitDestination(statusList, inst.destination);
         }
     }
 }

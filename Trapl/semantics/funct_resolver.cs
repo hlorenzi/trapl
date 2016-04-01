@@ -337,7 +337,7 @@ namespace Trapl.Semantics
 
             var typeStruct = type as Core.TypeStruct;
             var fieldNum = TypeResolver.GetFieldNum(this.session, this.funct, typeStruct);
-            var initFields = new Dictionary<int, Diagnostics.Span>();
+            var fieldDestSpans = new Diagnostics.Span?[fieldNum];
 
             var fieldRegs = new int[fieldNum];
             for (var i = 0; i < fieldNum; i++)
@@ -370,7 +370,7 @@ namespace Trapl.Semantics
                     continue;
                 }
 
-                if (initFields.ContainsKey(fieldIndex))
+                if (fieldDestSpans[fieldIndex].HasValue)
                 {
                     this.foundErrors = true;
                     session.AddMessage(
@@ -378,18 +378,19 @@ namespace Trapl.Semantics
                         Diagnostics.MessageCode.Unknown,
                         "duplicate field '" + name.GetString() + "' initialization",
                         fieldInit.name.GetSpan(),
-                        initFields[fieldIndex]);
+                        fieldDestSpans[fieldIndex].Value);
                     continue;
                 }
 
-                initFields.Add(fieldIndex, fieldInit.name.GetSpan());
+                fieldRegAccesses[fieldIndex].span = fieldInit.name.GetSpan();
+                fieldDestSpans[fieldIndex] = fieldInit.name.GetSpan();
                 this.ResolveExpr(fieldInit.expr, ref curSegment, fieldRegAccesses[fieldIndex]);
             }
 
             var missingFields = new List<int>();
             for (var i = 0; i < fieldNum; i++)
             {
-                if (!initFields.ContainsKey(i))
+                if (!fieldDestSpans[i].HasValue)
                     missingFields.Add(i);
             }
 
@@ -409,9 +410,15 @@ namespace Trapl.Semantics
             }
             else
             {
+                var finalFieldDestSpans = new Diagnostics.Span[fieldNum];
+                for (var i = 0; i < fieldNum; i++)
+                {
+                    finalFieldDestSpans[i] = fieldDestSpans[i].Value;
+                }
+
                 funct.AddInstruction(curSegment, Core.InstructionMoveLiteralStruct.Of(
                     exprLiteralStruct.GetSpan(), output,
-                    typeStruct.structIndex, fieldRegAccesses));
+                    typeStruct.structIndex, fieldRegAccesses, finalFieldDestSpans));
             }
         }
 

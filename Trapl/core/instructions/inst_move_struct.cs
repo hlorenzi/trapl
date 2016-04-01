@@ -6,12 +6,22 @@ namespace Trapl.Core
     public class InstructionMoveLiteralStruct : InstructionMove
     {
         public DataAccess[] fieldSources = new DataAccess[0];
+        public Diagnostics.Span[] fieldDestSpans = new Diagnostics.Span[0];
         public int structIndex;
 
 
-        public static InstructionMoveLiteralStruct Of(Diagnostics.Span span, DataAccess destination, int structIndex, DataAccess[] fields)
+        public static InstructionMoveLiteralStruct Of(
+            Diagnostics.Span span, DataAccess destination, int structIndex,
+            DataAccess[] fieldSources, Diagnostics.Span[] fieldDestSpans)
         {
-            return new InstructionMoveLiteralStruct { span = span, destination = destination, structIndex = structIndex, fieldSources = fields };
+            return new InstructionMoveLiteralStruct
+            {
+                span = span,
+                destination = destination,
+                structIndex = structIndex,
+                fieldSources = fieldSources,
+                fieldDestSpans = fieldDestSpans
+            };
         }
 
 

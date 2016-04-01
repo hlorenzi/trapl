@@ -21,11 +21,10 @@ t: fn() -> ()
 
 test: fn() -> ()
 {
-	let mut p = Point { x: 0, y: @get_ptr(), z: get_ptr() };
-
-	let p: Point;
+	let p = Point { x: 0, y: @get_ptr(), z: get_ptr() };
 	p.x = 0;
 	p.y = 1;
+	@(p.z) = 2;
 
 	let p: *Int = *0;
 
