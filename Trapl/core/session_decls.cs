@@ -290,6 +290,8 @@ namespace Trapl.Core
 
                 Console.Out.Write("#r" + i);
                 Console.Out.Write(" ");
+                if (decl.registerMutabilities[i])
+                    Console.Out.Write("mut ");
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.Out.Write(decl.registerTypes[i].GetString(this));
                 Console.ResetColor();

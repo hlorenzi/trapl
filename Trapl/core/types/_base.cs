@@ -8,6 +8,12 @@
         }
 
 
+        public virtual bool IsConvertibleTo(Core.Type other)
+        {
+            return IsSame(other);
+        }
+
+
         public virtual bool IsResolved()
         {
             return false;

@@ -105,7 +105,7 @@ namespace Trapl.Semantics
             // Parse condition.
             var conditionReg = Core.DataAccessRegister.ForRegister(
                 exprIf.conditionExpr.GetSpan(),
-                funct.CreateRegister(new Core.TypePlaceholder()));
+                funct.CreateRegister(new Core.TypePlaceholder(), false));
 
             this.ResolveExpr(
                 exprIf.conditionExpr,
@@ -148,7 +148,7 @@ namespace Trapl.Semantics
         private void ResolveExprLet(Grammar.ASTNodeExprLet exprLet, ref int curSegment, Core.DataAccess output)
         {
             // Create a new storage location and name binding.
-            var registerIndex = funct.CreateRegister(new Core.TypePlaceholder());
+            var registerIndex = funct.CreateRegister(new Core.TypePlaceholder(), exprLet.mutable);
 
             funct.CreateBinding(
                 NameResolver.Resolve(((Grammar.ASTNodeExprNameConcrete)exprLet.name).name),
@@ -209,7 +209,7 @@ namespace Trapl.Semantics
             // Parse called expression.
             var callTargetReg = Core.DataAccessRegister.ForRegister(
                 exprCall.calledExpr.GetSpan(),
-                funct.CreateRegister(new Core.TypePlaceholder()));
+                funct.CreateRegister(new Core.TypePlaceholder(), false));
 
             ResolveExpr(exprCall.calledExpr, ref curSegment, callTargetReg);
 
@@ -220,7 +220,7 @@ namespace Trapl.Semantics
             {
                 argumentRegs[i] = Core.DataAccessRegister.ForRegister(
                     exprCall.argumentExprs[i].GetSpan(),
-                    funct.CreateRegister(new Core.TypePlaceholder()));
+                    funct.CreateRegister(new Core.TypePlaceholder(), false));
 
                 ResolveExpr(exprCall.argumentExprs[i], ref curSegment, argumentRegs[i]);
             }
@@ -233,8 +233,11 @@ namespace Trapl.Semantics
 
         private void ResolveExprUnaryOp(Grammar.ASTNodeExprUnaryOp exprUnOp, ref int curSegment, Core.DataAccess output)
         {
-            if (exprUnOp.oper == Grammar.ASTNodeExprUnaryOp.Operator.Ampersand)
+            if (exprUnOp.oper == Grammar.ASTNodeExprUnaryOp.Operator.Asterisk ||
+                exprUnOp.oper == Grammar.ASTNodeExprUnaryOp.Operator.AsteriskMut)
             {
+                var mutable = (exprUnOp.oper == Grammar.ASTNodeExprUnaryOp.Operator.AsteriskMut);
+
                 // Parse addressed expression.
                 var access = ResolveDataAccess(exprUnOp.operand, ref curSegment, true);
                 if (access == null)
@@ -243,7 +246,7 @@ namespace Trapl.Semantics
                 // Store pointer.
                 funct.AddInstruction(
                     curSegment,
-                    Core.InstructionMoveAddr.Of(exprUnOp.GetSpan(), output, access));
+                    Core.InstructionMoveAddr.Of(exprUnOp.GetSpan(), output, access, mutable));
 
                 return;
             }
@@ -333,8 +336,22 @@ namespace Trapl.Semantics
                 return;
 
             var typeStruct = type as Core.TypeStruct;
-            var reg = funct.CreateRegister(type);
+            var fieldNum = TypeResolver.GetFieldNum(this.session, this.funct, typeStruct);
             var initFields = new Dictionary<int, Diagnostics.Span>();
+
+            var fieldRegs = new int[fieldNum];
+            for (var i = 0; i < fieldNum; i++)
+            {
+                fieldRegs[i] = funct.CreateRegister(
+                    TypeResolver.GetFieldType(this.session, this.funct, typeStruct, i), false);
+            }
+
+            var fieldRegAccesses = new Core.DataAccess[fieldNum];
+            for (var i = 0; i < fieldNum; i++)
+            {
+                fieldRegAccesses[i] =
+                    Core.DataAccessRegister.ForRegister(exprLiteralStruct.name.GetSpan(), fieldRegs[i]);
+            }
 
             foreach (var fieldInit in exprLiteralStruct.fields)
             {
@@ -366,21 +383,11 @@ namespace Trapl.Semantics
                 }
 
                 initFields.Add(fieldIndex, fieldInit.name.GetSpan());
-
-                var accessField = Core.DataAccessField.Of(
-                    fieldInit.name.GetSpan(),
-                    Core.DataAccessRegister.ForRegister(exprLiteralStruct.name.GetSpan(), reg),
-                    fieldIndex);
-
-                this.ResolveExpr(fieldInit.expr, ref curSegment, accessField);
+                this.ResolveExpr(fieldInit.expr, ref curSegment, fieldRegAccesses[fieldIndex]);
             }
 
-            funct.AddInstruction(curSegment, Core.InstructionMoveData.Of(
-                exprLiteralStruct.GetSpan(), output,
-                Core.DataAccessRegister.ForRegister(exprLiteralStruct.name.GetSpan(), reg)));
-
             var missingFields = new List<int>();
-            for (var i = 0; i < session.GetStruct(typeStruct.structIndex).fieldTypes.Count; i++)
+            for (var i = 0; i < fieldNum; i++)
             {
                 if (!initFields.ContainsKey(i))
                     missingFields.Add(i);
@@ -399,6 +406,12 @@ namespace Trapl.Semantics
                     " for field '" + fieldName.GetString() + "'" +
                     (missingFields.Count > 1 ? " and other " + (missingFields.Count - 1) : ""),
                     exprLiteralStruct.GetSpan());
+            }
+            else
+            {
+                funct.AddInstruction(curSegment, Core.InstructionMoveLiteralStruct.Of(
+                    exprLiteralStruct.GetSpan(), output,
+                    typeStruct.structIndex, fieldRegAccesses));
             }
         }
 
@@ -591,7 +604,7 @@ namespace Trapl.Semantics
             if (allowInnerExpr)
             {
                 // Generate a new register for inner expression.
-                var registerIndex = this.funct.CreateRegister(new Core.TypePlaceholder());
+                var registerIndex = this.funct.CreateRegister(new Core.TypePlaceholder(), false);
                 var access = Core.DataAccessRegister.ForRegister(expr.GetSpan(), registerIndex);
                 ResolveExpr(expr, ref curSegment, access);
 

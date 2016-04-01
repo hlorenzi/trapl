@@ -22,13 +22,14 @@
                 var funct = session.GetFunct(binding.declIndex);
 
                 funct.CreateRegister(
-                    TypeResolver.Resolve(session, binding.declNode.returnType, binding.useDirectives, true));
+                    TypeResolver.Resolve(session, binding.declNode.returnType, binding.useDirectives, true),
+                    true);
 
                 foreach (var paramNode in binding.declNode.parameters)
                 {
                     var paramName = NameResolver.Resolve(paramNode.name);
                     var paramType = TypeResolver.Resolve(session, paramNode.type, binding.useDirectives, true);
-                    var paramReg = funct.CreateRegister(paramType);
+                    var paramReg = funct.CreateRegister(paramType, false);
                     funct.CreateBinding(paramName, paramReg, paramNode.name.GetSpan());
                 }
 
@@ -48,8 +49,6 @@
                     binding.declNode.GetSpan());
 
                 var funct = session.GetFunct(binding.declIndex);
-
-                binding.declNode.PrintDebugRecursive("");
 
                 var foundErrors = FunctBodyResolver.Resolve(
                     this.session, funct, binding.useDirectives, binding.declNode.bodyExpression);

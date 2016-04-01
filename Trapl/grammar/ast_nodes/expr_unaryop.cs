@@ -7,7 +7,7 @@ namespace Trapl.Grammar
     {
         public enum Operator
         {
-            Minus, Exclamation, Ampersand, At
+            Minus, Exclamation, Ampersand, Asterisk, AsteriskMut, At
         }
 
 
@@ -43,6 +43,8 @@ namespace Trapl.Grammar
                 case Operator.Minus: { op = "-"; break; }
                 case Operator.Exclamation: { op = "!"; break; }
                 case Operator.Ampersand: { op = "&"; break; }
+                case Operator.Asterisk: { op = "*"; break; }
+                case Operator.AsteriskMut: { op = "*mut "; break; }
                 case Operator.At: { op = "@"; break; }
             }
 

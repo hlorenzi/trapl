@@ -14,6 +14,7 @@ namespace Trapl.Core
 
 
         public List<Type> registerTypes = new List<Type>();
+        public List<bool> registerMutabilities = new List<bool>();
         public int parameterNum;
         public List<LocalBinding> localBindings = new List<LocalBinding>();
         public List<InstructionSegment> segments = new List<InstructionSegment>();
@@ -38,9 +39,10 @@ namespace Trapl.Core
         }
 
 
-        public int CreateRegister(Core.Type type)
+        public int CreateRegister(Core.Type type, bool mutable)
         {
             this.registerTypes.Add(type);
+            this.registerMutabilities.Add(mutable);
             return this.registerTypes.Count - 1;
         }
 

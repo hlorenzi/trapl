@@ -5,9 +5,16 @@ namespace Trapl.Grammar
 {
     public class ASTNodeExprLet : ASTNodeExpr
     {
+        public bool mutable;
         public ASTNodeExprName name;
         public ASTNodeType type;
         public ASTNodeExpr initExpr;
+
+
+        public void SetMutability(bool mutable)
+        {
+            this.mutable = mutable;
+        }
 
 
         public void SetDeclarationNode(ASTNodeExprName name)

@@ -51,6 +51,7 @@
     <Compile Include="core\instructions\inst_move_data.cs" />
     <Compile Include="core\instructions\inst_move_funct.cs" />
     <Compile Include="core\instructions\inst_move_int.cs" />
+    <Compile Include="core\instructions\inst_move_struct.cs" />
     <Compile Include="core\instructions\inst_move_tuple.cs" />
     <Compile Include="core\instructions\segment_flow.cs" />
     <Compile Include="core\instructions\inst_move.cs" />
@@ -91,7 +92,7 @@
     <Compile Include="grammar\ast_nodes\name.cs" />
     <Compile Include="grammar\ast_nodes\decl_group.cs" />
     <Compile Include="grammar\ast_nodes\type.cs" />
-    <Compile Include="grammar\ast_nodes\type_reference.cs" />
+    <Compile Include="grammar\ast_nodes\type_pointer.cs" />
     <Compile Include="grammar\ast_nodes\type_struct.cs" />
     <Compile Include="grammar\ast_nodes\type_tuple.cs" />
     <Compile Include="semantics\funct.cs" />

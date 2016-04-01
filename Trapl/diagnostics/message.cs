@@ -33,7 +33,9 @@ namespace Trapl.Diagnostics
         EarlyInferenceFailed,
         InferenceFailed,
         UninitializedUse,
-        CannotDereferenceType
+        CannotDereferenceType,
+        UnusedMutability,
+        IncompatibleMutability
     }
 
 

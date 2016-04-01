@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 
 namespace TraplTest
@@ -28,6 +27,8 @@ namespace TraplTest
             resolver.ResolveStructFields();
             resolver.ResolveFunctHeaders();
             resolver.ResolveFunctBodies();
+
+            session.PrintMessagesToConsole();
 
             return session;
         }

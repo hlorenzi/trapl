@@ -22,9 +22,11 @@ namespace Trapl.Core
             Console.ResetColor();
             Console.Write(this.destination.GetString());
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write(" <- ");
+            Console.Write(" <- fn[");
             Console.ResetColor();
-            Console.WriteLine("fn[" + this.functIndex + "]");
+            Console.Write(this.functIndex);
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("]");
             Console.ResetColor();
         }
     }

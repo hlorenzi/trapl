@@ -2,20 +2,39 @@ Point: struct
 {
 	x: Int,
 	y: Int,
-	z: &Int
+	z: *mut Int
 }
 
 
-get_ptr: fn() -> &Int
+get_ptr: fn() -> *Int
 {
 	let x = 0;
-	return &x;
+	return *x;
+}
+
+
+t: fn() -> ()
+{
+	let d = Point { x: 0, y: 0, z: *0 }; let pd = *d; let i = @pd.x
 }
 
 
 test: fn() -> ()
 {
-	let p = Point { x: 0, y: @get_ptr(), z: get_ptr() };
+	let mut p = Point { x: 0, y: @get_ptr(), z: get_ptr() };
 
-	let p: &Int = &0;
+	let p: Point;
+	p.x = 0;
+	p.y = 1;
+
+	let p: *Int = *0;
+
+	let x = 0;
+	x = 1;
+
+	let mut y = 0;
+	y = 1;
+
+	let mut z;
+	z = 1;
 }

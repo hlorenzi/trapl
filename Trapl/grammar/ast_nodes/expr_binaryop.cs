@@ -53,6 +53,7 @@ namespace Trapl.Grammar
             switch (this.oper)
             {
                 case Operator.Equal: { op = "="; break; }
+                case Operator.Dot: { op = "."; break; }
                 case Operator.Plus: { op = "+"; break; }
                 case Operator.Minus: { op = "-"; break; }
                 case Operator.Asterisk: { op = "*"; break; }

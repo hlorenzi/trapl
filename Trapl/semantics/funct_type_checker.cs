@@ -112,7 +112,7 @@
             if (destType == null)
                 return;
 
-            if (!srcType.IsSame(destType) &&
+            if (!srcType.IsConvertibleTo(destType) &&
                 ShouldDiagnose(srcType) &&
                 ShouldDiagnose(destType))
             {
@@ -228,7 +228,7 @@
 
             var destType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.destination);
             var srcType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.source);
-            var srcPtr = Core.TypePointer.Of(true, srcType);
+            var srcPtr = Core.TypePointer.Of(inst.mutable, srcType);
 
             CheckMove(inst.destination, srcPtr, inst.span);
         }

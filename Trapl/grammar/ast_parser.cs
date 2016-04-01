@@ -351,16 +351,19 @@ namespace Trapl.Grammar
 
         public ASTNodeType ParseType()
         {
-            // Parse a reference type.
-            if (this.CurrentIs(TokenKind.Ampersand))
+            // Parse a pointer type.
+            if (this.CurrentIs(TokenKind.Asterisk))
             {
-                var refTypeNode = new ASTNodeTypeReference();
-                refTypeNode.SetSpan(this.Current().span);
+                var ptrTypeNode = new ASTNodeTypePointer();
+                ptrTypeNode.SetSpan(this.Current().span);
                 this.Advance();
-                if (this.CurrentIs(TokenKind.SingleQuote))
-                    refTypeNode.SetLifetimeNode(this.ParseLifetime());
-                refTypeNode.SetReferencedNode(this.ParseType());
-                return refTypeNode;
+                if (this.CurrentIs(TokenKind.KeywordMut))
+                {
+                    ptrTypeNode.SetMutability(true);
+                    this.Advance();
+                }
+                ptrTypeNode.SetReferencedNode(this.ParseType());
+                return ptrTypeNode;
             }
             // Parse a tuple type.
             else if (this.CurrentIs(TokenKind.ParenOpen))
@@ -443,6 +446,12 @@ namespace Trapl.Grammar
             var letNode = new ASTNodeExprLet();
             letNode.SetSpan(this.Current().span);
             this.Match(TokenKind.KeywordLet, "expected 'let'");
+
+            if (this.CurrentIs(TokenKind.KeywordMut))
+            {
+                letNode.SetMutability(true);
+                this.Advance();
+            }
 
             if (this.CurrentIs(TokenKind.Identifier) || this.CurrentIs(TokenKind.Placeholder))
                 letNode.SetDeclarationNode(this.ParseExprName());
@@ -561,7 +570,8 @@ namespace Trapl.Grammar
                 new OperatorModel(OperatorModel.Associativity.Unary, TokenKind.ExclamationMark)
             },
             new List<OperatorModel> {
-                new OperatorModel(OperatorModel.Associativity.Unary, TokenKind.Ampersand)
+                new OperatorModel(OperatorModel.Associativity.Unary, TokenKind.Ampersand),
+                new OperatorModel(OperatorModel.Associativity.Unary, TokenKind.Asterisk)
             },
             new List<OperatorModel> {
                 new OperatorModel(OperatorModel.Associativity.Left, TokenKind.Period)
@@ -578,6 +588,7 @@ namespace Trapl.Grammar
                 { TokenKind.Minus, ASTNodeExprUnaryOp.Operator.Minus },
                 { TokenKind.ExclamationMark, ASTNodeExprUnaryOp.Operator.Exclamation },
                 { TokenKind.At, ASTNodeExprUnaryOp.Operator.At },
+                { TokenKind.Asterisk, ASTNodeExprUnaryOp.Operator.Asterisk },
                 { TokenKind.Ampersand, ASTNodeExprUnaryOp.Operator.Ampersand },
             };
 
@@ -613,8 +624,18 @@ namespace Trapl.Grammar
                 // Prepare the unary node.
                 var unaryOpNode = new ASTNodeExprUnaryOp();
                 unaryOpNode.SetSpan(this.Current().span);
-                unaryOpNode.SetOperator(unaryOperators[this.Current().kind]);
+
+                var op = unaryOperators[this.Current().kind];
                 this.Advance();
+
+                if (op == ASTNodeExprUnaryOp.Operator.Asterisk &&
+                    this.CurrentIs(TokenKind.KeywordMut))
+                {
+                    op = ASTNodeExprUnaryOp.Operator.AsteriskMut;
+                    this.Advance();
+                }
+
+                unaryOpNode.SetOperator(op);
 
                 // Parse the unary operand.
                 unaryOpNode.SetOperandNode(this.ParseBinaryOp(level));

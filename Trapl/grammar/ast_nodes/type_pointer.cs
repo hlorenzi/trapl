@@ -3,10 +3,10 @@
 
 namespace Trapl.Grammar
 {
-    public class ASTNodeTypeReference : ASTNodeType
+    public class ASTNodeTypePointer : ASTNodeType
     {
+        public bool mutable;
         public ASTNodeType referenced;
-        public ASTNodeLifetime lifetime;
 
 
         public void SetReferencedNode(ASTNodeType referenced)
@@ -17,19 +17,14 @@ namespace Trapl.Grammar
         }
 
 
-        public void SetLifetimeNode(ASTNodeLifetime lifetime)
+        public void SetMutability(bool mutable)
         {
-            lifetime.SetParent(this);
-            this.AddSpan(lifetime.GetSpan());
-            this.lifetime = lifetime;
+            this.mutable = mutable;
         }
 
 
         public override IEnumerable<ASTNode> EnumerateChildren()
         {
-            if (this.lifetime != null)
-                yield return this.lifetime;
-
             yield return this.referenced;
         }
     }

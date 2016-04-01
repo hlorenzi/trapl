@@ -43,10 +43,11 @@ namespace Trapl.Semantics
                 return Core.TypeTuple.Of(elementTypes);
             }
 
-            var typeRefNode = typeNode as Grammar.ASTNodeTypeReference;
-            if (typeRefNode != null)
+            var typeRefNode = typeNode as Grammar.ASTNodeTypePointer;
+            if (typeRefNode != null) 
             {
-                return Core.TypePointer.MutableOf(
+                return Core.TypePointer.Of(
+                    typeRefNode.mutable,
                     Resolve(session, typeRefNode.referenced, useDirectives, mustBeResolved));
             }
 
@@ -188,6 +189,41 @@ namespace Trapl.Semantics
                 return baseTuple.elementTypes[fieldIndex];
 
             return new Core.TypeError();
+        }
+
+
+        public static bool GetDataAccessMutability(
+            Core.Session session,
+            Core.DeclFunct funct,
+            Core.DataAccess access)
+        {
+            var regAccess = access as Core.DataAccessRegister;
+            if (regAccess != null)
+            {
+                return funct.registerMutabilities[regAccess.registerIndex];
+            }
+
+            var regField = access as Core.DataAccessField;
+            if (regField != null)
+            {
+                return GetDataAccessMutability(session, funct, regField.baseAccess);
+            }
+
+            var regDeref = access as Core.DataAccessDereference;
+            if (regDeref != null)
+            {
+                var innerType = GetDataAccessType(session, funct, regDeref.innerAccess);
+                var innerPtr = innerType as Core.TypePointer;
+                if (innerPtr == null)
+                    return false;
+
+                if (!innerPtr.mutable)
+                    return false;
+
+                return true;
+            }
+
+            return false;
         }
     }
 }

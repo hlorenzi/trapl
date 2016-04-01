@@ -46,6 +46,10 @@
                         if (instMoveLitTuple != null)
                             ApplyRuleForMoveTupleLiteral(ref appliedSomeRule, instMoveLitTuple);
 
+                        var instMoveLitStruct = (inst as Core.InstructionMoveLiteralStruct);
+                        if (instMoveLitStruct != null)
+                            ApplyRuleForMoveStructLiteral(ref appliedSomeRule, instMoveLitStruct);
+
                         var instMoveFunct = (inst as Core.InstructionMoveLiteralFunct);
                         if (instMoveFunct != null)
                             ApplyRuleForMoveFunctLiteral(ref appliedSomeRule, instMoveFunct);
@@ -160,11 +164,26 @@
         }
 
 
+        private void ApplyRuleForMoveStructLiteral(ref bool appliedRule, Core.InstructionMoveLiteralStruct inst)
+        {
+            var destType = TypeResolver.GetDataAccessType(session, funct, inst.destination);
+
+            var srcStruct = Core.TypeStruct.Of(inst.structIndex);
+            var srcType = (Core.Type)srcStruct;
+
+            var inferredDest = TypeInferencer.Try(session, srcType, ref destType);
+
+            if (inferredDest)
+                appliedRule = ApplyToDataAccess(inst.destination, destType);
+        }
+
+
         private void ApplyRuleForMoveAddr(ref bool appliedRule, Core.InstructionMoveAddr inst)
         {
             var destType = TypeResolver.GetDataAccessType(session, funct, inst.destination);
 
-            var srcPtr = Core.TypePointer.MutableOf(
+            var srcPtr = Core.TypePointer.Of(
+                inst.mutable,
                 TypeResolver.GetDataAccessType(session, funct, inst.source));
 
             var srcType = (Core.Type)srcPtr;

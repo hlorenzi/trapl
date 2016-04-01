@@ -15,24 +15,6 @@
         }
 
 
-        public static TypePointer ImmutableOf(Type pointedToType)
-        {
-            var ptr = new TypePointer();
-            ptr.mutable = false;
-            ptr.pointedToType = pointedToType;
-            return ptr;
-        }
-
-
-        public static TypePointer MutableOf(Type pointedToType)
-        {
-            var ptr = new TypePointer();
-            ptr.mutable = true;
-            ptr.pointedToType = pointedToType;
-            return ptr;
-        }
-
-
         public override bool IsSame(Type other)
         {
             var otherPointer = other as Core.TypePointer;
@@ -43,6 +25,22 @@
                 return false;
 
             return this.pointedToType.IsSame(otherPointer.pointedToType);
+        }
+
+
+        public override bool IsConvertibleTo(Core.Type other)
+        {
+            var otherPointer = other as Core.TypePointer;
+            if (otherPointer == null)
+                return false;
+
+            if (!this.pointedToType.IsConvertibleTo(otherPointer.pointedToType))
+                return false;
+
+            if (this.mutable && !otherPointer.mutable)
+                return false;
+
+            return true;
         }
 
 
