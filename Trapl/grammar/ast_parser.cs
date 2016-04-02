@@ -164,7 +164,7 @@ namespace Trapl.Grammar
             // Parse namespaces, functs, and structs.
             while (!this.IsOver() && !this.CurrentIs(TokenKind.BraceClose))
             {
-                var declName = this.ParseName(false, false);
+                /*var declName = this.ParseName(false, false);
                 if (this.CurrentIs(TokenKind.DoubleColon) && this.NextIs(TokenKind.BraceOpen))
                 {
                     this.Advance();
@@ -178,26 +178,22 @@ namespace Trapl.Grammar
                     declGroupNode.AddNamespaceDeclNode(namespaceNode);
                 }
                 else
-                {
-                    this.Match(TokenKind.Colon, "expected ':'");
-
+                {*/
                     if (this.CurrentIs(TokenKind.KeywordFn))
                     {
                         var fnNode = this.ParseDeclFunct(true);
-                        fnNode.SetNameNode(declName);
                         declGroupNode.AddFunctDeclNode(fnNode);
                     }
 
                     else if (this.CurrentIs(TokenKind.KeywordStruct))
                     {
                         var stNode = this.ParseDeclStruct();
-                        stNode.SetNameNode(declName);
                         declGroupNode.AddStructDeclNode(stNode);
                     }
 
                     else
                         throw this.FatalBefore(MessageCode.Expected, "expected 'struct' or 'fn'");
-                }
+                //}
             }
 
             declGroupNode.AddSpan(this.Current().span);
@@ -240,6 +236,7 @@ namespace Trapl.Grammar
             structNode.SetSpan(this.Current().span);
 
             this.Match(TokenKind.KeywordStruct, "expected 'struct'");
+            structNode.SetNameNode(this.ParseName(false, false));
             this.Match(TokenKind.BraceOpen, "expected '{'");
 
             // Parse use directives.
@@ -278,6 +275,7 @@ namespace Trapl.Grammar
             functNode.SetSpan(this.Current().span);
 
             this.Match(TokenKind.KeywordFn, "expected 'fn'");
+            functNode.SetNameNode(this.ParseName(false, false));
 
             // Parse parameter list.
             this.Match(TokenKind.ParenOpen, "expected '('");

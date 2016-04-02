@@ -17,11 +17,33 @@ namespace TraplTest
     public class TestFunct
     {
         [TestMethod]
+        public void TestFunctLocalScoping()
+        {
+            System.Func<string, Trapl.Core.Session> Funct = (src) =>
+            {
+                return Util.Compile("fn test() -> () { " + src + " }");
+            };
+
+            Funct("").Ok();
+
+            Funct("let i = 0").Ok();
+            Funct("let i = 0; let j = i").Ok();
+            Funct("           let j = i").Fail();
+
+            Funct("let i = 0; let i = 1").Ok();
+            Funct("let i = 0; let i = 1; let j = i").Ok();
+
+            Funct("let i = 0; { let i = 1 }; let j = i").Ok();
+            Funct("           { let i = 1 }; let j = i").Fail();
+        }
+
+
+        [TestMethod]
         public void TestFunctTypes()
         {
             System.Func<string, Trapl.Core.Session> Funct = (src) =>
             {
-                return Util.Compile("test: fn() -> () { " + src + " }");
+                return Util.Compile("fn test() -> () { " + src + " }");
             };
 
             Funct("").Ok();
@@ -47,7 +69,7 @@ namespace TraplTest
         {
             System.Func<string, Trapl.Core.Session> Funct = (src) =>
             {
-                return Util.Compile("test: fn() -> () { " + src + " }");
+                return Util.Compile("fn test() -> () { " + src + " }");
             };
 
             Funct("").Ok();
@@ -78,8 +100,8 @@ namespace TraplTest
             System.Func<string, Trapl.Core.Session> Funct = (src) =>
             {
                 return Util.Compile(
-                    "Data: struct { i: Int, b: Bool, p: *Int }" +
-                    "test: fn() -> () { " + src + " }");
+                    "struct Data { i: Int, b: Bool, p: *Int }" +
+                    "fn test() -> () { " + src + " }");
             };
 
             Funct("").Ok();
@@ -105,12 +127,12 @@ namespace TraplTest
         {
             System.Func<string, Trapl.Core.Session> VoidFunct = (src) =>
             {
-                return Util.Compile("test: fn() -> () { " + src + " }");
+                return Util.Compile("fn test() -> () { " + src + " }");
             };
 
             System.Func<string, Trapl.Core.Session> IntFunct = (src) =>
             {
-                return Util.Compile("test: fn() -> Int { " + src + " }");
+                return Util.Compile("fn test() -> Int { " + src + " }");
             };
 
             VoidFunct("").Ok();
@@ -130,8 +152,8 @@ namespace TraplTest
             System.Func<string, Trapl.Core.Session> Funct = (src) =>
             {
                 return Util.Compile(
-                    "Data: struct { i: Int, b: Bool, p: *Int }" +
-                    "test: fn() -> () { " + src + " }");
+                    "struct Data { i: Int, b: Bool, p: *Int }" +
+                    "fn test() -> () { " + src + " }");
             };
 
             Funct("").Ok();
@@ -196,10 +218,10 @@ namespace TraplTest
             System.Func<string, Trapl.Core.Session> Funct = (src) =>
             {
                 return Util.Compile(
-                    "Data: struct { i: Int, b: Bool, p: *Int }" +
-                    "Ptr: struct { p: *Int }" +
-                    "PtrMut: struct { p: *mut Int }" +
-                    "test: fn() -> () { " + src + " }");
+                    "struct Data { i: Int, b: Bool, p: *Int }" +
+                    "struct Ptr { p: *Int }" +
+                    "struct PtrMut { p: *mut Int }" +
+                    "fn test() -> () { " + src + " }");
             };
 
             Funct("").Ok();
@@ -239,7 +261,6 @@ namespace TraplTest
             Funct("let mut p = PtrMut { p: *mut 0 }; @(p.p) = 1").Ok();
             Funct("let     p = Ptr    { p: *    0 }; @(p.p) = 1").Fail();
             Funct("let mut p = Ptr    { p: *    0 }; @(p.p) = 1").Fail();
-
         }
     }
 }

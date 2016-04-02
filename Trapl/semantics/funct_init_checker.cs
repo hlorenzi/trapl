@@ -10,14 +10,8 @@ namespace Trapl.Semantics
             var checker = new FunctInitChecker(session, funct);
 
             var statusList = new List<InitStatus>();
-
             for (var i = 0; i < funct.registerTypes.Count; i++)
-            {
-                if (i > 0 && i < funct.parameterNum)
-                    statusList.Add(new InitStatus(true));
-                else
-                    statusList.Add(new InitStatus(false));
-            }
+                statusList.Add(new InitStatus(i > 0 && i < funct.parameterNum));
 
             checker.CheckSegment(0, statusList);
             checker.CheckUnusedMutabilities(statusList);
@@ -78,7 +72,8 @@ namespace Trapl.Semantics
 
         private void CheckUnusedMutabilities(List<InitStatus> statusList)
         {
-            foreach (var binding in this.funct.localBindings)
+            // FIXME: Does not take branches into account.
+            /*foreach (var binding in this.funct.localBindings)
             {
                 var status = statusList[binding.registerIndex];
                 var regMutability = this.funct.registerMutabilities[binding.registerIndex];
@@ -92,7 +87,7 @@ namespace Trapl.Semantics
                         binding.declSpan);
                     this.foundErrors = true;
                 }
-            }
+            }*/
         }
 
 

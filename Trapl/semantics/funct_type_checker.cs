@@ -262,6 +262,17 @@
                 return;
             }
 
+            var srcMut = TypeResolver.GetDataAccessMutability(this.session, this.funct, inst.source);
+            if (inst.mutable && !srcMut)
+            {
+                this.foundErrors = true;
+                this.session.AddMessage(
+                    Diagnostics.MessageKind.Error,
+                    Diagnostics.MessageCode.IncompatibleMutability,
+                    "value is not mutable",
+                    inst.source.span);
+            }
+
             var destType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.destination);
             var srcType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.source);
             var srcPtr = Core.TypePointer.Of(inst.mutable, srcType);

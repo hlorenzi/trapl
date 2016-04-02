@@ -9,20 +9,20 @@ namespace TraplTest
         [TestMethod]
         public void TestStructNames()
         {
-            Util.Compile("A: struct { }").Ok();
-            Util.Compile("A: struct { } B: struct { }").Ok();
+            Util.Compile("struct A { }").Ok();
+            Util.Compile("struct A { } struct B { }").Ok();
 
-            Util.Compile("A: struct { } A: struct { }").Fail();
+            Util.Compile("struct A { } struct A { }").Fail();
         }
 
 
         [TestMethod]
         public void TestStructFields()
         {
-            Util.Compile("A: struct { x: Int }").Ok();
-            Util.Compile("A: struct { x: Int, y: Bool }").Ok();
+            Util.Compile("struct A { x: Int }").Ok();
+            Util.Compile("struct A { x: Int, y: Bool }").Ok();
 
-            Util.Compile("A: struct { x: _ }").Fail();
+            Util.Compile("struct A { x: _ }").Fail();
         }
     }
 }

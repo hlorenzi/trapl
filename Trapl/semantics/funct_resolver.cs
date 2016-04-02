@@ -21,6 +21,7 @@ namespace Trapl.Semantics
         private Core.DeclFunct funct;
         private Core.UseDirective[] useDirectives;
         private bool foundErrors;
+        private List<bool> localScopeLivenesses;
 
 
         private FunctBodyResolver(Core.Session session, Core.DeclFunct funct, Core.UseDirective[] useDirectives)
@@ -29,6 +30,7 @@ namespace Trapl.Semantics
             this.funct = funct;
             this.useDirectives = useDirectives;
             this.foundErrors = false;
+            this.localScopeLivenesses = new List<bool>();
         }
 
 
@@ -85,6 +87,9 @@ namespace Trapl.Semantics
                 return;
             }
 
+            // Store local scope index before block.
+            var localScopeIndexBefore = localScopeLivenesses.Count;
+
             for (int i = 0; i < exprBlock.subexprs.Count; i++)
             {
                 try
@@ -97,6 +102,42 @@ namespace Trapl.Semantics
                 }
                 catch (Core.CheckException) { }
             }
+
+            // Mark locals inside block as out-of-scope.
+            for (var i = localScopeIndexBefore; i < localScopeLivenesses.Count; i++)
+                localScopeLivenesses[i] = false;
+        }
+
+
+        private void ResolveExprLet(Grammar.ASTNodeExprLet exprLet, ref int curSegment, Core.DataAccess output)
+        {
+            // Create a new storage location and name binding.
+            var registerIndex = funct.CreateRegister(new Core.TypePlaceholder(), exprLet.mutable);
+
+            funct.CreateBinding(
+                NameResolver.Resolve(((Grammar.ASTNodeExprNameConcrete)exprLet.name).name),
+                registerIndex,
+                exprLet.name.GetSpan());
+
+            localScopeLivenesses.Add(true);
+
+            // Parse type annotation, if there is one.
+            if (exprLet.type != null)
+            {
+                funct.registerTypes[registerIndex] =
+                    TypeResolver.Resolve(session, exprLet.type, useDirectives, false);
+            }
+
+            // Parse init expression, if there is one.
+            if (exprLet.initExpr != null)
+            {
+                ResolveExpr(exprLet.initExpr, ref curSegment,
+                    Core.DataAccessRegister.ForRegister(exprLet.name.GetSpan(), registerIndex));
+            }
+
+            // Generate a void store.
+            funct.AddInstruction(curSegment,
+                Core.InstructionMoveLiteralTuple.Empty(exprLet.GetSpan(), output));
         }
 
 
@@ -142,36 +183,6 @@ namespace Trapl.Semantics
                 flowBranch.destinationSegmentIfNotTaken = afterSegment;
                 curSegment = afterSegment;
             }
-        }
-
-
-        private void ResolveExprLet(Grammar.ASTNodeExprLet exprLet, ref int curSegment, Core.DataAccess output)
-        {
-            // Create a new storage location and name binding.
-            var registerIndex = funct.CreateRegister(new Core.TypePlaceholder(), exprLet.mutable);
-
-            funct.CreateBinding(
-                NameResolver.Resolve(((Grammar.ASTNodeExprNameConcrete)exprLet.name).name),
-                registerIndex,
-                exprLet.name.GetSpan());
-
-            // Parse type annotation, if there is one.
-            if (exprLet.type != null)
-            {
-                funct.registerTypes[registerIndex] =
-                    TypeResolver.Resolve(session, exprLet.type, useDirectives, false);
-            }
-
-            // Parse init expression, if there is one.
-            if (exprLet.initExpr != null)
-            {
-                ResolveExpr(exprLet.initExpr, ref curSegment,
-                    Core.DataAccessRegister.ForRegister(exprLet.name.GetSpan(), registerIndex));
-            }
-
-            // Generate a void store.
-            funct.AddInstruction(curSegment,
-                Core.InstructionMoveLiteralTuple.Empty(exprLet.GetSpan(), output));
         }
 
 
@@ -239,7 +250,7 @@ namespace Trapl.Semantics
                 var mutable = (exprUnOp.oper == Grammar.ASTNodeExprUnaryOp.Operator.AsteriskMut);
 
                 // Parse addressed expression.
-                var access = ResolveDataAccess(exprUnOp.operand, ref curSegment, true);
+                var access = ResolveDataAccess(exprUnOp.operand, ref curSegment, true, mutable);
                 if (access == null)
                     return;
 
@@ -253,7 +264,7 @@ namespace Trapl.Semantics
             else if (exprUnOp.oper == Grammar.ASTNodeExprUnaryOp.Operator.At)
             {
                 // Parse addressed expression.
-                var access = ResolveDataAccess(exprUnOp, ref curSegment, false);
+                var access = ResolveDataAccess(exprUnOp, ref curSegment, true, false);
                 if (access == null)
                     return;
 
@@ -273,7 +284,7 @@ namespace Trapl.Semantics
         {
             if (exprBinOp.oper == Grammar.ASTNodeExprBinaryOp.Operator.Equal)
             {
-                var access = ResolveDataAccess(exprBinOp.lhsOperand, ref curSegment, false);
+                var access = ResolveDataAccess(exprBinOp.lhsOperand, ref curSegment, false, false);
                 if (access == null)
                     return;
 
@@ -292,7 +303,7 @@ namespace Trapl.Semantics
             }
             else if (exprBinOp.oper == Grammar.ASTNodeExprBinaryOp.Operator.Dot)
             {
-                var access = ResolveDataAccess(exprBinOp, ref curSegment, false);
+                var access = ResolveDataAccess(exprBinOp, ref curSegment, false, false);
                 if (access == null)
                     return;
 
@@ -465,7 +476,8 @@ namespace Trapl.Semantics
         {
             for (int i = funct.localBindings.Count - 1; i >= 0; i--)
             {
-                if (funct.localBindings[i].name.Compare(name))
+                if (funct.localBindings[i].name.Compare(name) &&
+                    localScopeLivenesses[i])
                     return i;
             }
 
@@ -473,7 +485,7 @@ namespace Trapl.Semantics
         }
 
 
-        private Core.DataAccess ResolveDataAccess(Grammar.ASTNodeExpr expr, ref int curSegment, bool allowInnerExpr)
+        private Core.DataAccess ResolveDataAccess(Grammar.ASTNodeExpr expr, ref int curSegment, bool allowInnerExpr, bool mutInnerExpr)
         {
             while (true)
             {
@@ -500,14 +512,14 @@ namespace Trapl.Semantics
             var exprDereference = expr as Grammar.ASTNodeExprUnaryOp;
             if (exprDereference != null && exprDereference.oper == Grammar.ASTNodeExprUnaryOp.Operator.At)
             {
-                var innerAccess = ResolveDataAccess(exprDereference.operand, ref curSegment, true);
+                var innerAccess = ResolveDataAccess(exprDereference.operand, ref curSegment, true, false);
                 return Core.DataAccessDereference.Of(exprDereference.GetSpan(), innerAccess);
             }
 
             var exprDotOp = expr as Grammar.ASTNodeExprBinaryOp;
             if (exprDotOp != null && exprDotOp.oper == Grammar.ASTNodeExprBinaryOp.Operator.Dot)
             {
-                var baseAccess = ResolveDataAccess(exprDotOp.lhsOperand, ref curSegment, true);
+                var baseAccess = ResolveDataAccess(exprDotOp.lhsOperand, ref curSegment, true, false);
 
                 // Left-hand side expr type must be resolved for field access.
                 FunctTypeInferencer.DoInference(this.session, this.funct);
@@ -611,7 +623,7 @@ namespace Trapl.Semantics
             if (allowInnerExpr)
             {
                 // Generate a new register for inner expression.
-                var registerIndex = this.funct.CreateRegister(new Core.TypePlaceholder(), false);
+                var registerIndex = this.funct.CreateRegister(new Core.TypePlaceholder(), mutInnerExpr);
                 var access = Core.DataAccessRegister.ForRegister(expr.GetSpan(), registerIndex);
                 ResolveExpr(expr, ref curSegment, access);
 

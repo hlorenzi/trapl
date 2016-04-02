@@ -1,4 +1,4 @@
-Point: struct
+struct Point
 {
 	x: Int,
 	y: Int,
@@ -6,34 +6,43 @@ Point: struct
 }
 
 
-get_ptr: fn() -> *Int
+fn get_ptr() -> *mut Int
 {
 	let x = 0;
-	return *x;
+	return *mut x;
 }
 
 
-t: fn() -> ()
+fn t() -> ()
 {
-	let d = Point { x: 0, y: 0, z: *0 }; let pd = *d; let i = @pd.x
+	let d = Point { x: 0, y: 0, z: *mut 0 };
+	let pd = *d;
+	let px = *d.x;
+	let i = @pd.x;
+	let x: Int = @px;
 }
 
 
-test: fn() -> ()
+fn test() -> ()
 {
-	let p = Point { x: 0, y: @get_ptr(), z: get_ptr() };
+	let mut p = Point { x: 0, y: @get_ptr(), z: get_ptr() };
 	p.x = 0;
 	p.y = 1;
 	@(p.z) = 2;
 
+	@get_ptr() = 2;
+
 	let p: *Int = *0;
 
 	let x = 0;
-	x = 1;
+	let px = *mut x;
 
 	let mut y = 0;
 	y = 1;
 
-	let mut z;
+	let z;
 	z = 1;
+	if true { z = 2 } else { z = 3 };
+
+
 }
