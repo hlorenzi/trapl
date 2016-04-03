@@ -52,10 +52,12 @@ namespace Trapl.Semantics
                 this.ResolveExpr(((Grammar.ASTNodeExprParenthesized)expr).innerExpr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprBlock)
                 this.ResolveExprBlock((Grammar.ASTNodeExprBlock)expr, ref curSegment, outputReg);
-            else if (expr is Grammar.ASTNodeExprIf)
-                this.ResolveExprIf((Grammar.ASTNodeExprIf)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprLet)
                 this.ResolveExprLet((Grammar.ASTNodeExprLet)expr, ref curSegment, outputReg);
+            else if (expr is Grammar.ASTNodeExprIf)
+                this.ResolveExprIf((Grammar.ASTNodeExprIf)expr, ref curSegment, outputReg);
+            else if (expr is Grammar.ASTNodeExprWhile)
+                this.ResolveExprWhile((Grammar.ASTNodeExprWhile)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprReturn)
                 this.ResolveExprReturn((Grammar.ASTNodeExprReturn)expr, ref curSegment, outputReg);
             else if (expr is Grammar.ASTNodeExprCall)
@@ -87,8 +89,9 @@ namespace Trapl.Semantics
                 return;
             }
 
-            // Store local scope index before block.
+            // Store the indices marking inner locals/registers.
             var localScopeIndexBefore = localScopeLivenesses.Count;
+            var registerIndexBefore = funct.registerTypes.Count;
 
             for (int i = 0; i < exprBlock.subexprs.Count; i++)
             {
@@ -103,9 +106,13 @@ namespace Trapl.Semantics
                 catch (Core.CheckException) { }
             }
 
-            // Mark locals inside block as out-of-scope.
+            // Mark inner locals as out-of-scope.
             for (var i = localScopeIndexBefore; i < localScopeLivenesses.Count; i++)
                 localScopeLivenesses[i] = false;
+
+            // Deinit inner registers.
+            for (var i = funct.registerTypes.Count - 1; i >= registerIndexBefore; i--)
+                funct.AddInstruction(curSegment, Core.InstructionDeinit.ForRegister(i));
         }
 
 
@@ -146,7 +153,7 @@ namespace Trapl.Semantics
             // Parse condition.
             var conditionReg = Core.DataAccessRegister.ForRegister(
                 exprIf.conditionExpr.GetSpan(),
-                funct.CreateRegister(new Core.TypePlaceholder(), false));
+                funct.CreateRegister(Core.TypeStruct.Of(session.PrimitiveBool), false));
 
             this.ResolveExpr(
                 exprIf.conditionExpr,
@@ -183,6 +190,44 @@ namespace Trapl.Semantics
                 flowBranch.destinationSegmentIfNotTaken = afterSegment;
                 curSegment = afterSegment;
             }
+        }
+
+
+        private void ResolveExprWhile(Grammar.ASTNodeExprWhile exprWhile, ref int curSegment, Core.DataAccess output)
+        {
+            var registerIndexBefore = funct.registerTypes.Count;
+
+            var conditionSegment = funct.CreateSegment(exprWhile.conditionExpr.GetSpan());
+            funct.SetSegmentFlow(curSegment, Core.SegmentFlowGoto.To(conditionSegment));
+
+            // Parse condition.
+            var conditionReg = Core.DataAccessRegister.ForRegister(
+                exprWhile.conditionExpr.GetSpan(),
+                funct.CreateRegister(Core.TypeStruct.Of(session.PrimitiveBool), false));
+
+            this.ResolveExpr(
+                exprWhile.conditionExpr,
+                ref conditionSegment,
+                conditionReg);
+
+            var flowBranch = new Core.SegmentFlowBranch { conditionReg = conditionReg };
+            funct.SetSegmentFlow(conditionSegment, flowBranch);
+
+            // Parse body.
+            var bodySegment = funct.CreateSegment(exprWhile.bodyExpr.GetSpan().JustBefore());
+            flowBranch.destinationSegmentIfTaken = bodySegment;
+
+            ResolveExpr(exprWhile.bodyExpr, ref bodySegment, output);
+
+            // Deinit inner registers.
+            for (var i = funct.registerTypes.Count - 1; i >= registerIndexBefore; i--)
+                funct.AddInstruction(bodySegment, Core.InstructionDeinit.ForRegister(i));
+
+            // Route segments.
+            var afterSegment = funct.CreateSegment(exprWhile.GetSpan().JustAfter());
+            funct.SetSegmentFlow(bodySegment, Core.SegmentFlowGoto.To(conditionSegment));
+            flowBranch.destinationSegmentIfNotTaken = afterSegment;
+            curSegment = afterSegment;
         }
 
 
@@ -506,6 +551,16 @@ namespace Trapl.Semantics
                 {
                     var localRegisterIndex = funct.localBindings[bindingIndex].registerIndex;
                     return Core.DataAccessRegister.ForRegister(expr.GetSpan(), localRegisterIndex);
+                }
+                else
+                {
+                    this.foundErrors = true;
+                    session.AddMessage(
+                        Diagnostics.MessageKind.Error,
+                        Diagnostics.MessageCode.Unknown,
+                        "unknown '" + name.GetString() + "'",
+                        expr.GetSpan());
+                    return null;
                 }
             }
 

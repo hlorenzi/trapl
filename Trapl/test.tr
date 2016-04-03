@@ -8,18 +8,8 @@ struct Point
 
 fn get_ptr() -> *mut Int
 {
-	let x = 0;
+	let mut x = 0;
 	return *mut x;
-}
-
-
-fn t() -> ()
-{
-	let d = Point { x: 0, y: 0, z: *mut 0 };
-	let pd = *d;
-	let px = *d.x;
-	let i = @pd.x;
-	let x: Int = @px;
 }
 
 
@@ -35,14 +25,12 @@ fn test() -> ()
 	let p: *Int = *0;
 
 	let x = 0;
-	let px = *mut x;
+	let px = *x;
 
 	let mut y = 0;
 	y = 1;
 
-	let z;
-	z = 1;
-	if true { z = 2 } else { z = 3 };
-
-
+	let z = true;
+	while z
+		{  }
 }

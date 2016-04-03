@@ -209,6 +209,15 @@ namespace TraplTest
             Funct("let i: Int; if true {                  } else { i = 0; let j = i }").Ok();
             Funct("let i: Int; if true { i = 1; let j = i } else {        let j = i }").Fail();
             Funct("let i: Int; if true {        let j = i } else { i = 0; let j = i }").Fail();
+
+            Funct("let mut i = 0; while true { i = 0 }; let j = i").Ok();
+            Funct("let mut i = 0; while true {       }; let j = i").Ok();
+            Funct("let mut i;     while true { i = 0 }; let j = i").Fail();
+            Funct("let mut i;     while true {       }; let j = i").Fail();
+
+            Funct("let     b = true; while b {           }; let c = b").Ok();
+            Funct("let mut b = true; while b { b = false }; let c = b").Ok();
+            Funct("let     b = true; while b { b = false }; let c = b").Fail();
         }
 
 
@@ -261,6 +270,25 @@ namespace TraplTest
             Funct("let mut p = PtrMut { p: *mut 0 }; @(p.p) = 1").Ok();
             Funct("let     p = Ptr    { p: *    0 }; @(p.p) = 1").Fail();
             Funct("let mut p = Ptr    { p: *    0 }; @(p.p) = 1").Fail();
+
+            Funct("let     i;     if true { i = 1 } else { i = 0 }").Ok();
+            Funct("let mut i;     if true { i = 1 } else { i = 0 }").Ok();
+            Funct("let mut i = 0; if true { i = 1 } else { i = 0 }").Ok();
+            Funct("let     i = 0; if true { i = 1 } else { i = 0 }").Fail();
+
+            Funct("let     i;     if true {       } else { i = 0 }").Ok();
+            Funct("let     i;     if true { i = 1 } else {       }").Ok();
+            Funct("let     i;     if true {       } else {       }; i = 2").Ok();
+            Funct("let     i;     if true {       } else { i = 0 }; i = 2").Fail();
+            Funct("let     i;     if true { i = 1 } else {       }; i = 2").Fail();
+            Funct("let     i = 0; if true {       } else { i = 0 }; i = 2").Fail();
+            Funct("let     i = 0; if true { i = 1 } else {       }; i = 2").Fail();
+
+            Funct("let     i = 0;  while true {       }; let j = i").Ok();
+            Funct("let mut i = 0;  while true { i = 1 }; let j = i").Ok();
+            Funct("let mut i = 0;  while true {       }; let j = i").Ok();
+            Funct("let mut i;      while true {       }; let j = i").Fail();
+            Funct("let     i = 0;  while true { i = 1 }; let j = i").Fail();
         }
     }
 }

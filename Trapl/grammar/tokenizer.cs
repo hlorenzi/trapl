@@ -36,28 +36,28 @@ namespace Trapl.Grammar
                     session.AddMessage(MessageKind.Error, MessageCode.UnexpectedChar, "unexpected character", span);
                 }
                 // Skip line comments.
-                else if (match.kind == TokenKind.DoubleHash)
+                else if (match.kind == TokenKind.DoubleSlash)
                 {
                     while (index < input.Length() && input[index] != '\n')
                         index++;
                     continue;
                 }
                 // Skip multiline comments.
-                else if (match.kind == TokenKind.HashColon)
+                else if (match.kind == TokenKind.SlashAsterisk)
                 {
                     var nesting = 1;
                     index += 2;
 
                     while (index < input.Length() - 1)
                     {
-                        if (input[index] == ':' && input[index + 1] == '#')
+                        if (input[index] == '*' && input[index + 1] == '/')
                         {
                             nesting--;
                             index += 2;
                             if (nesting == 0)
                                 break;
                         }
-                        else if (input[index] == '#' && input[index + 1] == ':')
+                        else if (input[index] == '/' && input[index + 1] == '*')
                         {
                             nesting++;
                             index += 2;
@@ -102,9 +102,9 @@ namespace Trapl.Grammar
         {
             var models = new List<TokenMatch>
             {
-                new TokenMatch("##", TokenKind.DoubleHash),
-                new TokenMatch("#:", TokenKind.HashColon),
-                new TokenMatch(":#", TokenKind.ColonHash),
+                new TokenMatch("//", TokenKind.DoubleSlash),
+                new TokenMatch("/*", TokenKind.SlashAsterisk),
+                new TokenMatch("*/", TokenKind.AsteriskSlash),
                 new TokenMatch("{", TokenKind.BraceOpen),
                 new TokenMatch("}", TokenKind.BraceClose),
                 new TokenMatch("(", TokenKind.ParenOpen),

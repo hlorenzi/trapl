@@ -13,8 +13,12 @@ namespace Trapl.Semantics
             for (var i = 0; i < funct.registerTypes.Count; i++)
                 statusList.Add(new InitStatus(i > 0 && i < funct.parameterNum));
 
-            checker.CheckSegment(0, statusList);
-            checker.CheckUnusedMutabilities(statusList);
+            var segmentVisitCounts = new List<int>();
+            for (var i = 0; i < funct.segments.Count; i++)
+                segmentVisitCounts.Add(0);
+
+            checker.CheckSegment(0, segmentVisitCounts, statusList);
+            checker.CheckUnusedMutabilities();
             return checker.foundErrors;
         }
 
@@ -23,12 +27,21 @@ namespace Trapl.Semantics
         private Core.DeclFunct funct;
         private bool foundErrors;
         private HashSet<Diagnostics.Span> alreadyReportedSet = new HashSet<Diagnostics.Span>();
+        private List<List<InitStatus>> everyPathInitStatuses = new List<List<InitStatus>>();
 
 
         private class InitStatus
         {
-            public int initCounter;
+            public int curInitCounter;
+            public int maxInitCounter;
+            public bool takenMutAddr;
             public bool fullyInitialized;
+
+
+            public InitStatus()
+            {
+
+            }
 
 
             public InitStatus(bool fullyInitialized)
@@ -39,7 +52,13 @@ namespace Trapl.Semantics
 
             public InitStatus Clone()
             {
-                return new InitStatus(this.fullyInitialized);
+                return new InitStatus
+                {
+                    fullyInitialized = fullyInitialized,
+                    curInitCounter = curInitCounter,
+                    maxInitCounter = maxInitCounter,
+                    takenMutAddr = takenMutAddr
+                };
             }
 
 
@@ -57,7 +76,8 @@ namespace Trapl.Semantics
             
             public void IncrementCounter()
             {
-                this.initCounter++;
+                this.curInitCounter++;
+                this.maxInitCounter = System.Math.Max(this.maxInitCounter, this.curInitCounter);
             }
         }
 
@@ -70,15 +90,24 @@ namespace Trapl.Semantics
         }
 
 
-        private void CheckUnusedMutabilities(List<InitStatus> statusList)
+        private void CheckUnusedMutabilities()
         {
-            // FIXME: Does not take branches into account.
-            /*foreach (var binding in this.funct.localBindings)
+            foreach (var binding in this.funct.localBindings)
             {
-                var status = statusList[binding.registerIndex];
+                var maxInitCounter = 0;
+                var takenMutAddr = false;
+                foreach (var statusList in this.everyPathInitStatuses)
+                {
+                    maxInitCounter = System.Math.Max(
+                        maxInitCounter,
+                        statusList[binding.registerIndex].maxInitCounter);
+
+                    takenMutAddr |= statusList[binding.registerIndex].takenMutAddr;
+                }
+
                 var regMutability = this.funct.registerMutabilities[binding.registerIndex];
 
-                if (regMutability && status.initCounter == 1)
+                if (regMutability && maxInitCounter == 1 && !takenMutAddr)
                 {
                     this.session.AddMessage(
                         Diagnostics.MessageKind.Warning,
@@ -87,14 +116,26 @@ namespace Trapl.Semantics
                         binding.declSpan);
                     this.foundErrors = true;
                 }
-            }*/
+            }
         }
 
 
-        private void CheckSegment(int segmentIndex, List<InitStatus> statusList)
+        private void CheckSegment(int segmentIndex, List<int> segmentVisitCounts, List<InitStatus> statusList)
         {
+            if (segmentVisitCounts[segmentIndex] >= 2)
+            {
+                everyPathInitStatuses.Add(statusList);
+                return;
+            }
+
+            segmentVisitCounts[segmentIndex]++;
+
             foreach (var inst in this.funct.segments[segmentIndex].instructions)
             {
+                var instDeinit = (inst as Core.InstructionDeinit);
+                if (instDeinit != null)
+                    CheckDeinit(statusList, instDeinit);
+
                 var instMoveData = (inst as Core.InstructionMoveData);
                 if (instMoveData != null)
                     CheckMoveData(statusList, instMoveData);
@@ -133,15 +174,15 @@ namespace Trapl.Semantics
             if (flowBranch != null)
             {
                 CheckBranch(statusList, flowBranch);
-                this.CheckSegment(flowBranch.destinationSegmentIfTaken, CloneStatuses(statusList));
-                this.CheckSegment(flowBranch.destinationSegmentIfNotTaken, CloneStatuses(statusList));
+                this.CheckSegment(flowBranch.destinationSegmentIfTaken, new List<int>(segmentVisitCounts), CloneStatuses(statusList));
+                this.CheckSegment(flowBranch.destinationSegmentIfNotTaken, new List<int>(segmentVisitCounts), CloneStatuses(statusList));
                 return;
             }
 
             var flowGoto = (flow as Core.SegmentFlowGoto);
             if (flowGoto != null)
             {
-                this.CheckSegment(flowGoto.destinationSegment, statusList);
+                this.CheckSegment(flowGoto.destinationSegment, new List<int>(segmentVisitCounts), statusList);
                 return;
             }
 
@@ -160,6 +201,7 @@ namespace Trapl.Semantics
                 }
 
                 CheckEnd(statusList, flowEnd);
+                everyPathInitStatuses.Add(statusList);
                 return;
             }
         }
@@ -295,6 +337,30 @@ namespace Trapl.Semantics
         }
 
 
+        private void MarkTakenMutAddr(List<InitStatus> statusList, Core.DataAccess destination)
+        {
+            MarkTakenMutAddrRecursive(statusList, destination);
+        }
+
+
+        private void MarkTakenMutAddrRecursive(List<InitStatus> statusList, Core.DataAccess access)
+        {
+            var accessField = access as Core.DataAccessField;
+            if (accessField != null)
+            {
+                MarkTakenMutAddrRecursive(statusList, accessField.baseAccess);
+                return;
+            }
+
+            var accessReg = access as Core.DataAccessRegister;
+            if (accessReg != null)
+            {
+                statusList[accessReg.registerIndex].takenMutAddr = true;
+                return;
+            }
+        }
+
+
         private void CheckEnd(List<InitStatus> statusList, Core.SegmentFlowEnd flow)
         {
             ValidateSource(statusList, Core.DataAccessRegister.ForRegister(flow.span, 0));
@@ -304,6 +370,13 @@ namespace Trapl.Semantics
         private void CheckBranch(List<InitStatus> statusList, Core.SegmentFlowBranch flow)
         {
             ValidateSource(statusList, flow.conditionReg);
+        }
+
+
+        private void CheckDeinit(List<InitStatus> statusList, Core.InstructionDeinit inst)
+        {
+            statusList[inst.registerIndex].SetStatus(false);
+            statusList[inst.registerIndex].curInitCounter = 0;
         }
 
 
@@ -347,6 +420,10 @@ namespace Trapl.Semantics
         private void CheckMoveAddr(List<InitStatus> statusList, Core.InstructionMoveAddr inst)
         {
             ValidateSource(statusList, inst.source);
+
+            if (inst.mutable)
+                MarkTakenMutAddr(statusList, inst.source);
+
             CheckAndInitDestination(statusList, inst.destination);
         }
 
