@@ -11,9 +11,9 @@ namespace Trapl
         static void Main(string[] args)
         {
             var session = new Session();
-            session.PrimitiveBool = session.CreateStruct(Name.FromPath("Bool"));
-            session.PrimitiveInt = session.CreateStruct(Name.FromPath("Int"));
-            session.PrimitiveUInt = session.CreateStruct(Name.FromPath("UInt"));
+            session.PrimitiveBool = session.CreateStruct(Name.FromPath("Bool"), null);
+            session.PrimitiveInt = session.CreateStruct(Name.FromPath("Int"), null);
+            session.PrimitiveUInt = session.CreateStruct(Name.FromPath("UInt"), null);
 
             var input = TextInput.MakeFromFile("../../test.tr");
             var tokens = Tokenizer.Tokenize(session, input);
@@ -26,9 +26,12 @@ namespace Trapl
                 var resolver = new DeclResolver(session);
                 resolver.ResolveTopLevelDeclGroup(topLevelNode);
                 resolver.ResolveStructFields();
-                resolver.ResolveFunctHeaders();
-                resolver.ResolveFunctBodies();
-                session.PrintDeclsToConsole(true);
+                if (!StructRecursionChecker.Check(session))
+                {
+                    resolver.ResolveFunctHeaders();
+                    resolver.ResolveFunctBodies();
+                    session.PrintDeclsToConsole(true);
+                }
             }
 
             session.PrintMessagesToConsole();

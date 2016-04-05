@@ -35,7 +35,8 @@ namespace Trapl.Diagnostics
         UninitializedUse,
         CannotDereferenceType,
         UnusedMutability,
-        IncompatibleMutability
+        IncompatibleMutability,
+        StructRecursion
     }
 
 

@@ -44,9 +44,10 @@ namespace Trapl.Core
         private int primitiveUInt = -1;
 
 
-        public int CreateStruct(Name name)
+        public int CreateStruct(Name name, Grammar.ASTNodeDeclStruct declASTNode)
         {
             var decl = new DeclStruct();
+            decl.declASTNode = declASTNode;
             this.declStructs.Add(decl);
 
             var declRef = new DeclReference
@@ -79,6 +80,12 @@ namespace Trapl.Core
         public DeclStruct GetStruct(int structIndex)
         {
             return this.declStructs[structIndex];
+        }
+
+
+        public List<DeclStruct> GetStructs()
+        {
+            return this.declStructs;
         }
 
 

@@ -66,6 +66,7 @@
     <Compile Include="semantics\funct_type_checker.cs" />
     <Compile Include="semantics\funct_resolver.cs" />
     <Compile Include="semantics\funct_type_inferencer.cs" />
+    <Compile Include="semantics\struct_recursion_checker.cs" />
     <Compile Include="semantics\type_inferencer.cs" />
     <Compile Include="diagnostics\message.cs" />
     <Compile Include="diagnostics\span.cs" />

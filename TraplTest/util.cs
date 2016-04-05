@@ -8,9 +8,9 @@ namespace TraplTest
         public static Trapl.Core.Session Compile(string src)
         {
             var session = new Trapl.Core.Session();
-            session.PrimitiveBool = session.CreateStruct(Trapl.Core.Name.FromPath("Bool"));
-            session.PrimitiveInt = session.CreateStruct(Trapl.Core.Name.FromPath("Int"));
-            session.PrimitiveUInt = session.CreateStruct(Trapl.Core.Name.FromPath("UInt"));
+            session.PrimitiveBool = session.CreateStruct(Trapl.Core.Name.FromPath("Bool"), null);
+            session.PrimitiveInt = session.CreateStruct(Trapl.Core.Name.FromPath("Int"), null);
+            session.PrimitiveUInt = session.CreateStruct(Trapl.Core.Name.FromPath("UInt"), null);
 
             var input = Trapl.Core.TextInput.MakeFromString(src);
             var tokens = Trapl.Grammar.Tokenizer.Tokenize(session, input);
@@ -25,8 +25,12 @@ namespace TraplTest
             var resolver = new Trapl.Semantics.DeclResolver(session);
             resolver.ResolveTopLevelDeclGroup(topLevelNode);
             resolver.ResolveStructFields();
-            resolver.ResolveFunctHeaders();
-            resolver.ResolveFunctBodies();
+
+            if (!Trapl.Semantics.StructRecursionChecker.Check(session))
+            {
+                resolver.ResolveFunctHeaders();
+                resolver.ResolveFunctBodies();
+            }
 
             session.PrintMessagesToConsole();
 

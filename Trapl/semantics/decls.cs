@@ -56,7 +56,7 @@ namespace Trapl.Semantics
             if (!ValidateName(name, structNode.name.GetSpan()))
                 return;
 
-            var structIndex = this.session.CreateStruct(name);
+            var structIndex = this.session.CreateStruct(name, structNode);
 
             foreach (var structUseNode in structNode.useDirectives)
                 useDirectives.Add(UseDirectiveResolver.Resolve(structUseNode));
