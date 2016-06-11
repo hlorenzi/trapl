@@ -13,6 +13,12 @@ fn get_ptr() -> *mut Int
 }
 
 
+fn param_test(x: Int, y: Point, z: *mut Point) -> *Int
+{
+	return *0;
+}
+
+
 fn test() -> ()
 {
 	let mut p = Point { x: 0, y: @get_ptr(), z: get_ptr() };

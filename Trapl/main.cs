@@ -31,6 +31,9 @@ namespace Trapl
                     resolver.ResolveFunctHeaders();
                     resolver.ResolveFunctBodies();
                     session.PrintDeclsToConsole(true);
+
+                    Console.WriteLine("==== CODEGEN ====");
+                    Console.WriteLine(Codegen.CGenerator.Generate(session));
                 }
             }
 

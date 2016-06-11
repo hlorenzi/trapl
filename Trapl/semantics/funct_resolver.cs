@@ -392,14 +392,14 @@ namespace Trapl.Semantics
                 return;
 
             var typeStruct = type as Core.TypeStruct;
-            var fieldNum = TypeResolver.GetFieldNum(this.session, this.funct, typeStruct);
+            var fieldNum = TypeResolver.GetFieldNum(this.session, typeStruct);
             var fieldDestSpans = new Diagnostics.Span?[fieldNum];
 
             var fieldRegs = new int[fieldNum];
             for (var i = 0; i < fieldNum; i++)
             {
                 fieldRegs[i] = funct.CreateRegister(
-                    TypeResolver.GetFieldType(this.session, this.funct, typeStruct, i), false);
+                    TypeResolver.GetFieldType(this.session, typeStruct, i), false);
             }
 
             var fieldRegAccesses = new Core.DataAccess[fieldNum];

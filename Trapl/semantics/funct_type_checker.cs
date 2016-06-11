@@ -232,7 +232,7 @@
                     return;
                 }
 
-                var fieldDestType = TypeResolver.GetFieldType(this.session, this.funct, Core.TypeStruct.Of(inst.structIndex), i);
+                var fieldDestType = TypeResolver.GetFieldType(this.session, Core.TypeStruct.Of(inst.structIndex), i);
                 var fieldSrcType = TypeResolver.GetDataAccessType(this.session, this.funct, inst.fieldSources[i]);
 
                 if (!fieldSrcType.IsConvertibleTo(fieldDestType) &&

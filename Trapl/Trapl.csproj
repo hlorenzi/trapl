@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="codegen\codegen_c.cs" />
     <Compile Include="core\decl_funct.cs" />
     <Compile Include="core\instructions\data_access.cs" />
     <Compile Include="core\instructions\inst_deinit.cs" />
@@ -122,6 +123,7 @@
     <Compile Include="core\input.cs" />
     <Compile Include="grammar\ast_parser.cs" />
     <Compile Include="grammar\ast_nodes\_base.cs" />
+    <Compile Include="util\graph.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -138,8 +138,7 @@ namespace Trapl.Semantics
             if (regField != null)
             {
                 return GetFieldType(
-                    session, funct, GetDataAccessType(session, funct, regField.baseAccess),
-                    regField.fieldIndex);
+                    session, GetDataAccessType(session, funct, regField.baseAccess), regField.fieldIndex);
             }
 
             var regDeref = access as Core.DataAccessDereference;
@@ -159,7 +158,6 @@ namespace Trapl.Semantics
 
         public static int GetFieldNum(
             Core.Session session,
-            Core.DeclFunct funct,
             Core.Type baseType)
         {
             var baseStruct = baseType as Core.TypeStruct;
@@ -176,7 +174,6 @@ namespace Trapl.Semantics
 
         public static Core.Type GetFieldType(
             Core.Session session,
-            Core.DeclFunct funct,
             Core.Type baseType,
             int fieldIndex)
         {
@@ -189,6 +186,27 @@ namespace Trapl.Semantics
                 return baseTuple.elementTypes[fieldIndex];
 
             return new Core.TypeError();
+        }
+
+
+        public static Core.Name GetFieldName(
+            Core.Session session,
+            Core.Type baseType,
+            int fieldIndex)
+        {
+            var baseStruct = baseType as Core.TypeStruct;
+            if (baseStruct != null)
+            {
+                Core.Name name;
+                session.GetStruct(baseStruct.structIndex).fieldNames.FindByValue(fieldIndex, out name);
+                return name;
+            }
+
+            var baseTuple = baseType as Core.TypeTuple;
+            if (baseTuple != null)
+                return Core.Name.FromPath(fieldIndex.ToString());
+
+            return null;
         }
 
 

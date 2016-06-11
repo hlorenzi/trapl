@@ -95,6 +95,12 @@ namespace Trapl.Core
         }
 
 
+        public List<DeclFunct> GetFuncts()
+        {
+            return this.declFuncts;
+        }
+
+
         public int PrimitiveBool
         {
             get { return primitiveBool; }
@@ -233,6 +239,22 @@ namespace Trapl.Core
             {
                 kind = DeclReference.Kind.Struct,
                 index = structIndex
+            };
+
+            Name name;
+            if (!this.declTree.FindByValue(declRef, out name))
+                throw new ArgumentException("struct not found");
+
+            return name;
+        }
+
+
+        public Name GetFunctName(int functIndex)
+        {
+            var declRef = new DeclReference
+            {
+                kind = DeclReference.Kind.Funct,
+                index = functIndex
             };
 
             Name name;
