@@ -60,6 +60,22 @@
         }
 
 
+        public override bool IsZeroSized(Core.Session session)
+        {
+            var anySized = false;
+            for (var i = 0; i < this.elementTypes.Length; i++)
+            {
+                if (!this.elementTypes[i].IsZeroSized(session))
+                {
+                    anySized = false;
+                    break;
+                }
+            }
+
+            return !anySized;
+        }
+
+
         public override bool IsEmptyTuple()
         {
             return this.elementTypes.Length == 0;

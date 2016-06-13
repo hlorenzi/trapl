@@ -56,6 +56,12 @@
         }
 
 
+        public override bool IsZeroSized(Core.Session session)
+        {
+            return false;
+        }
+
+
         public override string GetString(Core.Session session)
         {
             return "*" + (this.mutable ? "mut " : "") + this.pointedToType.GetString(session);

@@ -6,6 +6,26 @@ struct Point
 }
 
 
+fn get_num() -> Int
+{
+	let mut x = 123;
+	let y = 42;
+	let px = *mut x;
+	let py = get_one_of(false, *x, *y);
+	@px = @py;
+	return x;
+}
+
+
+fn get_one_of(which: Bool, a: *Int, b: *Int) -> *Int
+{
+	if which
+		{ return a }
+	else
+		{ return b }
+}
+
+
 fn get_ptr() -> *mut Int
 {
 	let mut x = 0;

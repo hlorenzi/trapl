@@ -102,11 +102,26 @@ namespace Trapl.Codegen
             var functs = session.GetFuncts();
             for (var i = 0; i < functs.Count; i++)
             {
-                for (var p = 0; p < functs[i].registerTypes.Count; p++)
+                var fn = functs[i];
+
+                for (var p = 0; p < fn.registerTypes.Count; p++)
                 {
-                    AddDependencyFromType(itemFuncts[i], functs[i].registerTypes[p], false);
-                    if (p < functs[i].parameterNum + 1)
-                        AddDependencyFromType(itemFunctHeaders[i], functs[i].registerTypes[p], false);
+                    AddDependencyFromType(itemFuncts[i], fn.registerTypes[p], false);
+                    if (p < fn.parameterNum + 1)
+                        AddDependencyFromType(itemFunctHeaders[i], fn.registerTypes[p], false);
+                }
+
+                for (var s = 0; s < fn.segments.Count; s++)
+                {
+                    foreach (var inst in fn.segments[s].instructions)
+                    {
+                        var instMoveFunct = inst as Core.InstructionMoveLiteralFunct;
+
+                        if (instMoveFunct != null)
+                        {
+                            itemGraph.AddEdge(itemFuncts[i], itemFunctHeaders[instMoveFunct.functIndex]);
+                        }
+                    }
                 }
             }
         }
@@ -174,7 +189,7 @@ namespace Trapl.Codegen
 
                 result += "\t" + ConvertFieldDecl(st.fieldTypes[i], name.GetString()) + ";\n";
             }
-            result += "}\n\n";
+            result += "};\n\n";
 
             return result;
         }
@@ -223,6 +238,9 @@ namespace Trapl.Codegen
                 if (i >= 1 && i < fn.parameterNum + 1)
                     continue;
 
+                if (fn.registerTypes[i].IsZeroSized(this.session))
+                    continue;
+
                 result += "\t" +
                     ConvertFieldDecl(fn.registerTypes[i], "var" + i) + ";\n";
             }
@@ -246,23 +264,20 @@ namespace Trapl.Codegen
 
                     if (instMoveInt != null)
                     {
-                        result += "\t" +
-                            GenerateDataAccess(instMoveInt.destination, fn) +
-                            " = " + instMoveInt.value + ";\n";
+                        result += "\t" + GenerateDataStore(instMoveInt.destination, fn) +
+                            instMoveInt.value + ";\n";
                     }
 
                     else if (instMoveBool != null)
                     {
-                        result += "\t" +
-                            GenerateDataAccess(instMoveBool.destination, fn) +
-                            " = " + (instMoveBool.value ? "1; /* true */\n" : "0; /* false */\n");
+                        result += "\t" + GenerateDataStore(instMoveBool.destination, fn) + 
+                            (instMoveBool.value ? "1; /* true */\n" : "0; /* false */\n");
                     }
 
                     else if (instMoveFunct != null)
                     {
-                        result += "\t" +
-                            GenerateDataAccess(instMoveFunct.destination, fn) +
-                            " = " + MangleName(this.session.GetFunctName(instMoveFunct.functIndex)) +
+                        result += "\t" + GenerateDataStore(instMoveFunct.destination, fn) +
+                            MangleName(this.session.GetFunctName(instMoveFunct.functIndex)) +
                             ";\n";
                     }
 
@@ -271,22 +286,34 @@ namespace Trapl.Codegen
                         var structType =
                             Semantics.TypeResolver.GetDataAccessType(this.session, fn, instMoveStruct.destination);
 
-                        for (var p = 0; p < instMoveStruct.fieldSources.Length; p++)
+                        if (!structType.IsZeroSized(this.session))
                         {
-                            result += "\t(" +
-                                GenerateDataAccess(instMoveStruct.destination, fn) +
-                                ")." +
-                                Semantics.TypeResolver.GetFieldName(this.session, structType, p).GetString() +
-                                " = " +
-                                GenerateDataAccess(instMoveStruct.fieldSources[p], fn) +
-                                ";\n";
+                            for (var p = 0; p < instMoveStruct.fieldSources.Length; p++)
+                            {
+                                if (Semantics.TypeResolver.GetFieldType(this.session, structType, p).IsZeroSized(this.session))
+                                    continue;
+
+                                result += "\t(" +
+                                    GenerateDataAccess(instMoveStruct.destination, fn) +
+                                    ")." +
+                                    Semantics.TypeResolver.GetFieldName(this.session, structType, p).GetString() +
+                                    " = " +
+                                    GenerateDataAccess(instMoveStruct.fieldSources[p], fn) +
+                                    ";\n";
+                            }
                         }
                     }
 
                     else if (instMoveTuple != null)
                     {
+                        var tupleType =
+                            Semantics.TypeResolver.GetDataAccessType(this.session, fn, instMoveTuple.destination);
+
                         for (var p = 0; p < instMoveTuple.sourceElements.Length; p++)
                         {
+                            if (Semantics.TypeResolver.GetFieldType(this.session, tupleType, p).IsZeroSized(this.session))
+                                continue;
+
                             result += "\t(" +
                                 GenerateDataAccess(instMoveTuple.destination, fn) +
                                 ").elem" + p + " = " +
@@ -297,23 +324,20 @@ namespace Trapl.Codegen
 
                     else if (instMoveData != null)
                     {
-                        result += "\t" +
-                            GenerateDataAccess(instMoveData.destination, fn) +
-                            " = " + GenerateDataAccess(instMoveData.source, fn) + ";\n";
+                        result += "\t" + GenerateDataStore(instMoveData.destination, fn) +
+                            GenerateDataAccess(instMoveData.source, fn) + ";\n";
                     }
 
                     else if (instMoveAddr != null)
                     {
-                        result += "\t" +
-                            GenerateDataAccess(instMoveAddr.destination, fn) +
-                            " = &(" + GenerateDataAccess(instMoveAddr.source, fn) + ");\n";
+                        result += "\t" + GenerateDataStore(instMoveAddr.destination, fn) +
+                            "&(" + GenerateDataAccess(instMoveAddr.source, fn) + ");\n";
                     }
 
                     else if (instMoveCall != null)
                     {
-                        result += "\t" +
-                            GenerateDataAccess(instMoveCall.destination, fn) +
-                            " = " + GenerateDataAccess(instMoveCall.callTargetSource, fn) +
+                        result += "\t" + GenerateDataStore(instMoveCall.destination, fn) +
+                            GenerateDataAccess(instMoveCall.callTargetSource, fn) +
                             "(";
 
                         for (var p = 0; p < instMoveCall.argumentSources.Length; p++)
@@ -341,7 +365,10 @@ namespace Trapl.Codegen
 
                 if (flowReturn != null)
                 {
-                    result += "\treturn var0;\n";
+                    if (fn.registerTypes[0].IsZeroSized(this.session))
+                        result += "\treturn;\n";
+                    else
+                        result += "\treturn var0;\n";
                 }
 
                 else if (flowGoto != null)
@@ -396,6 +423,16 @@ namespace Trapl.Codegen
         }
 
 
+        private string GenerateDataStore(Core.DataAccess dest, Core.DeclFunct funct)
+        {
+            var destType = Semantics.TypeResolver.GetDataAccessType(this.session, funct, dest);
+            if (destType.IsZeroSized(this.session))
+                return "";
+
+            return GenerateDataAccess(dest, funct) + " = ";
+        }
+
+
         private string MangleName(Core.Name name)
         {
             return name.GetString().Replace("::", "_");
@@ -407,8 +444,9 @@ namespace Trapl.Codegen
             var typeStruct = type as Core.TypeStruct;
             if (typeStruct != null)
             {
+                var st = session.GetStruct(typeStruct.structIndex);
                 var structName = MangleName(session.GetStructName(typeStruct.structIndex));
-                return structName + (name == null ? "" : " " + name);
+                return (st.primitive ? "" : "struct ") + structName + (name == null ? "" : " " + name);
             }
 
             var typePointer = type as Core.TypePointer;

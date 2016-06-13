@@ -35,6 +35,13 @@
         }
 
 
+        public override bool IsZeroSized(Core.Session session)
+        {
+            var st = session.GetStruct(this.structIndex);
+            return !st.primitive && st.fieldTypes.Count == 0;
+        }
+
+
         public override string GetString(Core.Session session)
         {
             return session.GetStructName(this.structIndex).GetString();

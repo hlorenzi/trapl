@@ -163,6 +163,12 @@ namespace Trapl.Semantics
                 return innerPtr.pointedToType;
             }
 
+            var regDiscard = access as Core.DataAccessDiscard;
+            if (regDiscard != null)
+            {
+                return Core.TypeTuple.Empty();
+            }
+
             return new Core.TypeError();
         }
 

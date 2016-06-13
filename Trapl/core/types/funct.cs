@@ -64,6 +64,12 @@
         }
 
 
+        public override bool IsZeroSized(Core.Session session)
+        {
+            return false;
+        }
+
+
         public override string GetString(Core.Session session)
         {
             var result = "fn(";

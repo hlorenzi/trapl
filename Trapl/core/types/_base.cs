@@ -26,6 +26,12 @@
         }
 
 
+        public virtual bool IsZeroSized(Core.Session session)
+        {
+            return true;
+        }
+
+
         public virtual bool IsEmptyTuple()
         {
             return false;
