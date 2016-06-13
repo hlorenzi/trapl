@@ -43,6 +43,17 @@ namespace Trapl.Semantics
                 return Core.TypeTuple.Of(elementTypes);
             }
 
+            var typeFunctNode = typeNode as Grammar.ASTNodeTypeFunct;
+            if (typeFunctNode != null)
+            {
+                var returnType = Resolve(session, typeFunctNode.returnType, useDirectives, mustBeResolved);
+                var parameterTypes = new Core.Type[typeFunctNode.parameters.Count];
+                for (var i = 0; i < typeFunctNode.parameters.Count; i++)
+                    parameterTypes[i] = Resolve(session, typeFunctNode.parameters[i], useDirectives, mustBeResolved);
+
+                return Core.TypeFunct.Of(returnType, parameterTypes);
+            }
+
             var typeRefNode = typeNode as Grammar.ASTNodeTypePointer;
             if (typeRefNode != null) 
             {

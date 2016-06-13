@@ -61,6 +61,24 @@ namespace Trapl.Core
         }
 
 
+        public int CreatePrimitiveStruct(Name name)
+        {
+            var decl = new DeclStruct();
+            decl.primitive = true;
+            decl.declASTNode = null;
+            this.declStructs.Add(decl);
+
+            var declRef = new DeclReference
+            {
+                kind = DeclReference.Kind.Struct,
+                index = this.declStructs.Count - 1
+            };
+
+            this.declTree.Add(name, declRef);
+            return this.declStructs.Count - 1;
+        }
+
+
         public int CreateFunct(Name name)
         {
             var decl = new DeclFunct();

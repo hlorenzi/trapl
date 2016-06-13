@@ -31,6 +31,9 @@ namespace Trapl.Semantics
             this.useDirectives = useDirectives;
             this.foundErrors = false;
             this.localScopeLivenesses = new List<bool>();
+
+            for (var i = 0; i < funct.parameterNum; i++)
+                this.localScopeLivenesses.Add(true);
         }
 
 
@@ -120,9 +123,10 @@ namespace Trapl.Semantics
         {
             // Create a new storage location and name binding.
             var registerIndex = funct.CreateRegister(new Core.TypePlaceholder(), exprLet.mutable);
+            var name = NameResolver.Resolve(((Grammar.ASTNodeExprNameConcrete)exprLet.name).name);
 
             funct.CreateBinding(
-                NameResolver.Resolve(((Grammar.ASTNodeExprNameConcrete)exprLet.name).name),
+                name,
                 registerIndex,
                 exprLet.name.GetSpan());
 

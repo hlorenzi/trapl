@@ -16,6 +16,10 @@ namespace Trapl.Codegen
             var sortedItems = gen.itemGraph.GetTopologicalSort();
 
             var result = "";
+            result += "typedef char Bool;\n";
+            result += "typedef int Int;\n";
+            result += "typedef unsigned int UInt;\n";
+            result += "\n";
 
             for (var i = 0; i < sortedItems.Count; i++)
             {
@@ -141,6 +145,8 @@ namespace Trapl.Codegen
         private string GenerateStructDecl(int structIndex)
         {
             var st = session.GetStruct(structIndex);
+            if (st.primitive)
+                return "";
 
             var result = "struct " + MangleName(session.GetStructName(structIndex)) + ";\n\n";
 
@@ -151,6 +157,8 @@ namespace Trapl.Codegen
         private string GenerateStructDef(int structIndex)
         {
             var st = session.GetStruct(structIndex);
+            if (st.primitive)
+                return "";
 
             var result = "struct " + MangleName(session.GetStructName(structIndex));
 
@@ -212,6 +220,9 @@ namespace Trapl.Codegen
             var fn = this.session.GetFunct(functIndex);
             for (var i = 0; i < fn.registerTypes.Count; i++)
             {
+                if (i >= 1 && i < fn.parameterNum + 1)
+                    continue;
+
                 result += "\t" +
                     ConvertFieldDecl(fn.registerTypes[i], "var" + i) + ";\n";
             }
@@ -321,7 +332,7 @@ namespace Trapl.Codegen
                     }
 
                     else
-                        result += "\t/* inst */\n";
+                        result += "\t??;\n";
                 }
 
                 var flowReturn = fn.segments[i].outFlow as Core.SegmentFlowEnd;
@@ -347,7 +358,7 @@ namespace Trapl.Codegen
                 }
 
                 else
-                    result += "\t/* flow */\n";
+                    result += "\t??;\n";
 
                 if (i < fn.segments.Count - 1)
                     result += "\n";

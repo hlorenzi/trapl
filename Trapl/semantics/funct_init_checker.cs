@@ -11,7 +11,7 @@ namespace Trapl.Semantics
 
             var statusList = new List<InitStatus>();
             for (var i = 0; i < funct.registerTypes.Count; i++)
-                statusList.Add(new InitStatus(i > 0 && i < funct.parameterNum));
+                statusList.Add(new InitStatus(i >= 1 && i < funct.parameterNum + 1));
 
             var segmentVisitCounts = new List<int>();
             for (var i = 0; i < funct.segments.Count; i++)

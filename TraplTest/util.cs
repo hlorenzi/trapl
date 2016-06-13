@@ -8,9 +8,9 @@ namespace TraplTest
         public static Trapl.Core.Session Compile(string src)
         {
             var session = new Trapl.Core.Session();
-            session.PrimitiveBool = session.CreateStruct(Trapl.Core.Name.FromPath("Bool"), null);
-            session.PrimitiveInt = session.CreateStruct(Trapl.Core.Name.FromPath("Int"), null);
-            session.PrimitiveUInt = session.CreateStruct(Trapl.Core.Name.FromPath("UInt"), null);
+            session.PrimitiveBool = session.CreatePrimitiveStruct(Trapl.Core.Name.FromPath("Bool"));
+            session.PrimitiveInt = session.CreatePrimitiveStruct(Trapl.Core.Name.FromPath("Int"));
+            session.PrimitiveUInt = session.CreatePrimitiveStruct(Trapl.Core.Name.FromPath("UInt"));
 
             var input = Trapl.Core.TextInput.MakeFromString(src);
             var tokens = Trapl.Grammar.Tokenizer.Tokenize(session, input);
@@ -54,6 +54,18 @@ namespace TraplTest
                 Assert.Inconclusive("Internal compiler error.");
 
             Assert.IsTrue(session.HasErrors(), "Compilation encountered no errors, but some were expected.");
+            return session;
+        }
+
+
+        public static Trapl.Core.Session FailWithCode(this Trapl.Core.Session session, Trapl.Diagnostics.MessageCode code)
+        {
+            if (session.HasInternalErrors())
+                Assert.Inconclusive("Internal compiler error.");
+
+            Assert.IsTrue(session.HasErrors(), "Compilation encountered no errors, but some were expected.");
+            Assert.IsTrue(session.HasMessagesWithCode(code), "No errors of the specified code were encountered.");
+
             return session;
         }
 

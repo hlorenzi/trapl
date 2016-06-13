@@ -67,5 +67,16 @@ namespace Trapl.Core
             }
             return false;
         }
+
+
+        public bool HasMessagesWithCode(Diagnostics.MessageCode code)
+        {
+            foreach (var message in this.messages)
+            {
+                if (message.GetCode() == code)
+                    return true;
+            }
+            return false;
+        }
     }
 }

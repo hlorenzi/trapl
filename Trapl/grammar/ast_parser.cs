@@ -380,6 +380,26 @@ namespace Trapl.Grammar
                 this.Match(TokenKind.ParenClose, "expected ')'");
                 return tupleTypeNode;
             }
+            // Parse a funct type.
+            else if (this.CurrentIs(TokenKind.KeywordFn))
+            {
+                var functTypeNode = new ASTNodeTypeFunct();
+                functTypeNode.SetSpan(this.Current().span);
+                this.Advance();
+                this.Match(TokenKind.ParenOpen, "expected '('");
+                while (this.CurrentIsNot(TokenKind.ParenClose))
+                {
+                    functTypeNode.AddParameterType(this.ParseType());
+                    this.MatchListSeparator(
+                        TokenKind.Comma, TokenKind.ParenClose,
+                        MessageCode.Expected, "expected ',' or ')'");
+                }
+                functTypeNode.AddSpan(this.Current().span);
+                this.Match(TokenKind.ParenClose, "expected ')'");
+                this.Match(TokenKind.Arrow, "expected '->'");
+                functTypeNode.SetReturnType(this.ParseType());
+                return functTypeNode;
+            }
             // Parse a placeholder type.
             else if (this.CurrentIs(TokenKind.Placeholder) && !this.NextIs(TokenKind.DoubleColon))
             {

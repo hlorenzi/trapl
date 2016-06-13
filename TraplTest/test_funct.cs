@@ -24,17 +24,26 @@ namespace TraplTest
                 return Util.Compile("fn test() -> () { " + src + " }");
             };
 
+            System.Func<string, Trapl.Core.Session> FunctWithParams = (src) =>
+            {
+                return Util.Compile("fn test(x: Int, y: Bool) -> () { " + src + " }");
+            };
+
             Funct("").Ok();
 
             Funct("let i = 0").Ok();
             Funct("let i = 0; let j = i").Ok();
-            Funct("           let j = i").Fail();
+            Funct("           let j = i").FailWithCode(Trapl.Diagnostics.MessageCode.Unknown);
 
             Funct("let i = 0; let i = 1").Ok();
             Funct("let i = 0; let i = 1; let j = i").Ok();
 
             Funct("let i = 0; { let i = 1 }; let j = i").Ok();
-            Funct("           { let i = 1 }; let j = i").Fail();
+            Funct("           { let i = 1 }; let j = i").FailWithCode(Trapl.Diagnostics.MessageCode.Unknown);
+
+            FunctWithParams("let i = x").Ok();
+            FunctWithParams("let j = y").Ok();
+            FunctWithParams("let i = x; let j = y").Ok();
         }
 
 
@@ -51,16 +60,20 @@ namespace TraplTest
             Funct("let x: Bool").Ok().LocalOk("x", "Bool");
             Funct("let x: Int").Ok().LocalOk("x", "Int");
             Funct("let x: (Bool, Int, Bool)").Ok().LocalOk("x", "(Bool, Int, Bool)");
+            Funct("let x: fn() -> ()").Ok().LocalOk("x", "fn() -> ()");
+            Funct("let x: fn(Bool, Int) -> Bool").Ok().LocalOk("x", "fn(Bool, Int) -> Bool");
 
             Funct("let x: Bool = true").Ok().LocalOk("x", "Bool");
             Funct("let x: Bool = false").Ok().LocalOk("x", "Bool");
             Funct("let x: Int = 0").Ok().LocalOk("x", "Int");
+            Funct("let x: fn() -> () = test").Ok().LocalOk("x", "fn() -> ()");
 
             //Funct("let x: (Int, Bool, Int); x.0 = 0; x.1 = true; x.2 = 0").Ok().LocalOk("x", "(Int, Bool, Int)");
 
             Funct("let x: Bool; x = true").Ok().LocalOk("x", "Bool");
             Funct("let x: Bool; x = false").Ok().LocalOk("x", "Bool");
             Funct("let x: Int; x = 0").Ok().LocalOk("x", "Int");
+            Funct("let x: fn() -> (); x = test").Ok().LocalOk("x", "fn() -> ()");
         }
 
 
@@ -88,6 +101,9 @@ namespace TraplTest
 
             Funct("let x = *0").Ok().LocalOk("x", "*Int");
             Funct("let x = *mut 0").Ok().LocalOk("x", "*mut Int");
+
+            Funct("let x = test").Ok().LocalOk("x", "fn() -> ()");
+            Funct("let x: _; x = test").Ok().LocalOk("x", "fn() -> ()");
 
             Funct("let x").Fail();
             Funct("let x: _").Fail();
